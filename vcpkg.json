@@ -1,6 +1,9 @@
 {
   "dependencies": [
+    "glfw3",
     "pffft",
-    "rtaudio"
+    "rtaudio",
+    "vulkan",
+    "glm"
   ]
 }

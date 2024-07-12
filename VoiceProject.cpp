@@ -6,6 +6,8 @@
 #include <cstdlib>
 #include <rtaudio/RtAudio.h>
 #include <pffft/pffft.h>
+#include <thread>
+#include "VulkanWindow.h"
 
 
 typedef float INPUT_TYPE;
@@ -172,16 +174,22 @@ int main() {
     }
 #pragma endregion
 
+    // Setup FFT
     PFFFT_Setup* pffftSetup = pffft_new_setup(FFT_FRAME_SAMPLES, pffft_transform_t::PFFFT_REAL);
     float* fft_in = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
     float* fft_out = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
     float* fft_work = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
 
+    // Setup data visualization
+    VulkanWindow app;
+    app.initWindow();
+    app.run();
+
     std::vector<double> x = std::vector<double>(FFT_FRAME_SAMPLES / 2);
     std::vector<double> samples = std::vector<double>(FFT_FRAME_SAMPLES / 2);
 
     int counter = 0;
-    while (inputAudio.isStreamRunning()) {
+    while (app.isOpen && inputAudio.isStreamRunning()) {
         Sleep(1000);
 
         unsigned int start = inputData.writeOffset - INPUT_BUFFER_SIZE;
@@ -201,6 +209,7 @@ int main() {
         }
     }
 
+    // Cleanup
     pffft_destroy_setup(pffftSetup);
     pffft_aligned_free(fft_in);
     pffft_aligned_free(fft_out);
