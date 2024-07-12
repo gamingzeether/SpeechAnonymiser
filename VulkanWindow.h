@@ -25,7 +25,7 @@
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-const int FREQUENCIES = 1024;
+const int FREQUENCIES = 2048;
 
 struct Vertex {
 	glm::vec2 pos;
