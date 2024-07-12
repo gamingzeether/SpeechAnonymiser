@@ -25,7 +25,7 @@
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-const int FREQUENCIES = 64;
+const int FREQUENCIES = 1024;
 
 struct Vertex {
 	glm::vec2 pos;
@@ -36,9 +36,7 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	glm::float32 frequencies[FREQUENCIES];
 };
 
 struct QueueFamilyIndices {
@@ -54,6 +52,12 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct Frequencies {
+	float** frequencies;
+	int frames;
+	int currentFrame;
+};
+
 extern std::vector<Vertex> vertices;
 extern std::vector<uint16_t> indices;
 
@@ -61,6 +65,7 @@ class VulkanWindow {
 public:
 	GLFWwindow* window;
 	bool isOpen = false;
+	Frequencies fftData;
 
 	void run();
 

@@ -71,13 +71,14 @@ void VulkanWindow::initWindow() {
 }
 
 void VulkanWindow::initVulkan() {
-	vertices = std::vector<Vertex>(FREQUENCIES);
+	vertices = std::vector<Vertex>(FREQUENCIES / 4);
 	for (int i = 0; i < vertices.size(); i++) {
-		Vertex v = { {i, 0}, {1, 1, 1} };
+		float x = ((i * 1.8) / vertices.size()) - (1.8 / 2);
+		Vertex v = { {x, 0}, {1, 1, 1} };
 		vertices[i] = v;
 	}
-	indices = std::vector<uint16_t>(FREQUENCIES * 2);
-	for (int i = 0; i < FREQUENCIES; i++) {
+	indices = std::vector<uint16_t>(FREQUENCIES / 2 - 2);
+	for (int i = 0; i < indices.size() / 2; i++) {
 		indices[i * 2] = i;
 		indices[i * 2 + 1] = i + 1;
 	}
@@ -521,7 +522,7 @@ void VulkanWindow::createGraphicsPipeline() {
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 2.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -653,7 +654,7 @@ void VulkanWindow::createIndexBuffer() {
 }
 
 void VulkanWindow::createUniformBuffer() {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	VkDeviceSize bufferSize = sizeof(float) * FREQUENCIES;
 	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
 }
 
@@ -839,20 +840,21 @@ void VulkanWindow::createSemaphores() {
 }
 
 void VulkanWindow::updateUniformBuffer() {
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
-
 	UniformBufferObject ubo = {};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
+
+	for (int i = 0; i < FREQUENCIES; i++) {
+		float avg = 0;
+		for (int j = 0; j < fftData.frames; j++) {
+			float val = fftData.frequencies[j][i];
+			avg += fftData.frequencies[j][i];
+		}
+		avg /= fftData.frames;
+		ubo.frequencies[i] = avg;
+	}
 
 	void* data;
-	vkMapMemory(device, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
-	memcpy(data, &ubo, sizeof(ubo));
+	vkMapMemory(device, uniformBufferMemory, 0, sizeof(glm::float32) * FREQUENCIES, 0, &data);
+	memcpy(data, &ubo, sizeof(glm::float32) * FREQUENCIES);
 	vkUnmapMemory(device, uniformBufferMemory);
 }
 

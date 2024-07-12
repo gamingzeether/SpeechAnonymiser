@@ -18,11 +18,12 @@ typedef float OUTPUT_TYPE;
 #define OUTPUT_FORMAT RTAUDIO_FLOAT32
 #define OUTPUT_SCALE  1.0
 
-#define INPUT_BUFFER_TIME 1
+#define INPUT_BUFFER_TIME 0.1
 #define INPUT_BUFFER_SIZE 128
 #define OUTPUT_BUFFER_SIZE 128
 
-#define FFT_FRAME_SAMPLES 128
+#define FFT_FRAME_SAMPLES 1024
+#define FFT_VISUALIZATION_FRAMES 9
 
 struct InputData {
     INPUT_TYPE* buffer;
@@ -174,46 +175,60 @@ int main() {
     }
 #pragma endregion
 
-    // Setup FFT
-    PFFFT_Setup* pffftSetup = pffft_new_setup(FFT_FRAME_SAMPLES, pffft_transform_t::PFFFT_REAL);
-    float* fft_in = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
-    float* fft_out = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
-    float* fft_work = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
-
     // Setup data visualization
     VulkanWindow app;
     app.initWindow();
-    app.run();
-
-    std::vector<double> x = std::vector<double>(FFT_FRAME_SAMPLES / 2);
-    std::vector<double> samples = std::vector<double>(FFT_FRAME_SAMPLES / 2);
-
-    int counter = 0;
-    while (app.isOpen && inputAudio.isStreamRunning()) {
-        Sleep(1000);
-
-        unsigned int start = inputData.writeOffset - INPUT_BUFFER_SIZE;
-        for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
-            unsigned int readLocation = (start + i) % inputData.totalFrames;
-            float data = inputData.buffer[readLocation];
-            fft_in[i] = data;
-            //x[i] = i;
-            //samples[i] = data;
-        }
-
-        pffft_transform_ordered(pffftSetup, fft_in, fft_out, fft_work, PFFFT_FORWARD);
-
-        for (int i = 0; i < FFT_FRAME_SAMPLES / 2; i++) {
-            x[i] = (i * sampleRate) / (FFT_FRAME_SAMPLES * 2);
-            samples[i] = abs(fft_out[i]);
+    app.fftData.frames = FFT_VISUALIZATION_FRAMES;
+    app.fftData.currentFrame = 0;
+    app.fftData.frequencies = new float*[FFT_VISUALIZATION_FRAMES];
+    for (int i = 0; i < FFT_VISUALIZATION_FRAMES; i++) {
+        app.fftData.frequencies[i] = new float[FFT_FRAME_SAMPLES];
+        for (int j = 0; j < FFT_FRAME_SAMPLES; j++) {
+            app.fftData.frequencies[i][j] = 0.0;
         }
     }
+    std::thread fft = std::thread([&app, &inputAudio, &inputData, &sampleRate] {
+        // Setup FFT
+        PFFFT_Setup* pffftSetup = pffft_new_setup(FFT_FRAME_SAMPLES, pffft_transform_t::PFFFT_REAL);
+        float* fft_in = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
+        float* fft_out = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
+        float* fft_work = (float*)pffft_aligned_malloc(FFT_FRAME_SAMPLES * sizeof(float));
+        float* window = new float[FFT_FRAME_SAMPLES];
+        for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
+            //window[i] = 1.0; // None
+            window[i] = 0.5 * (1 - cos((6.28318530718 * i) / FFT_FRAME_SAMPLES)); // Hanning
+        }
 
-    // Cleanup
-    pffft_destroy_setup(pffftSetup);
-    pffft_aligned_free(fft_in);
-    pffft_aligned_free(fft_out);
-    pffft_aligned_free(fft_work);
+        while (!app.isOpen) {
+            Sleep(10);
+        }
+        while (app.isOpen && inputAudio.isStreamRunning()) {
+            unsigned int start = inputData.writeOffset - INPUT_BUFFER_SIZE;
+            for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
+                unsigned int readLocation = (start + i) % inputData.totalFrames;
+                float data = inputData.buffer[readLocation];
+                fft_in[i] = data * window[i];
+            }
+
+            pffft_transform_ordered(pffftSetup, fft_in, fft_out, fft_work, PFFFT_FORWARD);
+
+            for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
+                app.fftData.frequencies[app.fftData.currentFrame][i] = abs(fft_out[i]);
+            }
+            app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_VISUALIZATION_FRAMES;
+
+            Sleep(20);
+        }
+
+        // Cleanup
+        pffft_destroy_setup(pffftSetup);
+        pffft_aligned_free(fft_in);
+        pffft_aligned_free(fft_out);
+        pffft_aligned_free(fft_work);
+        });
+
+    app.run();
+    fft.join();
 
     return 0;
 }
