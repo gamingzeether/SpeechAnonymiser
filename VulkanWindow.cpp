@@ -110,8 +110,6 @@ void VulkanWindow::mainLoop() {
 	long frameDuration = 1000000 / targetFps;
 	lastFrameTimePoint = std::chrono::high_resolution_clock::now();
 	while (!glfwWindowShouldClose(window)) {
-		auto frameStart = std::chrono::high_resolution_clock::now();
-
 		glfwPollEvents();
 
 		updateUniformBuffer();

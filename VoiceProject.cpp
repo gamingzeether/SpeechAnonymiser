@@ -22,7 +22,8 @@ typedef float OUTPUT_TYPE;
 #define INPUT_BUFFER_SIZE 128
 #define OUTPUT_BUFFER_SIZE 128
 
-#define FFT_FRAME_SAMPLES 2048
+#define FFT_FRAME_SAMPLES FREQUENCIES
+#define FFT_FRAME_SPACING 512
 #define FFT_VISUALIZATION_FRAMES 9
 
 struct InputData {
@@ -202,10 +203,14 @@ int main() {
         while (!app.isOpen) {
             Sleep(10);
         }
+        unsigned long lastSampleStart = 0;
         while (app.isOpen && inputAudio.isStreamRunning()) {
-            unsigned int start = inputData.writeOffset - INPUT_BUFFER_SIZE;
+            while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
+                Sleep(0);
+            }
+            lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
-                unsigned int readLocation = (start + i) % inputData.totalFrames;
+                unsigned int readLocation = (lastSampleStart + i) % inputData.totalFrames;
                 float data = inputData.buffer[readLocation];
                 fft_in[i] = data * window[i];
             }
@@ -216,8 +221,6 @@ int main() {
                 app.fftData.frequencies[app.fftData.currentFrame][i] = abs(fft_out[i]);
             }
             app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_VISUALIZATION_FRAMES;
-
-            Sleep(20);
         }
 
         // Cleanup

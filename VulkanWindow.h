@@ -23,9 +23,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
-const int FREQUENCIES = 2048;
+#define WIDTH 800
+#define HEIGHT 600
+#define FREQUENCIES 2048
 //#define VERTICAL
 
 struct Vertex {
