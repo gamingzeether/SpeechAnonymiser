@@ -131,7 +131,7 @@ void VulkanWindow::mainLoop() {
 		}
 		
 		now = std::chrono::high_resolution_clock::now();
-		std::cout << "\nFPS: " << (1 / std::chrono::duration_cast<std::chrono::duration<double>>(now - lastFrameTimePoint).count());
+		//std::cout << "\nFPS: " << (1 / std::chrono::duration_cast<std::chrono::duration<double>>(now - lastFrameTimePoint).count());
 
 		lastFrameTimePoint = now;
 		frameNumber++;
