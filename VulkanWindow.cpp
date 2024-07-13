@@ -458,7 +458,11 @@ void VulkanWindow::createDescriptorSetLayout() {
 }
 
 void VulkanWindow::createGraphicsPipeline() {
-	auto vertShaderCode = readFile("shaders/vert.spv");
+#ifdef VERTICAL
+	auto vertShaderCode = readFile("shaders/vert_v.spv");
+#else
+	auto vertShaderCode = readFile("shaders/vert_h.spv");
+#endif
 	auto fragShaderCode = readFile("shaders/frag.spv");
 
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
