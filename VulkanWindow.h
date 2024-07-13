@@ -115,7 +115,7 @@ private:
 
 	std::chrono::high_resolution_clock::time_point lastFrameTimePoint;
 	uint64_t frameNumber = 0;
-	double targetFps = 165;
+	double targetFps = 60;
 
 	void initVulkan();
 

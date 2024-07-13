@@ -106,12 +106,11 @@ void VulkanWindow::initVulkan() {
 
 void VulkanWindow::mainLoop() {
 	std::chrono::high_resolution_clock::time_point now;
-	std::chrono::duration<double> timeSinceLastFrame;
-	double frameDuration = 1.0 / targetFps;
-	double deltaTime = frameDuration;
+	std::chrono::microseconds timeSinceLastFrame;
+	long frameDuration = 1000000 / targetFps;
 	lastFrameTimePoint = std::chrono::high_resolution_clock::now();
 	while (!glfwWindowShouldClose(window)) {
-		//auto frameStart = std::chrono::high_resolution_clock::now();
+		auto frameStart = std::chrono::high_resolution_clock::now();
 
 		glfwPollEvents();
 
@@ -119,25 +118,23 @@ void VulkanWindow::mainLoop() {
 		drawFrame();
 
 		//auto tickEnd = std::chrono::high_resolution_clock::now();
-		while (true) {
-			now = std::chrono::high_resolution_clock::now();
-			timeSinceLastFrame = std::chrono::duration_cast<std::chrono::duration<double>>(now - lastFrameTimePoint);
-			deltaTime = timeSinceLastFrame.count();
-			double remainingTime = frameDuration - deltaTime;
-			if (remainingTime <= 0) {
-				lastFrameTimePoint = now;
-				frameNumber++;
-				break;
-			} else {
-				std::this_thread::sleep_for(std::chrono::milliseconds(int(remainingTime * 1000.0)));
+		now = std::chrono::high_resolution_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - lastFrameTimePoint);
+
+		long remainingTime = frameDuration - elapsed.count();
+		if (remainingTime > 0) {
+			if (remainingTime > frameDuration) {
+				remainingTime = frameDuration;
 			}
+			//std::this_thread::sleep_for(std::chrono::microseconds(remainingTime));
+			std::this_thread::sleep_for(std::chrono::milliseconds(1)); // TODO: more precise sleep or use vsync
 		}
-		/*
-		std::cout <<
-			"\nFrame time " << std::chrono::duration_cast<std::chrono::duration<double>>(now - frameStart).count() <<
-			"\nTick time " << std::chrono::duration_cast<std::chrono::duration<double>>(tickEnd - frameStart).count() <<
-			"\nFPS " << (1 / std::chrono::duration_cast<std::chrono::duration<double>>(now - frameStart).count());
-		*/
+		
+		now = std::chrono::high_resolution_clock::now();
+		std::cout << "\nFPS: " << (1 / std::chrono::duration_cast<std::chrono::duration<double>>(now - lastFrameTimePoint).count());
+
+		lastFrameTimePoint = now;
+		frameNumber++;
 	}
 	vkDeviceWaitIdle(device);
 }
