@@ -1,9 +1,12 @@
 {
   "dependencies": [
+    "cargs",
     "glfw3",
-    "pffft",
+    "glm",
+    "libsamplerate",
+    "fftw3",
     "rtaudio",
     "vulkan",
-    "glm"
+    "drlibs"
   ]
 }

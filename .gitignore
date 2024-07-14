@@ -400,3 +400,5 @@ FodyWeavers.xsd
 
 # vcpkg
 vcpkg_installed/*
+
+enc_temp_folder/*

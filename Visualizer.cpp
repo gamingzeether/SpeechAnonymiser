@@ -1,5 +1,5 @@
 #pragma once
-#include "VulkanWindow.h"
+#include "Visualizer.h"
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_LUNARG_standard_validation"
@@ -9,11 +9,10 @@ const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-#define NDEBUG
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+const bool enableValidationLayers = false;
 #endif
 
 std::vector<Vertex> vertices;
@@ -48,7 +47,7 @@ std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttributeDescription
 	return attributeDescriptions;
 }
 
-void VulkanWindow::run() {
+void Visualizer::run() {
 	if (window == nullptr) {
 		initWindow();
 	}
@@ -59,25 +58,26 @@ void VulkanWindow::run() {
 	isOpen = false;
 }
 
-void VulkanWindow::initWindow() {
+void Visualizer::initWindow() {
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Visualizer", nullptr, nullptr);
+	glfwSetWindowPos(window, POS_X, POS_Y);
 
 	glfwSetWindowUserPointer(window, this);
 	glfwSetWindowSizeCallback(window, onWindowResized);
 }
 
-void VulkanWindow::initVulkan() {
-	vertices = std::vector<Vertex>(FREQUENCIES / 4);
+void Visualizer::initVulkan() {
+	vertices = std::vector<Vertex>(FFT_REAL_SAMPLES);
 	for (int i = 0; i < vertices.size(); i++) {
-		float x = ((i * 1.8) / vertices.size()) - (1.8 / 2);
+		double x = ((i * 1.8) / vertices.size()) - (1.8 / 2);
 		Vertex v = { {x, 0}, {1, 1, 1} };
 		vertices[i] = v;
 	}
-	indices = std::vector<uint16_t>(FREQUENCIES / 2 - 2);
+	indices = std::vector<uint16_t>(vertices.size() * 2 - 2);
 	for (int i = 0; i < indices.size() / 2; i++) {
 		indices[i * 2] = i;
 		indices[i * 2 + 1] = i + 1;
@@ -104,10 +104,9 @@ void VulkanWindow::initVulkan() {
 	createSemaphores();
 }
 
-void VulkanWindow::mainLoop() {
+void Visualizer::mainLoop() {
 	std::chrono::high_resolution_clock::time_point now;
-	std::chrono::microseconds timeSinceLastFrame;
-	long frameDuration = 1000000 / targetFps;
+	long frameDuration = (long)(1000000 / targetFps);
 	lastFrameTimePoint = std::chrono::high_resolution_clock::now();
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -137,7 +136,7 @@ void VulkanWindow::mainLoop() {
 	vkDeviceWaitIdle(device);
 }
 
-void VulkanWindow::cleanupSwapChain() {
+void Visualizer::cleanupSwapChain() {
 	for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
 		vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
 	}
@@ -155,7 +154,7 @@ void VulkanWindow::cleanupSwapChain() {
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
-void VulkanWindow::cleanup() {
+void Visualizer::cleanup() {
 	cleanupSwapChain();
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -184,14 +183,14 @@ void VulkanWindow::cleanup() {
 	glfwTerminate();
 }
 
-void VulkanWindow::onWindowResized(GLFWwindow* window, int width, int height) {
+void Visualizer::onWindowResized(GLFWwindow* window, int width, int height) {
 	if (width == 0 || height == 0) return;
 
-	VulkanWindow* app = reinterpret_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
+	Visualizer* app = reinterpret_cast<Visualizer*>(glfwGetWindowUserPointer(window));
 	app->recreateSwapChain();
 }
 
-void VulkanWindow::recreateSwapChain() {
+void Visualizer::recreateSwapChain() {
 	vkDeviceWaitIdle(device);
 
 	cleanupSwapChain();
@@ -204,7 +203,7 @@ void VulkanWindow::recreateSwapChain() {
 	createCommandBuffers();
 }
 
-void VulkanWindow::createInstance() {
+void Visualizer::createInstance() {
 	if (enableValidationLayers && !checkValidationLayerSupport()) {
 		throw std::runtime_error("validation layers requested, but not available!");
 	}
@@ -237,7 +236,7 @@ void VulkanWindow::createInstance() {
 	}
 }
 
-void VulkanWindow::setupDebugCallback() {
+void Visualizer::setupDebugCallback() {
 	if (!enableValidationLayers) return;
 
 	VkDebugReportCallbackCreateInfoEXT createInfo = {};
@@ -246,13 +245,13 @@ void VulkanWindow::setupDebugCallback() {
 	createInfo.pfnCallback = debugCallback;
 }
 
-void VulkanWindow::createSurface() {
+void Visualizer::createSurface() {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create window surface!");
 	}
 }
 
-void VulkanWindow::pickPhysicalDevice() {
+void Visualizer::pickPhysicalDevice() {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -275,7 +274,7 @@ void VulkanWindow::pickPhysicalDevice() {
 	}
 }
 
-void VulkanWindow::createLogicalDevice() {
+void Visualizer::createLogicalDevice() {
 	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -319,7 +318,7 @@ void VulkanWindow::createLogicalDevice() {
 	vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);
 }
 
-void VulkanWindow::createSwapChain() {
+void Visualizer::createSwapChain() {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -370,7 +369,7 @@ void VulkanWindow::createSwapChain() {
 	swapChainExtent = extent;
 }
 
-void VulkanWindow::createImageViews() {
+void Visualizer::createImageViews() {
 	swapChainImageViews.resize(swapChainImages.size());
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -395,7 +394,7 @@ void VulkanWindow::createImageViews() {
 	}
 }
 
-void VulkanWindow::createRenderPass() {
+void Visualizer::createRenderPass() {
 	VkAttachmentDescription colorAttachment = {};
 	colorAttachment.format = swapChainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -437,7 +436,7 @@ void VulkanWindow::createRenderPass() {
 	}
 }
 
-void VulkanWindow::createDescriptorSetLayout() {
+void Visualizer::createDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorCount = 1;
@@ -455,7 +454,7 @@ void VulkanWindow::createDescriptorSetLayout() {
 	}
 }
 
-void VulkanWindow::createGraphicsPipeline() {
+void Visualizer::createGraphicsPipeline() {
 #ifdef VERTICAL
 	auto vertShaderCode = readFile("shaders/vert_v.spv");
 #else
@@ -577,7 +576,7 @@ void VulkanWindow::createGraphicsPipeline() {
 	vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
-void VulkanWindow::createFramebuffers() {
+void Visualizer::createFramebuffers() {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -600,7 +599,7 @@ void VulkanWindow::createFramebuffers() {
 	}
 }
 
-void VulkanWindow::createCommandPool() {
+void Visualizer::createCommandPool() {
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
 	VkCommandPoolCreateInfo poolInfo = {};
@@ -612,7 +611,7 @@ void VulkanWindow::createCommandPool() {
 	}
 }
 
-void VulkanWindow::createVertexBuffer() {
+void Visualizer::createVertexBuffer() {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
 	VkBuffer stagingBuffer;
@@ -632,7 +631,7 @@ void VulkanWindow::createVertexBuffer() {
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void VulkanWindow::createIndexBuffer() {
+void Visualizer::createIndexBuffer() {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
 	VkBuffer stagingBuffer;
@@ -652,12 +651,12 @@ void VulkanWindow::createIndexBuffer() {
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void VulkanWindow::createUniformBuffer() {
-	VkDeviceSize bufferSize = sizeof(float) * FREQUENCIES;
+void Visualizer::createUniformBuffer() {
+	VkDeviceSize bufferSize = sizeof(glm::vec4) * FFT_REAL_SAMPLES;
 	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
 }
 
-void VulkanWindow::createDescriptorPool() {
+void Visualizer::createDescriptorPool() {
 	VkDescriptorPoolSize poolSize = {};
 	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSize.descriptorCount = 1;
@@ -673,7 +672,7 @@ void VulkanWindow::createDescriptorPool() {
 	}
 }
 
-void VulkanWindow::createDescriptorSet() {
+void Visualizer::createDescriptorSet() {
 	VkDescriptorSetLayout layouts[] = { descriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -702,7 +701,7 @@ void VulkanWindow::createDescriptorSet() {
 	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void VulkanWindow::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+void Visualizer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 	VkBufferCreateInfo bufferInfo = {};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.size = size;
@@ -728,7 +727,7 @@ void VulkanWindow::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkM
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-void VulkanWindow::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void Visualizer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -761,7 +760,7 @@ void VulkanWindow::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSi
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-uint32_t VulkanWindow::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t Visualizer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
@@ -774,7 +773,7 @@ uint32_t VulkanWindow::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void VulkanWindow::createCommandBuffers() {
+void Visualizer::createCommandBuffers() {
 	commandBuffers.resize(swapChainFramebuffers.size());
 
 	VkCommandBufferAllocateInfo allocInfo = {};
@@ -827,7 +826,7 @@ void VulkanWindow::createCommandBuffers() {
 	}
 }
 
-void VulkanWindow::createSemaphores() {
+void Visualizer::createSemaphores() {
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -838,26 +837,36 @@ void VulkanWindow::createSemaphores() {
 	}
 }
 
-void VulkanWindow::updateUniformBuffer() {
+void Visualizer::updateUniformBuffer() {
 	UniformBufferObject ubo = {};
 
-	for (int i = 0; i < FREQUENCIES; i++) {
-		float avg = 0;
-		for (int j = 0; j < fftData.frames; j++) {
-			float val = fftData.frequencies[j][i];
-			avg += fftData.frequencies[j][i];
+	int currentFrame = fftData.currentFrame;
+	float* avg = new float[FFT_REAL_SAMPLES];
+	std::fill_n(avg, FFT_REAL_SAMPLES, 0.0f);
+	for (int j = 0; j < fftData.frames; j++) {
+		int k = (currentFrame - j + FFT_FRAMES) % FFT_FRAMES;
+		double mult = 1.0 / (k + 2);
+		for (int i = 0; i < FFT_REAL_SAMPLES; i++) {
+			avg[i] += fftData.frequencies[j][i] * mult;
 		}
-		avg /= fftData.frames;
-		ubo.frequencies[i] = avg;
 	}
+	for (int i = 0; i < VEC4_COUNT; i++) {
+		float x = avg[i * 4] * 0.5609096612021588; // 1 - (e - 1)
+		float y = avg[i * 4 + 1] * 0.5609096612021588;
+		float z = avg[i * 4 + 2] * 0.5609096612021588;
+		float w = avg[i * 4 + 3] * 0.5609096612021588;
+		glm::vec4 vec = glm::vec4(x, y, z, w);
+		ubo.frequencies[i] = vec;
+	}
+	delete[] avg;
 
 	void* data;
-	vkMapMemory(device, uniformBufferMemory, 0, sizeof(glm::float32) * FREQUENCIES, 0, &data);
-	memcpy(data, &ubo, sizeof(glm::float32) * FREQUENCIES);
+	vkMapMemory(device, uniformBufferMemory, 0, sizeof(glm::vec4) * VEC4_COUNT, 0, &data);
+	memcpy(data, &ubo, sizeof(glm::vec4) * VEC4_COUNT);
 	vkUnmapMemory(device, uniformBufferMemory);
 }
 
-void VulkanWindow::drawFrame() {
+void Visualizer::drawFrame() {
 	uint32_t imageIndex;
 	VkResult result = vkAcquireNextImageKHR(device, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
@@ -911,7 +920,7 @@ void VulkanWindow::drawFrame() {
 	vkQueueWaitIdle(presentQueue);
 }
 
-VkShaderModule VulkanWindow::createShaderModule(const std::vector<char>& code) {
+VkShaderModule Visualizer::createShaderModule(const std::vector<char>& code) {
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
@@ -925,7 +934,7 @@ VkShaderModule VulkanWindow::createShaderModule(const std::vector<char>& code) {
 	return shaderModule;
 }
 
-VkSurfaceFormatKHR VulkanWindow::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+VkSurfaceFormatKHR Visualizer::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
 	if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
 		return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 	}
@@ -939,7 +948,7 @@ VkSurfaceFormatKHR VulkanWindow::chooseSwapSurfaceFormat(const std::vector<VkSur
 	return availableFormats[0];
 }
 
-VkPresentModeKHR VulkanWindow::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
+VkPresentModeKHR Visualizer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
 	VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
 	for (const auto& availablePresentMode : availablePresentModes) {
@@ -953,7 +962,7 @@ VkPresentModeKHR VulkanWindow::chooseSwapPresentMode(const std::vector<VkPresent
 	return bestMode;
 }
 
-VkExtent2D VulkanWindow::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D Visualizer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 		return capabilities.currentExtent;
 	} else {
@@ -972,7 +981,7 @@ VkExtent2D VulkanWindow::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabi
 	}
 }
 
-SwapChainSupportDetails VulkanWindow::querySwapChainSupport(VkPhysicalDevice device) {
+SwapChainSupportDetails Visualizer::querySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details;
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -996,7 +1005,7 @@ SwapChainSupportDetails VulkanWindow::querySwapChainSupport(VkPhysicalDevice dev
 	return details;
 }
 
-bool VulkanWindow::isDeviceSuitable(VkPhysicalDevice device) {
+bool Visualizer::isDeviceSuitable(VkPhysicalDevice device) {
 	QueueFamilyIndices indices = findQueueFamilies(device);
 
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -1010,7 +1019,7 @@ bool VulkanWindow::isDeviceSuitable(VkPhysicalDevice device) {
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-bool VulkanWindow::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+bool Visualizer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	uint32_t extensionCount;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -1026,7 +1035,7 @@ bool VulkanWindow::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	return requiredExtensions.empty();
 }
 
-QueueFamilyIndices VulkanWindow::findQueueFamilies(VkPhysicalDevice device) {
+QueueFamilyIndices Visualizer::findQueueFamilies(VkPhysicalDevice device) {
 	QueueFamilyIndices indices;
 
 	uint32_t queueFamilyCount = 0;
@@ -1058,7 +1067,7 @@ QueueFamilyIndices VulkanWindow::findQueueFamilies(VkPhysicalDevice device) {
 	return indices;
 }
 
-std::vector<const char*> VulkanWindow::getRequiredExtensions() {
+std::vector<const char*> Visualizer::getRequiredExtensions() {
 	std::vector<const char*> extensions;
 
 	unsigned int glfwExtensionCount = 0;
@@ -1076,7 +1085,7 @@ std::vector<const char*> VulkanWindow::getRequiredExtensions() {
 	return extensions;
 }
 
-bool VulkanWindow::checkValidationLayerSupport() {
+bool Visualizer::checkValidationLayerSupport() {
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -1101,7 +1110,7 @@ bool VulkanWindow::checkValidationLayerSupport() {
 	return true;
 }
 
-std::vector<char> VulkanWindow::readFile(const std::string& filename) {
+std::vector<char> Visualizer::readFile(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
@@ -1119,7 +1128,7 @@ std::vector<char> VulkanWindow::readFile(const std::string& filename) {
 	return buffer;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanWindow::debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char* layerPrefix, const char* msg, void* userData) {
+VKAPI_ATTR VkBool32 VKAPI_CALL Visualizer::debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char* layerPrefix, const char* msg, void* userData) {
 	std::cerr << "validation layer: " << msg << std::endl;
 
 	return VK_FALSE;

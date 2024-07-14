@@ -1,7 +1,5 @@
 #pragma once
-#define _DISABLE_VECTOR_ANNOTATION
-#define _DISABLE_STRING_ANNOTATION
-#define GLFW_INCLUDE_VULKAN
+#include "define.h"
 
 // https://github.com/heitaoflower/vulkan-tutorial/blob/master/Tutorial24
 
@@ -16,17 +14,10 @@
 #include <set>
 #include <thread>
 
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#define WIDTH 800
-#define HEIGHT 600
-#define FREQUENCIES 2048
-//#define VERTICAL
 
 struct Vertex {
 	glm::vec2 pos;
@@ -37,7 +28,7 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-	glm::float32 frequencies[FREQUENCIES];
+	glm::vec4 frequencies[VEC4_COUNT];
 };
 
 struct QueueFamilyIndices {
@@ -62,7 +53,7 @@ struct Frequencies {
 extern std::vector<Vertex> vertices;
 extern std::vector<uint16_t> indices;
 
-class VulkanWindow {
+class Visualizer {
 public:
 	GLFWwindow* window;
 	bool isOpen = false;
