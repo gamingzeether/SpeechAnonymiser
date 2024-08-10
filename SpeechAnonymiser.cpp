@@ -1,7 +1,11 @@
 ﻿#include "define.h"
 
+#include "common_inc.h"
+
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
+#define MLPACK_ENABLE_ANN_SERIALIZATION
+#define ARMA_PRINT_EXCEPTIONS
 
 #include <iostream>
 #include <algorithm>
@@ -16,18 +20,57 @@
 #include <samplerate.h>
 #include <dr_mp3.h>
 #include <dr_wav.h>
+#include <mlpack/mlpack.hpp>
+#include <mlpack/core.hpp>
+#include <mlpack/methods/ann/rnn.hpp>
+#include <mlpack/methods/ann/loss_functions/mean_squared_error.hpp>
+#include <mlpack/methods/ann.hpp>
 #include "Visualizer.h"
 #include "TSVReader.h"
-#include "NeuralNetwork.h"
+
+using namespace arma;
+using namespace mlpack;
 
 float* window;
 float* fftwIn;
 fftwf_complex* fftwOut;
 fftwf_plan fftwPlan;
 
-std::unordered_set<size_t> phonemeSet = {
-
+const std::unordered_map<size_t, size_t> phonemeSet = {
+    { 14695981039346656037, 0 }, { 775199711183770140, 1 }, { 781211840765692538, 2 }, { 12638201494206808739, 3 },
+    { 12638191598602154840, 4 }, { 616487406706180062, 5 }, { 775179919974462342, 6 }, { 784041983696139977, 7 },
+    { 4284604507161151312, 8 }, { 12638186101044013785, 9 }, { 781206343207551483, 10 }, { 769434971718195217, 11 },
+    { 781245925626167079, 12 }, { 12638206991764949794, 13 }, { 781238229044769602, 14 }, { 12638202593718436950, 15 },
+    { 781212940277320749, 16 }, { 781201945161038639, 17 }, { 12638194897137039473, 18 }, { 6172630899046765112, 19 },
+    { 12638190499090526629, 20 }, { 620436852473957074, 21 }, { 12638205892253321583, 22 }, { 17631108863612600877, 23 },
+    { 8776449256319602461, 24 }, { 775200810695398351, 25 }, { 781229432951743914, 26 }, { 6172616605395598369, 27 },
+    { 12638198195671924106, 28 }, { 784043083207768188, 29 }, { 781210741254064327, 30 }, { 7654388843941525073, 31 },
+    { 3301456393863814039, 32 }, { 12638183902020757363, 33 }, { 12638203693230065161, 34 }, { 781219537347090015, 35 },
+    { 784054078324050298, 36 }, { 12638197096160295895, 37 }, { 12638216887369603693, 38 }, { 12638199295183552317, 39 },
+    { 666124933821065644, 40 }, { 781203044672666850, 41 }, { 781230532463372125, 42 }, { 9394683753978221352, 43 },
+    { 14760662235127336261, 44 }, { 8279719471877298238, 45 }, { 18381290254188567773, 46 }, { 781200845649410428, 47 },
+    { 12638189399578898418, 48 }, { 12638195996648667684, 49 }, { 10412696266599671199, 50 }, { 6172614406372341947, 51 },
+    { 14755191065266493675, 52 }, { 2555796195102104650, 53 }, { 10873836967980345454, 54 }, { 14755155880894390923, 55 },
+    { 781208542230807905, 56 }, { 620459942218149505, 57 }, { 781242627091282446, 58 }, { 12638192698113783051, 59 },
+    { 626089441753454475, 60 }, { 10621609967691921460, 61 }, { 17631101167031203400, 62 }, { 8776447057296346039, 63 },
+    { 10895387263509462849, 64 }, { 784046381742652821, 65 }, { 780253066626081771, 66 }, { 15747199043262252161, 67 },
+    { 4284612203742548789, 68 }, { 6178120760605287285, 69 }, { 784037585649627133, 70 }, { 6172617704907226580, 71 },
+    { 667979809937479151, 72 }, { 15267723897253499871, 73 }, { 15269974597556069338, 74 }, { 2039982187332726600, 75 },
+    { 784030988579857867, 76 }, { 14263972033103647634, 77 }, { 8776441559738204984, 78 },
 };
+
+std::chrono::time_point programStart = std::chrono::system_clock::now();
+int SAMPLE_RATE;
+
+size_t inputSize = FFT_REAL_SAMPLES;
+size_t outputSize = phonemeSet.size();
+size_t hiddenSize = FFT_REAL_SAMPLES;
+
+std::string modelFile = "phoneme_rnn";
+std::string modelExt = ".bin";
+
+ann::RNN<MeanSquaredError, HeInitialization> network;
+ens::Adam optimizer;
 
 struct InputData {
     INPUT_TYPE** buffer;
@@ -36,6 +79,18 @@ struct InputData {
     size_t channels;
     size_t writeOffset;
     size_t lastProcessed;
+
+    InputData() {}
+    InputData(size_t ch, size_t fr) {
+        totalFrames = fr;
+        channels = ch;
+        buffer = new float*[ch];
+        for (size_t i = 0; i < ch; i++) {
+            buffer[i] = new float[fr];
+            std::fill_n(buffer[i], fr, 0.0f);
+        }
+        writeOffset = 0;
+    }
 };
 
 struct OutputData {
@@ -84,7 +139,7 @@ struct Clip {
         float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32((clipPath + tsvElements[TSVReader::Indices::PATH]).c_str(), &cfg, &samples, NULL);
 
         if (cfg.sampleRate == targetSampleRate) {
-            memcpy(buffer, floatBuffer, samples);
+            memcpy(buffer, floatBuffer, sizeof(float) * samples);
             size = samples;
             sampleRate = cfg.sampleRate;
         } else {
@@ -109,7 +164,7 @@ struct Clip {
     Clip() {
         clipPath = "";
         tsvElements = NULL;
-        buffer = new float[48000 * CLIP_LENGTH];
+        buffer = new float[SAMPLE_RATE * CLIP_LENGTH];
         size = 0;
         sentence = "";
         sampleRate = 0;
@@ -129,22 +184,24 @@ struct Phone {
 };
 
 struct Frame {
-    float* real;
-    float* imaginary;
-    double volume;
-    double pitch;
+    std::vector<float> real;
+    std::vector<float> imaginary;
+    float volume;
+
+    void reset() {
+        for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+            real[i] = 0;
+            imaginary[i] = 0;
+        }
+        volume = 0;
+    }
 
     Frame() {
-        real = new float[FFT_REAL_SAMPLES];
-        imaginary = new float[FFT_REAL_SAMPLES];
-    }
-    Frame(size_t size) {
-        real = new float[size];
-        imaginary = new float[size];
+        real = std::vector<float>(FFT_REAL_SAMPLES);
+        imaginary = std::vector<float>(FFT_REAL_SAMPLES);
+        volume = 0;
     }
 };
-
-std::chrono::time_point start = std::chrono::system_clock::now();
 
 int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
     double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data) {
@@ -152,7 +209,7 @@ int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBuffer
     InputData* iData = (InputData*)data;
 
     if ((iData->lastProcessed - iData->writeOffset) % iData->totalFrames < nBufferFrames) {
-        auto sinceStart = std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - start);
+        auto sinceStart = std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - programStart);
         std::cout << sinceStart.count() << ": Stream overflow detected!\n";
         iData->writeOffset = (iData->lastProcessed + nBufferFrames + 128) % iData->totalFrames;
     }
@@ -163,7 +220,7 @@ int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBuffer
             iData->buffer[j][writePosition] = ((INPUT_TYPE*)inputBuffer)[i * 2 + j];
         }
     }
-    iData->writeOffset += nBufferFrames;
+    iData->writeOffset = (iData->writeOffset + nBufferFrames) % iData->totalFrames;
 
     return 0;
 }
@@ -179,15 +236,15 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
     }
 
     InputData* iData = oData->input;
-    unsigned int startSample = oData->lastSample;
-    for (unsigned int i = 0; i < nBufferFrames; i++) {
-        unsigned int readPosition = (startSample + i) % iData->totalFrames;
-        for (unsigned int j = 0; j < oData->channels; j++) {
+    size_t startSample = oData->lastSample;
+    for (size_t i = 0; i < nBufferFrames; i++) {
+        size_t readPosition = (startSample + i) % iData->totalFrames;
+        for (size_t j = 0; j < oData->channels; j++) {
             INPUT_TYPE input = iData->buffer[j][readPosition];
             *buffer++ = (OUTPUT_TYPE)((input * OUTPUT_SCALE) / INPUT_SCALE);
         }
     }
-    oData->lastSample = startSample + nBufferFrames;
+    oData->lastSample = (startSample + nBufferFrames) % iData->totalFrames;
     iData->lastProcessed = oData->lastSample;
 
     return 0;
@@ -200,12 +257,16 @@ void cleanupRtAudio(RtAudio audio) {
 }
 
 void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize) {
-    for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
-        unsigned int readLocation = (start + i) % totalSize;
-        fftwIn[i] = audio[readLocation] * window[i];
+    float max = 0.0;
+    for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
+        size_t readLocation = (start + i) % totalSize;
+        const float& value = audio[readLocation];
+        fftwIn[i] = value * window[i];
+        max = fmaxf(max, abs(value));
     }
+    frame.volume = max;
     fftwf_execute(fftwPlan);
-    for (int i = 0; i < FFT_REAL_SAMPLES; i++) {
+    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
         frame.real[i] = abs(complex[0]);
         frame.imaginary[i] = abs(complex[1]);
@@ -218,35 +279,59 @@ void startFFT(InputData& inputData) {
     app.fftData.frames = FFT_FRAMES;
     app.fftData.currentFrame = 0;
     app.fftData.frequencies = new float* [FFT_FRAMES];
-    for (int i = 0; i < FFT_FRAMES; i++) {
+    for (size_t i = 0; i < FFT_FRAMES; i++) {
         app.fftData.frequencies[i] = new float[FFT_REAL_SAMPLES];
-        for (int j = 0; j < FFT_REAL_SAMPLES; j++) {
+        for (size_t j = 0; j < FFT_REAL_SAMPLES; j++) {
             app.fftData.frequencies[i][j] = 0.0;
         }
     }
     std::thread fft = std::thread([&app, &inputData] {
-        // Setup FFT
+        // Setup classifier
+        cube data(inputSize, 1, FFT_FRAMES);
+        cube out(outputSize, 1, FFT_FRAMES);
+        bool loaded = data::Load(modelFile + modelExt, "model", network, true);
 
         // Wait for visualization to open
         while (!app.isOpen) {
             Sleep(10);
         }
-        Frame frame = Frame(FFT_FRAME_SAMPLES);
+        Frame frame = Frame();
         size_t lastSampleStart = 0;
         while (app.isOpen) {
             // Wait for enough samples to be recorded to pass to FFT
             while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
                 //auto start = std::chrono::high_resolution_clock::now();
-                Sleep(10);
+                Sleep(1);
                 //auto actual = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
                 //std::cout << actual.count() << '\n';
             }
             lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             // Do FFT stuff
             processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames);
+
             // Write FFT output to visualizer
-            memcpy(app.fftData.frequencies[app.fftData.currentFrame], frame.real, sizeof(float) * FFT_REAL_SAMPLES);
+            memcpy(app.fftData.frequencies[app.fftData.currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
             app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_FRAMES;
+
+            // Pass data to neural network
+            for (size_t i = 0; i < FFT_FRAMES; i++) {
+                int frameIdx = (app.fftData.currentFrame + i) % FFT_FRAMES;
+                float* frameData = app.fftData.frequencies[frameIdx];
+                for (size_t j = 0; j < inputSize; j++) {
+                    data(j, 0, i) = frameData[j];
+                }
+            }
+            network.Predict(data, out);
+            size_t predicted = 0;
+            float max = out(0, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
+            for (size_t i = 0; i < outputSize; i++) {
+                const float& val = out(i, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
+                if (val > max) {
+                    max = val;
+                    predicted = i;
+                }
+            }
+            //std::cout << predicted << std::endl;
         }
         });
 
@@ -295,19 +380,11 @@ int commandHelp() {
 }
 
 int commandTrain(const char* path) {
-    InputData inputData = InputData();
-    inputData.totalFrames = (unsigned long)(48000 * INPUT_BUFFER_TIME);
-    inputData.channels = 1;
-    size_t totalBytes;
-    totalBytes = sizeof(INPUT_TYPE) * inputData.totalFrames * 1;
-    inputData.buffer[1] = { new INPUT_TYPE[totalBytes] };
-    for (unsigned int i = 0; i < inputData.totalFrames; i++) {
-        inputData.buffer[i] = 0;
-    }
-    inputData.writeOffset = 0;
+    //InputData inputData = InputData(2, SAMPLE_RATE * INPUT_BUFFER_TIME);
 
     // Create and start output device
 #pragma region Output
+    /*
     RtAudio::StreamOptions outputFlags;
     outputFlags.flags |= RTAUDIO_NONINTERLEAVED;
     RtAudio outputAudio;
@@ -345,6 +422,7 @@ int commandTrain(const char* path) {
         cleanupRtAudio(outputAudio);
         return 0;
     }
+    */
 #pragma endregion
 
     std::vector<Phone> phones;
@@ -355,118 +433,147 @@ int commandTrain(const char* path) {
     const std::string clipPath = std::string(combine(path, "/clips/"));
     const std::string transcriptsPath = std::string(combine(path, "/transcript/"));
 
-    unsigned long fftStart = 0;
-    unsigned int currentFrame = 0;
-    Frame* frames = new Frame[FFT_FRAMES];
-    for (int i = 0; i < FFT_FRAMES; i++) {
-        frames[i].real = new float[FFT_REAL_SAMPLES];
-        float* values = new float[FFT_FRAME_SAMPLES];
-        std::fill_n(values, FFT_FRAME_SAMPLES, 0.0f);
-        processFrame(frames[i], values, 0, FFT_FRAME_SAMPLES);
-    }
-
-    size_t inputSize = FFT_REAL_SAMPLES;
-    size_t outputSize = 44;
-    std::vector<size_t> neurons = {
-        inputSize,
-        50,
-        50,
-        outputSize,
-    };
-    NeuralNetwork neural = NeuralNetwork(neurons);
+    std::vector<Frame> frames;
 
     std::hash<std::string> hasher;
-    bool activeClip1 = true; // Currently reading from clip 1
-    Clip clip1, clip2;
-    loadNextClip(clipPath, tsv, clip1, 48000);
-    float* neuralInput = new float[inputSize];
-    float* neuralOutput = new float[outputSize];
+
+    std::vector<Clip> clips = std::vector<Clip>(BATCH_SIZE);
+    std::vector<std::thread> loaders = std::vector<std::thread>(BATCH_SIZE);
+
+    bool loaded = data::Load(modelFile + modelExt, "model", network);
+    if (loaded) {
+        std::cout << "Loaded model\n";
+    } else {
+        std::cout << "No model found, training new model\n";
+    }
+
     while (tsv.good()) {
-        Clip* currentClip;
-
-        std::thread clipLoader;
-        if (activeClip1) {
-            clipLoader = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clip2), 48000);
-            currentClip = &clip1;
-        } else {
-            clipLoader = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clip1), 48000);
-            currentClip = &clip2;
+        size_t loadedClips = 0;
+        for (size_t i = 0; i < BATCH_SIZE && tsv.good(); i++) {
+            loaders[i] = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clips[i]), SAMPLE_RATE);
+            loadedClips++;
         }
-        activeClip1 = !activeClip1;
+        for (size_t i = 0; i < loadedClips; i++) {
+            loaders[i].join();
+        }
+        size_t maxFrames = 0;
+        for (size_t i = 0; i < loadedClips; i++) {
+            maxFrames = std::max(maxFrames, (clips[i].size + FFT_FRAME_SAMPLES) / FFT_FRAME_SPACING);
+        }
 
+        arma::cube train = cube(inputSize, loadedClips, maxFrames);
+        arma::cube labels = cube(outputSize, loadedClips, maxFrames);
+        labels.fill(-1.0);
+
+        for (size_t c = 0; c < loadedClips; c++) {
+            Clip& currentClip = clips[c];
 #pragma region Really shitty textgrid parser
-        // Get transcription
-        const std::string path = currentClip->tsvElements[TSVReader::Indices::PATH];
-        const std::string transcriptionPath = transcriptsPath + currentClip->tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
-        std::ifstream reader;
-        reader.open(transcriptionPath);
-
-        std::string line;
-        while (reader.good()) {
-            std::getline(reader, line);
-            if (line == "        name = \"phones\" ") {
-                for (int i = 0; i < 2; i++) {
-                    std::getline(reader, line);
-                }
-                break;
+            // Get transcription
+            const std::string path = currentClip.tsvElements[TSVReader::Indices::PATH];
+            const std::string transcriptionPath = transcriptsPath + currentClip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
+            if (!std::filesystem::exists(transcriptionPath)) {
+                continue;
             }
-        }
-        std::getline(reader, line);
-        std::string sizeString = line.substr(line.find_last_of(' ', line.length() - 2));
-        int size = std::stoi(sizeString);
-        phones = std::vector<Phone>(size);
-        std::string interval, xmin, xmax, text;
-        for (int i = 0; i < size; i++) {
-            std::getline(reader, interval);
-            std::getline(reader, xmin);
-            std::getline(reader, xmax);
-            std::getline(reader, text);
+            std::ifstream reader;
+            reader.open(transcriptionPath);
 
-            xmin = xmin.substr(xmin.find_last_of(' ', xmin.length() - 2));
-            xmax = xmax.substr(xmax.find_last_of(' ', xmax.length() - 2));
-            size_t textStart = text.find_last_of('\"', text.length() - 3) + 1;
-            text = text.substr(textStart, text.length() - textStart - 2);
+            std::string line;
+            while (reader.good()) {
+                std::getline(reader, line);
+                if (line == "        name = \"phones\" ") {
+                    for (int i = 0; i < 2; i++) {
+                        std::getline(reader, line);
+                    }
+                    break;
+                }
+            }
+            std::getline(reader, line);
+            std::string sizeString = line.substr(line.find_last_of(' ', line.length() - 2));
+            int size = std::stoi(sizeString);
+            phones = std::vector<Phone>(size);
+            std::string interval, xmin, xmax, text;
+            for (int i = 0; i < size; i++) {
+                std::getline(reader, interval);
+                std::getline(reader, xmin);
+                std::getline(reader, xmax);
+                std::getline(reader, text);
 
-            Phone p = Phone();
-            p.min = std::stod(xmin);
-            p.max = std::stod(xmax);
-            p.minIdx = 48000 * p.min;
-            p.maxIdx = 48000 * p.max;
-            p.phonetic = hasher(text);
-        }
+                xmin = xmin.substr(xmin.find_last_of(' ', xmin.length() - 2));
+                xmax = xmax.substr(xmax.find_last_of(' ', xmax.length() - 2));
+                size_t textStart = text.find_last_of('\"', text.length() - 3) + 1;
+                text = text.substr(textStart, text.length() - textStart - 2);
 
-        reader.close();
+                Phone p = Phone();
+                p.min = std::stod(xmin);
+                p.max = std::stod(xmax);
+                p.minIdx = SAMPLE_RATE * p.min;
+                p.maxIdx = SAMPLE_RATE * p.max;
+                p.phonetic = hasher(text);
+                phones[i] = p;
+            }
+
+            reader.close();
 #pragma endregion
 
-        fftStart = std::rand() % FFT_FRAME_SPACING;
-        currentFrame = 0;
-        for (int i = 0; i < FFT_FRAMES; i++) {
-            float* values = new float[FFT_FRAME_SAMPLES];
-            std::fill_n(values, FFT_FRAME_SAMPLES, 0.0f);
-            processFrame(frames[i], values, 0, FFT_FRAME_SAMPLES);
-            delete(values);
+            // Process frames of the whole clip
+            size_t fftStart = 0;
+            size_t currentFrame = 0;
+
+            while ((size_t)fftStart + FFT_FRAME_SAMPLES < currentClip.size) {
+                if (frames.size() <= currentFrame) {
+                    frames.push_back(Frame());
+                }
+                Frame& frame = frames[currentFrame];
+                frame.reset();
+
+                processFrame(frame, currentClip.buffer, fftStart, currentClip.size);
+
+                size_t maxOverlap = 0;
+                size_t maxIdx = 0;
+                for (int i = 0; i < size; i++) {
+                    const Phone& p = phones[i];
+                    const auto& phonemeIndex = phonemeSet.find(p.phonetic);
+
+                    if (p.maxIdx <= fftStart)
+                        continue;
+                    size_t fftEnd = fftStart + FFT_FRAME_SPACING;
+                    if (p.minIdx >= fftEnd)
+                        break;
+
+                    size_t overlapA = p.maxIdx - fftStart;
+                    size_t overlapB = fftEnd - p.minIdx;
+                    size_t overlapC = FFT_FRAME_SPACING; // Window size
+                    size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
+
+                    if (overlapSize > maxOverlap) {
+                        overlapSize = maxOverlap;
+                        maxIdx = phonemeIndex->second;
+                    }
+                }
+
+                for (size_t i = 0; i < inputSize; i++) {
+                    train(i, c, currentFrame) = frame.real[i];
+                }
+                labels(maxIdx, c, currentFrame) = 0.0;
+
+                fftStart += FFT_FRAME_SPACING;
+                currentFrame++;
+            }
         }
-        while ((size_t)fftStart + FFT_FRAME_SAMPLES < currentClip->size) {
-            processFrame(frames[currentFrame], currentClip->buffer, fftStart, currentClip->size);
 
-            // The neural network thing
-            // Pass all frames to model, try to identify phoneme a few frames back
-            // ex: 7 total frames, 2 frames latency
-            // 1, 2, 3, 4, 5(identify phoneme located here), 6, 7(current processed)
-            // Might be more accurate if it has some information before and after
-            //for (int i = 0; i < FFT_FRAMES; i++) {
-            //    int readFrame = (currentFrame + 1 + i) % FFT_FRAMES;
-            //    memcpy(neuralInput + FFT_FRAME_SAMPLES * i, frames[readFrame].values, FFT_FRAME_SAMPLES);
-            //}
-            memcpy(neuralInput, frames[currentFrame].real, FFT_REAL_SAMPLES);
-            neural.process(neuralInput, inputSize, neuralOutput, outputSize);
+        network.BPTTSteps() = maxFrames;
+        network.Train(train,
+            labels,
+            optimizer,
+            ens::PrintLoss(),
+            ens::ProgressBar(),
+            ens::EarlyStopAtMinLoss());
 
-            currentFrame = (currentFrame + 1) % FFT_FRAMES;
-            fftStart += FFT_FRAME_SPACING;
-        }
-
-        clipLoader.join();
+        data::Save(modelFile + modelExt, "model", network, true);
     }
+
+    //cleanupRtAudio(outputAudio);
+
     return 0;
 }
 
@@ -552,6 +659,67 @@ int commandPreprocess(const char* path) {
 }
 
 int commandDefault() {
+#pragma region Input and output selector
+    RtAudio audioQuery;
+    auto devices = audioQuery.getDeviceIds();
+    unsigned int selectedInput = audioQuery.getDefaultInputDevice();
+    if (selectedInput == 0) {
+        std::cout << "No input devices available\n";
+        return 0;
+    }
+    unsigned int selectedOutput = audioQuery.getDefaultOutputDevice();
+    if (selectedOutput == 0) {
+        std::cout << "No output devices available\n";
+        return 0;
+    }
+    std::vector<RtAudio::DeviceInfo> inputDevices = std::vector<RtAudio::DeviceInfo>();
+    std::vector<RtAudio::DeviceInfo> outputDevices = std::vector<RtAudio::DeviceInfo>();
+    size_t defaultInIdx = 0; // Just for display
+    size_t defaultOutIdx = 0;
+    for (size_t i = 0; i < devices.size(); i++) {
+        unsigned int deviceId = devices[i];
+        RtAudio::DeviceInfo deviceInfo = audioQuery.getDeviceInfo(deviceId);
+        if (deviceInfo.inputChannels > 0) {
+            if (deviceInfo.isDefaultInput) {
+                defaultInIdx = inputDevices.size();
+            }
+            inputDevices.push_back(deviceInfo);
+        }
+        if (deviceInfo.outputChannels > 0) {
+            if (deviceInfo.isDefaultOutput) {
+                defaultOutIdx = outputDevices.size();
+            }
+            outputDevices.push_back(deviceInfo);
+        }
+    }
+
+    std::string response;
+    int responseInt;
+    std::cout << "Select input device (default: " << defaultInIdx << ")\n";
+    for (size_t i = 0; i < inputDevices.size(); i++) {
+        std::cout << i << ": " << inputDevices[i].name << std::endl;
+    }
+    std::getline(std::cin, response);
+    if (response != "") {
+        responseInt = std::stoi(response); // Exit if unparsable
+        if (responseInt < inputDevices.size()) {
+            assert("Out of range");
+        }
+        selectedInput = inputDevices[responseInt].ID;
+    }
+    std::cout << "Select output device (default: " << defaultOutIdx << ")\n";
+    for (size_t i = 0; i < outputDevices.size(); i++) {
+        std::cout << i << ": " << outputDevices[i].name << std::endl;
+    }
+    std::getline(std::cin, response);
+    if (response != "") {
+        responseInt = std::stoi(response); // Exit if unparsable
+        if (responseInt < outputDevices.size()) {
+            assert("Out of range");
+        }
+        selectedOutput = outputDevices[responseInt].ID;
+    }
+#pragma endregion
 
     // Create and start input device
 #pragma region Input
@@ -561,33 +729,19 @@ int commandDefault() {
     RtAudio inputAudio;
 
     RtAudio::StreamParameters inputParameters;
-    unsigned int defaultInput = inputAudio.getDefaultInputDevice();
-    if (defaultInput == 0) {
-        std::cout << "No input devices available\n";
-        return 0;
-    }
-    RtAudio::DeviceInfo inputInfo = inputAudio.getDeviceInfo(defaultInput);
 
-    std::cout << "Using input: " << inputInfo.name << '\n';
-    std::cout << "Sample rate: " << inputInfo.preferredSampleRate << '\n';
+    RtAudio::DeviceInfo inputInfo = inputAudio.getDeviceInfo(selectedInput);
 
-    inputParameters.deviceId = defaultInput;
+    inputParameters.deviceId = selectedInput;
     inputParameters.nChannels = inputInfo.inputChannels;
-    unsigned int sampleRate = inputInfo.preferredSampleRate;
+    unsigned int sampleRate = SAMPLE_RATE;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
-    InputData inputData = InputData();
-    inputData.totalFrames = (unsigned long)(sampleRate * INPUT_BUFFER_TIME);
-    inputData.channels = inputParameters.nChannels;
-    size_t totalBytes = sizeof(INPUT_TYPE) * inputData.totalFrames;
-    inputData.buffer = new INPUT_TYPE*[inputParameters.nChannels];
-    for (int i = 0; i < inputParameters.nChannels; i++) {
-        inputData.buffer[i] = new INPUT_TYPE[totalBytes];
-        for (unsigned int j = 0; j < inputData.totalFrames; j++) {
-            inputData.buffer[i][j] = 0;
-        }
-    }
-    inputData.writeOffset = 0;
+    std::cout << "Using input: " << inputInfo.name << '\n';
+    std::cout << "Sample rate: " << sampleRate << '\n';
+    std::cout << "Channels: " << inputInfo.inputChannels << '\n';
+
+    InputData inputData = InputData(inputParameters.nChannels, sampleRate * INPUT_BUFFER_TIME);
 
     if (inputAudio.openStream(NULL, &inputParameters, INPUT_FORMAT,
         sampleRate, &bufferFrames, &processInput, (void*)&inputData, &inputFlags)) {
@@ -610,20 +764,16 @@ int commandDefault() {
     RtAudio outputAudio;
 
     RtAudio::StreamParameters outputParameters;
-    unsigned int defaultOutput = outputAudio.getDefaultOutputDevice();
-    if (defaultOutput == 0) {
-        std::cout << "No output devices available\n";
-        return 0;
-    }
-    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(defaultOutput);
+    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(selectedOutput);
+
+    outputParameters.deviceId = selectedOutput;
+    outputParameters.nChannels = outputInfo.outputChannels;
+    unsigned int outputSampleRate = SAMPLE_RATE;
+    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
     std::cout << "Using output: " << outputInfo.name << '\n';
-    std::cout << "Sample rate: " << outputInfo.preferredSampleRate << '\n';
-
-    outputParameters.deviceId = defaultOutput;
-    outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = outputInfo.preferredSampleRate;
-    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
+    std::cout << "Sample rate: " << outputSampleRate << '\n';
+    std::cout << "Channels: " << outputInfo.outputChannels << '\n';
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -647,10 +797,26 @@ int commandDefault() {
     // Setup data visualization
     startFFT(inputData);
 
+    cleanupRtAudio(inputAudio);
+    cleanupRtAudio(outputAudio);
+
     return 0;
 }
 
 int main(int argc, char** argv) {
+    srand(static_cast <unsigned> (time(0)));
+
+    std::string response;
+    SAMPLE_RATE = 16000;
+    std::cout << "Select sample rate (default: " << SAMPLE_RATE << ")\n";
+    std::getline(std::cin, response);
+    if (response != "") {
+        SAMPLE_RATE = std::stoi(response); // Exits if unparsable
+        if (SAMPLE_RATE <= 0) {
+            assert("Out of range");
+        }
+    }
+
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
         //window[i] = 1.0; // None
@@ -663,6 +829,22 @@ int main(int argc, char** argv) {
     fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
     fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
     fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE);
+
+    network.Add<Linear>(inputSize);
+    network.Add<LeakyReLU>();
+    network.Add<LSTM>(inputSize / 2);
+    network.Add<LeakyReLU>();
+    network.Add<Linear>(outputSize);
+    network.Add<LogSoftMax>();
+    optimizer = ens::Adam(
+        STEP_SIZE,  // Step size of the optimizer.
+        BATCH_SIZE, // Batch size. Number of data points that are used in each iteration.
+        0.9,        // Exponential decay rate for the first moment estimates.
+        0.999, // Exponential decay rate for the weighted infinity norm estimates.
+        1e-8,  // Value used to initialise the mean squared gradient parameter.
+        EPOCHS * BATCH_SIZE, // Max number of iterations.
+        1e-8,           // Tolerance.
+        true);
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

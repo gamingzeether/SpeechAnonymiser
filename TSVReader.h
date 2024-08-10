@@ -1,10 +1,9 @@
 #pragma once
-#include "define.h"
 
-#include <iostream>
+#include "common_inc.h"
+
 #include <fstream>
 #include <vector>
-#include <sstream>
 
 class TSVReader {
 private:

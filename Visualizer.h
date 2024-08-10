@@ -1,18 +1,12 @@
 #pragma once
 #include "define.h"
 
+#include "common_inc.h"
+
 // https://github.com/heitaoflower/vulkan-tutorial/blob/master/Tutorial24
 
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <algorithm>
 #include <chrono>
 #include <vector>
-#include <cstring>
-#include <array>
-#include <set>
-#include <thread>
 
 #include <GLFW/glfw3.h>
 

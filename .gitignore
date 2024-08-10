@@ -402,3 +402,5 @@ FodyWeavers.xsd
 vcpkg_installed/*
 
 enc_temp_folder/*
+*.bin
+build/*
