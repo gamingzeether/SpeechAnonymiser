@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <random>
 #include <unordered_set>
+#include <filesystem>
 #include <rtaudio/RtAudio.h>
 #include <fftw3.h>
 #include <cargs.h>
@@ -59,7 +60,7 @@ const std::unordered_map<size_t, size_t> phonemeSet = {
     { 784030988579857867, 76 }, { 14263972033103647634, 77 }, { 8776441559738204984, 78 },
 };
 
-std::chrono::time_point programStart = std::chrono::system_clock::now();
+auto programStart = std::chrono::system_clock::now();
 int SAMPLE_RATE;
 
 size_t inputSize = FFT_REAL_SAMPLES;
@@ -293,7 +294,7 @@ void startFFT(InputData& inputData) {
 
         // Wait for visualization to open
         while (!app.isOpen) {
-            Sleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         Frame frame = Frame();
         size_t lastSampleStart = 0;
@@ -301,7 +302,7 @@ void startFFT(InputData& inputData) {
             // Wait for enough samples to be recorded to pass to FFT
             while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
                 //auto start = std::chrono::high_resolution_clock::now();
-                Sleep(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 //auto actual = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
                 //std::cout << actual.count() << '\n';
             }
@@ -335,10 +336,12 @@ void startFFT(InputData& inputData) {
         }
         });
 
+#ifdef _CONSOLE
 #ifdef HIDE_CONSOLE
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
+#endif
 #endif
 
     app.run();
@@ -651,7 +654,8 @@ int commandPreprocess(const char* path) {
                 std::filesystem::remove_all(directory);
             }
             auto diff = std::chrono::system_clock::now() - start;
-            std::cout << "Iteration took " << std::chrono::duration_cast<std::chrono::duration<double>>(diff) << " seconds\n";
+            double duration = std::chrono::duration_cast<std::chrono::duration<double>>(diff).count();
+            std::cout << "Iteration took " << duration << " seconds\n";
         }
     }
 

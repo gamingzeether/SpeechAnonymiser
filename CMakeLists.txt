@@ -5,20 +5,25 @@ set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CXX_STANDARD 20)
 
 project(SpeechAnonymiser CXX)
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
-if(NOT CMAKE_VS_PLATFORM_NAME)
-    set(CMAKE_VS_PLATFORM_NAME "x64")
-endif()
-message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
-
-if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
-     OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
-    message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
+if (MSVC)
+    if(NOT CMAKE_VS_PLATFORM_NAME)
+        set(CMAKE_VS_PLATFORM_NAME "x64")
+    endif()
+    message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
+    
+    if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
+        OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
+        message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
+    endif()
+else()
+    message("${CMAKE_SYSTEM_PROCESSOR} architecture in use")
 endif()
 
 ################################################################################
@@ -141,6 +146,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
+target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE SpeechAnonymiser)
@@ -186,13 +192,18 @@ elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         "UNICODE;"
         "_UNICODE"
     )
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "$<$<CONFIG:Debug>:"
+            "_DEBUG"
+        ">"
+        "$<$<CONFIG:Release>:"
+            "NDEBUG"
+        ">"
+        "UNICODE;"
+        "_UNICODE"
+    )
 endif()
-
-# Copy shaders
-file(GLOB VISUALIZER_SHADERS
-  "/*.spv"
-)
-file(COPY ${VISUALIZER_SHADERS} DESTINATION "${RUNTIME_OUTPUT_DIRECTORY}/shaders")
 
 ################################################################################
 # Compile and link options
@@ -225,7 +236,6 @@ if(MSVC)
             $<$<CONFIG:Release>:
                 /Oi;
                 /Gy;
-                /bigobj
             >
             /permissive-;
             /sdl;
@@ -259,5 +269,20 @@ if(MSVC)
             /SUBSYSTEM:CONSOLE
         )
     endif()
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:
+            -O3;
+            -ffunction-sections;
+        >
+        -std=c++2a;
+        ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
+        ${DEFAULT_CXX_EXCEPTION_HANDLING}
+    )
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/shaders"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders")
 endif()
 

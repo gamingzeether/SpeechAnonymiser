@@ -7,6 +7,8 @@
 
 #include <chrono>
 #include <vector>
+#include <array>
+#include <string>
 
 #include <GLFW/glfw3.h>
 
