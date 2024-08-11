@@ -346,7 +346,7 @@ void startFFT(InputData& inputData) {
                     predicted = i;
                 }
             }
-            //std::cout << predicted << std::endl;
+            std::cout << predicted << std::endl;
         }
         });
 
@@ -383,6 +383,7 @@ char* combine(const char* a, const char* b) {
 
 void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate) {
     clip.clipPath = clipPath;
+    clip.loaded = false;
     std::string* elements = tsv.read_line();
     clip.tsvElements = elements;
     if (sampleRate > 0) {
@@ -453,6 +454,7 @@ int commandTrain(const char* path) {
     std::vector<Frame> frames;
 
     std::hash<std::string> hasher;
+    size_t silencePhoneme = hasher("");
 
     size_t batchSize = 100;
     std::cout << "Set batch size (Default: " << batchSize << ")\n";
@@ -473,6 +475,13 @@ int commandTrain(const char* path) {
         std::cout << "Loaded model\n";
     } else {
         std::cout << "No model found, training new model\n";
+
+        network.Add<Linear>(inputSize);
+        network.Add<LeakyReLU>();
+        network.Add<LSTM>(inputSize / 2);
+        network.Add<LeakyReLU>();
+        network.Add<Linear>(outputSize);
+        network.Add<LogSoftMax>();
     }
 
     optimizer = ens::Adam(
@@ -503,9 +512,11 @@ int commandTrain(const char* path) {
             }
         }
         std::cout << actualLoadedClips << " clips loaded out of " << clipCount << " total\n";
+        std::cout << maxFrames << " frames\n";
 
         arma::cube train = cube(inputSize, clipCount, maxFrames);
         arma::cube labels = cube(outputSize, clipCount, maxFrames);
+        train.fill(0.0);
         labels.fill(-1.0);
 
         for (size_t c = 0; c < clipCount; c++) {
@@ -605,6 +616,11 @@ int commandTrain(const char* path) {
 
                 fftStart += FFT_FRAME_SPACING;
                 currentFrame++;
+            }
+
+            // Label remaining frames at 0
+            for (size_t i = currentFrame; i < maxFrames; i++) {
+                labels(0, c, i) = 0.0;
             }
         }
 
@@ -877,13 +893,6 @@ int main(int argc, char** argv) {
     fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
     fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
     fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE);
-
-    network.Add<Linear>(inputSize);
-    network.Add<LeakyReLU>();
-    network.Add<LSTM>(inputSize / 2);
-    network.Add<LeakyReLU>();
-    network.Add<Linear>(outputSize);
-    network.Add<LogSoftMax>();
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
