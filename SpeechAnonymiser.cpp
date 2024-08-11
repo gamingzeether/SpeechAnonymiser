@@ -37,34 +37,14 @@ float* fftwIn;
 fftwf_complex* fftwOut;
 fftwf_plan fftwPlan;
 
-const std::unordered_map<size_t, size_t> phonemeSet = {
-    { 14695981039346656037, 0 }, { 775199711183770140, 1 }, { 781211840765692538, 2 }, { 12638201494206808739, 3 },
-    { 12638191598602154840, 4 }, { 616487406706180062, 5 }, { 775179919974462342, 6 }, { 784041983696139977, 7 },
-    { 4284604507161151312, 8 }, { 12638186101044013785, 9 }, { 781206343207551483, 10 }, { 769434971718195217, 11 },
-    { 781245925626167079, 12 }, { 12638206991764949794, 13 }, { 781238229044769602, 14 }, { 12638202593718436950, 15 },
-    { 781212940277320749, 16 }, { 781201945161038639, 17 }, { 12638194897137039473, 18 }, { 6172630899046765112, 19 },
-    { 12638190499090526629, 20 }, { 620436852473957074, 21 }, { 12638205892253321583, 22 }, { 17631108863612600877, 23 },
-    { 8776449256319602461, 24 }, { 775200810695398351, 25 }, { 781229432951743914, 26 }, { 6172616605395598369, 27 },
-    { 12638198195671924106, 28 }, { 784043083207768188, 29 }, { 781210741254064327, 30 }, { 7654388843941525073, 31 },
-    { 3301456393863814039, 32 }, { 12638183902020757363, 33 }, { 12638203693230065161, 34 }, { 781219537347090015, 35 },
-    { 784054078324050298, 36 }, { 12638197096160295895, 37 }, { 12638216887369603693, 38 }, { 12638199295183552317, 39 },
-    { 666124933821065644, 40 }, { 781203044672666850, 41 }, { 781230532463372125, 42 }, { 9394683753978221352, 43 },
-    { 14760662235127336261, 44 }, { 8279719471877298238, 45 }, { 18381290254188567773, 46 }, { 781200845649410428, 47 },
-    { 12638189399578898418, 48 }, { 12638195996648667684, 49 }, { 10412696266599671199, 50 }, { 6172614406372341947, 51 },
-    { 14755191065266493675, 52 }, { 2555796195102104650, 53 }, { 10873836967980345454, 54 }, { 14755155880894390923, 55 },
-    { 781208542230807905, 56 }, { 620459942218149505, 57 }, { 781242627091282446, 58 }, { 12638192698113783051, 59 },
-    { 626089441753454475, 60 }, { 10621609967691921460, 61 }, { 17631101167031203400, 62 }, { 8776447057296346039, 63 },
-    { 10895387263509462849, 64 }, { 784046381742652821, 65 }, { 780253066626081771, 66 }, { 15747199043262252161, 67 },
-    { 4284612203742548789, 68 }, { 6178120760605287285, 69 }, { 784037585649627133, 70 }, { 6172617704907226580, 71 },
-    { 667979809937479151, 72 }, { 15267723897253499871, 73 }, { 15269974597556069338, 74 }, { 2039982187332726600, 75 },
-    { 784030988579857867, 76 }, { 14263972033103647634, 77 }, { 8776441559738204984, 78 },
-};
+std::unordered_map<size_t, size_t> phonemeSet;
+std::vector<std::string> inversePhonemeSet;
 
 auto programStart = std::chrono::system_clock::now();
 int SAMPLE_RATE;
 
 size_t inputSize = FFT_REAL_SAMPLES;
-size_t outputSize = phonemeSet.size();
+size_t outputSize = 0;
 size_t hiddenSize = FFT_REAL_SAMPLES;
 
 std::string modelFile = "phoneme_rnn";
@@ -218,6 +198,171 @@ struct Frame {
     }
 };
 
+// https://stackoverflow.com/a/7154226
+std::wstring utf8_to_utf16(const std::string& utf8)
+{
+    std::vector<unsigned long> unicode;
+    size_t i = 0;
+    while (i < utf8.size())
+    {
+        unsigned long uni;
+        size_t todo;
+        bool error = false;
+        unsigned char ch = utf8[i++];
+        if (ch <= 0x7F)
+        {
+            uni = ch;
+            todo = 0;
+        } else if (ch <= 0xBF)
+        {
+            throw std::logic_error("not a UTF-8 string");
+        } else if (ch <= 0xDF)
+        {
+            uni = ch & 0x1F;
+            todo = 1;
+        } else if (ch <= 0xEF)
+        {
+            uni = ch & 0x0F;
+            todo = 2;
+        } else if (ch <= 0xF7)
+        {
+            uni = ch & 0x07;
+            todo = 3;
+        } else
+        {
+            throw std::logic_error("not a UTF-8 string");
+        }
+        for (size_t j = 0; j < todo; ++j)
+        {
+            if (i == utf8.size())
+                throw std::logic_error("not a UTF-8 string");
+            unsigned char ch = utf8[i++];
+            if (ch < 0x80 || ch > 0xBF)
+                throw std::logic_error("not a UTF-8 string");
+            uni <<= 6;
+            uni += ch & 0x3F;
+        }
+        if (uni >= 0xD800 && uni <= 0xDFFF)
+            throw std::logic_error("not a UTF-8 string");
+        if (uni > 0x10FFFF)
+            throw std::logic_error("not a UTF-8 string");
+        unicode.push_back(uni);
+    }
+    std::wstring utf16;
+    for (size_t i = 0; i < unicode.size(); ++i)
+    {
+        unsigned long uni = unicode[i];
+        if (uni <= 0xFFFF)
+        {
+            utf16 += (wchar_t)uni;
+        } else
+        {
+            uni -= 0x10000;
+            utf16 += (wchar_t)((uni >> 10) + 0xD800);
+            utf16 += (wchar_t)((uni & 0x3FF) + 0xDC00);
+        }
+    }
+    return utf16;
+}
+
+size_t customHasher(const std::wstring& str) {
+    size_t v = 0;
+    for (size_t i = 0; i < str.length(); i++) {
+        v = (v << sizeof(wchar_t) * 8) ^ str[i];
+    }
+    return v;
+}
+
+void initalizePhonemeSet() {
+#define REGISTER_PHONEME(p) \
+    phonemeSet[customHasher(L##p)] = _phonemeCounter++; \
+    inversePhonemeSet.push_back(p);
+
+    size_t _phonemeCounter = 0;
+    using namespace std::string_literals;
+    REGISTER_PHONEME(""   )
+    REGISTER_PHONEME("aj" )
+    REGISTER_PHONEME("aw" )
+    REGISTER_PHONEME("b"  )
+    REGISTER_PHONEME("bʲ" )
+    REGISTER_PHONEME("c"  )
+    REGISTER_PHONEME("cʰ" )
+    REGISTER_PHONEME("cʷ" )
+    REGISTER_PHONEME("d"  )
+    REGISTER_PHONEME("dʒ" )
+    REGISTER_PHONEME("dʲ" )
+    REGISTER_PHONEME("d̪" )
+    REGISTER_PHONEME("ej" )
+    REGISTER_PHONEME("f"  )
+    REGISTER_PHONEME("fʲ" )
+    REGISTER_PHONEME("h"  )
+    REGISTER_PHONEME("i"  )
+    REGISTER_PHONEME("iː" )
+    REGISTER_PHONEME("j"  )
+    REGISTER_PHONEME("k"  )
+    REGISTER_PHONEME("kʰ" )
+    REGISTER_PHONEME("kʷ" )
+    REGISTER_PHONEME("l"  )
+    REGISTER_PHONEME("m"  )
+    REGISTER_PHONEME("mʲ" )
+    REGISTER_PHONEME("m̩" )
+    REGISTER_PHONEME("n"  )
+    REGISTER_PHONEME("n̩" )
+    REGISTER_PHONEME("ow" )
+    REGISTER_PHONEME("p"  )
+    REGISTER_PHONEME("pʰ" )
+    REGISTER_PHONEME("pʲ" )
+    REGISTER_PHONEME("pʷ" )
+    REGISTER_PHONEME("s"  )
+    REGISTER_PHONEME("spn")
+    REGISTER_PHONEME("t"  )
+    REGISTER_PHONEME("tʃ" )
+    REGISTER_PHONEME("tʰ" )
+    REGISTER_PHONEME("tʲ" )
+    REGISTER_PHONEME("tʷ" )
+    REGISTER_PHONEME("t̪" )
+    REGISTER_PHONEME("v"  )
+    REGISTER_PHONEME("vʲ" )
+    REGISTER_PHONEME("w"  )
+    REGISTER_PHONEME("z"  )
+    REGISTER_PHONEME("æ"  )
+    REGISTER_PHONEME("ç"  )
+    REGISTER_PHONEME("ð"  )
+    REGISTER_PHONEME("ŋ"  )
+    REGISTER_PHONEME("ɐ"  )
+    REGISTER_PHONEME("ɑ"  )
+    REGISTER_PHONEME("ɑː" )
+    REGISTER_PHONEME("ɒ"  )
+    REGISTER_PHONEME("ɒː" )
+    REGISTER_PHONEME("ɔj" )
+    REGISTER_PHONEME("ə"  )
+    REGISTER_PHONEME("ɚ"  )
+    REGISTER_PHONEME("ɛ"  )
+    REGISTER_PHONEME("ɝ"  )
+    REGISTER_PHONEME("ɟ"  )
+    REGISTER_PHONEME("ɟʷ" )
+    REGISTER_PHONEME("ɡ"  )
+    REGISTER_PHONEME("ɡʷ" )
+    REGISTER_PHONEME("ɪ"  )
+    REGISTER_PHONEME("ɫ"  )
+    REGISTER_PHONEME("ɫ̩" )
+    REGISTER_PHONEME("ɱ"  )
+    REGISTER_PHONEME("ɲ"  )
+    REGISTER_PHONEME("ɹ"  )
+    REGISTER_PHONEME("ɾ"  )
+    REGISTER_PHONEME("ɾʲ" )
+    REGISTER_PHONEME("ɾ̃"  )
+    REGISTER_PHONEME("ʃ"  )
+    REGISTER_PHONEME("ʉ"  )
+    REGISTER_PHONEME("ʉː" )
+    REGISTER_PHONEME("ʊ"  )
+    REGISTER_PHONEME("ʎ"  )
+    REGISTER_PHONEME("ʒ"  )
+    REGISTER_PHONEME("ʔ"  )
+    REGISTER_PHONEME("θ"  )
+#undef REGISTER_PHONEME
+}
+
 int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
     double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data) {
 
@@ -346,7 +491,7 @@ void startFFT(InputData& inputData) {
                     predicted = i;
                 }
             }
-            std::cout << predicted << std::endl;
+            std::cout << inversePhonemeSet[predicted] << std::endl;
         }
         });
 
@@ -452,9 +597,6 @@ int commandTrain(const char* path) {
     const std::string transcriptsPath = std::string(combine(path, "/transcript/"));
 
     std::vector<Frame> frames;
-
-    std::hash<std::string> hasher;
-    size_t silencePhoneme = hasher("");
 
     size_t batchSize = 100;
     std::cout << "Set batch size (Default: " << batchSize << ")\n";
@@ -566,7 +708,16 @@ int commandTrain(const char* path) {
                 p.max = std::stod(xmax);
                 p.minIdx = SAMPLE_RATE * p.min;
                 p.maxIdx = SAMPLE_RATE * p.max;
-                p.phonetic = hasher(text);
+                
+                std::wstring wtext = utf8_to_utf16(text);
+                
+                const auto& pIterator = phonemeSet.find(customHasher(wtext));
+                if (pIterator != phonemeSet.end()) {
+                    p.phonetic = pIterator->second;
+                } else {
+                    std::cout << "invalid phoneme: " << text << std::endl;
+                    std::cout << "    at index " << i << " in " << transcriptionPath << std::endl;
+                }
                 phones[i] = p;
             }
 
@@ -590,7 +741,6 @@ int commandTrain(const char* path) {
                 size_t maxIdx = 0;
                 for (int i = 0; i < size; i++) {
                     const Phone& p = phones[i];
-                    const auto& phonemeIndex = phonemeSet.find(p.phonetic);
 
                     if (p.maxIdx <= fftStart)
                         continue;
@@ -605,7 +755,7 @@ int commandTrain(const char* path) {
 
                     if (overlapSize > maxOverlap) {
                         overlapSize = maxOverlap;
-                        maxIdx = phonemeIndex->second;
+                        maxIdx = p.phonetic;
                     }
                 }
 
@@ -641,6 +791,43 @@ int commandTrain(const char* path) {
 }
 
 int commandPreprocess(const char* path) {
+    // Generate phoneme list
+    TSVReader dictReader;
+    dictReader.open(combine(path, "/english_us_mfa.dict"));
+    std::vector<std::string> phonemeList = std::vector<std::string>();
+    while (dictReader.good()) {
+        std::string* tabSeperated = dictReader.read_line();
+        std::string& phonemes = tabSeperated[1];
+        int start = 0;
+        int end = 0;
+        std::string p;
+        while (end != -1) {
+            end = phonemes.find_first_of(' ', start);
+            p = phonemes.substr(start, end - start);
+            start = end + 1;
+
+            bool exists = false;
+            for (size_t i = 0; i < phonemeList.size(); i++) {
+                if (phonemeList[i] == p) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                phonemeList.push_back(p);
+            }
+        }
+    }
+    std::sort(phonemeList.begin(), phonemeList.end());
+    std::fstream out = std::fstream("F:/Data/phonemes.txt", std::fstream::out);
+    const char* newLine = "\n";
+    for (size_t i = 0; i < phonemeList.size(); i++) {
+        std::string& p = phonemeList[i];
+        out.write(p.data(), p.size());
+        out.write(newLine, 1);
+    }
+    out.close();
+
     // Generate phoneme alignments
     const std::vector<std::string> tables = {
         "/train.tsv",
@@ -869,6 +1056,8 @@ int commandDefault() {
 
 int main(int argc, char** argv) {
     srand(static_cast <unsigned> (time(0)));
+    initalizePhonemeSet();
+    outputSize = phonemeSet.size();
 
     std::string response;
     SAMPLE_RATE = 16000;
