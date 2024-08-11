@@ -130,6 +130,7 @@ struct Clip {
     size_t size;
     std::string sentence;
     unsigned int sampleRate;
+    bool loaded = false;
 
     void loadMP3(int targetSampleRate) {
         // Read mp3 file from tsv
@@ -137,7 +138,19 @@ struct Clip {
 
         drmp3_config cfg;
         drmp3_uint64 samples;
-        float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32((clipPath + tsvElements[TSVReader::Indices::PATH]).c_str(), &cfg, &samples, NULL);
+
+        std::string clipFullPath = clipPath + tsvElements[TSVReader::Indices::PATH];
+        if (!std::filesystem::exists(clipFullPath)) {
+            std::cout << clipFullPath << " does not exist\n";
+            return;
+        }
+
+        float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(clipFullPath.c_str(), &cfg, &samples, NULL);
+
+        if (cfg.channels > 0 && sampleRate > 0) {
+            std::cout << clipFullPath << " has invalid channel count or sample rate\n";
+            return;
+        }
 
         if (cfg.sampleRate == targetSampleRate) {
             memcpy(buffer, floatBuffer, sizeof(float) * samples);
@@ -160,6 +173,7 @@ struct Clip {
             size = outSize;
         }
         free(floatBuffer);
+        loaded = true;
     }
 
     Clip() {
@@ -440,8 +454,19 @@ int commandTrain(const char* path) {
 
     std::hash<std::string> hasher;
 
-    std::vector<Clip> clips = std::vector<Clip>(BATCH_SIZE);
-    std::vector<std::thread> loaders = std::vector<std::thread>(BATCH_SIZE);
+    size_t batchSize = 100;
+    std::cout << "Set batch size (Default: " << batchSize << ")\n";
+    std::string response;
+    std::getline(std::cin, response);
+    if (response != "") {
+        batchSize = std::stoi(response); // Exits if unparsable
+        if (batchSize <= 0) {
+            assert("Out of range");
+        }
+    }
+
+    std::vector<Clip> clips = std::vector<Clip>(batchSize);
+    std::vector<std::thread> loaders = std::vector<std::thread>(batchSize);
 
     bool loaded = data::Load(modelFile + modelExt, "model", network);
     if (loaded) {
@@ -450,26 +475,45 @@ int commandTrain(const char* path) {
         std::cout << "No model found, training new model\n";
     }
 
+    optimizer = ens::Adam(
+        STEP_SIZE,  // Step size of the optimizer.
+        batchSize, // Batch size. Number of data points that are used in each iteration.
+        0.9,        // Exponential decay rate for the first moment estimates.
+        0.999, // Exponential decay rate for the weighted infinity norm estimates.
+        1e-8,  // Value used to initialise the mean squared gradient parameter.
+        EPOCHS * batchSize, // Max number of iterations.
+        1e-8,           // Tolerance.
+        true);
+
     while (tsv.good()) {
-        size_t loadedClips = 0;
-        for (size_t i = 0; i < BATCH_SIZE && tsv.good(); i++) {
+        size_t clipCount = 0;
+        for (size_t i = 0; i < batchSize && tsv.good(); i++) {
             loaders[i] = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clips[i]), SAMPLE_RATE);
-            loadedClips++;
+            clipCount++;
         }
-        for (size_t i = 0; i < loadedClips; i++) {
+        for (size_t i = 0; i < clipCount; i++) {
             loaders[i].join();
         }
         size_t maxFrames = 0;
-        for (size_t i = 0; i < loadedClips; i++) {
-            maxFrames = std::max(maxFrames, (clips[i].size + FFT_FRAME_SAMPLES) / FFT_FRAME_SPACING);
+        size_t actualLoadedClips = 0;
+        for (size_t i = 0; i < clipCount; i++) {
+            if (clips[i].loaded) {
+                maxFrames = std::max(maxFrames, (clips[i].size + FFT_FRAME_SAMPLES) / FFT_FRAME_SPACING);
+                actualLoadedClips++;
+            }
         }
+        std::cout << actualLoadedClips << " clips loaded out of " << clipCount << " total\n";
 
-        arma::cube train = cube(inputSize, loadedClips, maxFrames);
-        arma::cube labels = cube(outputSize, loadedClips, maxFrames);
+        arma::cube train = cube(inputSize, clipCount, maxFrames);
+        arma::cube labels = cube(outputSize, clipCount, maxFrames);
         labels.fill(-1.0);
 
-        for (size_t c = 0; c < loadedClips; c++) {
+        for (size_t c = 0; c < clipCount; c++) {
             Clip& currentClip = clips[c];
+            if (!currentClip.loaded) {
+                continue;
+            }
+
 #pragma region Really shitty textgrid parser
             // Get transcription
             const std::string path = currentClip.tsvElements[TSVReader::Indices::PATH];
@@ -840,15 +884,6 @@ int main(int argc, char** argv) {
     network.Add<LeakyReLU>();
     network.Add<Linear>(outputSize);
     network.Add<LogSoftMax>();
-    optimizer = ens::Adam(
-        STEP_SIZE,  // Step size of the optimizer.
-        BATCH_SIZE, // Batch size. Number of data points that are used in each iteration.
-        0.9,        // Exponential decay rate for the first moment estimates.
-        0.999, // Exponential decay rate for the weighted infinity norm estimates.
-        1e-8,  // Value used to initialise the mean squared gradient parameter.
-        EPOCHS * BATCH_SIZE, // Max number of iterations.
-        1e-8,           // Tolerance.
-        true);
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

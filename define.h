@@ -32,5 +32,4 @@ typedef float OUTPUT_TYPE;
 #define CLIP_LENGTH 15
 
 #define STEP_SIZE 5e-3
-#define BATCH_SIZE 100
 #define EPOCHS 50
