@@ -38,7 +38,7 @@ fftwf_complex* fftwOut;
 fftwf_plan fftwPlan;
 
 std::unordered_map<size_t, size_t> phonemeSet;
-std::vector<std::string> inversePhonemeSet;
+std::vector<std::wstring> inversePhonemeSet;
 
 auto programStart = std::chrono::system_clock::now();
 int SAMPLE_RATE;
@@ -114,6 +114,7 @@ struct Clip {
 
     void loadMP3(int targetSampleRate) {
         // Read mp3 file from tsv
+#pragma omp critical
         std::cout << "Loading MP3: " << tsvElements[TSVReader::Indices::PATH] << '\n';
 
         drmp3_config cfg;
@@ -121,14 +122,21 @@ struct Clip {
 
         std::string clipFullPath = clipPath + tsvElements[TSVReader::Indices::PATH];
         if (!std::filesystem::exists(clipFullPath)) {
+#pragma omp critical
             std::cout << clipFullPath << " does not exist\n";
             return;
         }
 
         float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(clipFullPath.c_str(), &cfg, &samples, NULL);
 
-        if (cfg.channels > 0 && sampleRate > 0) {
-            std::cout << clipFullPath << " has invalid channel count or sample rate\n";
+        if (cfg.channels <= 0) {
+#pragma omp critical
+            std::cout << clipFullPath << " has invalid channel count (" << cfg.channels << ")\n";
+            return;
+        }
+        if (cfg.sampleRate <= 0) {
+#pragma omp critical
+            std::cout << clipFullPath << " has invalid sample rate (" << cfg.sampleRate << ")\n";
             return;
         }
 
@@ -276,7 +284,7 @@ size_t customHasher(const std::wstring& str) {
 void initalizePhonemeSet() {
 #define REGISTER_PHONEME(p) \
     phonemeSet[customHasher(L##p)] = _phonemeCounter++; \
-    inversePhonemeSet.push_back(p);
+    inversePhonemeSet.push_back(L##p);
 
     size_t _phonemeCounter = 0;
     using namespace std::string_literals;
@@ -491,7 +499,7 @@ void startFFT(InputData& inputData) {
                     predicted = i;
                 }
             }
-            std::cout << inversePhonemeSet[predicted] << std::endl;
+            std::cout << predicted << std::endl;
         }
         });
 
@@ -639,11 +647,12 @@ int commandTrain(const char* path) {
     while (tsv.good()) {
         size_t clipCount = 0;
         for (size_t i = 0; i < batchSize && tsv.good(); i++) {
-            loaders[i] = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clips[i]), SAMPLE_RATE);
+            loaders[i] = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clips[i]), -1);
             clipCount++;
         }
+#pragma omp parallel for
         for (size_t i = 0; i < clipCount; i++) {
-            loaders[i].join();
+            clips[i].loadMP3(SAMPLE_RATE);
         }
         size_t maxFrames = 0;
         size_t actualLoadedClips = 0;
@@ -716,7 +725,7 @@ int commandTrain(const char* path) {
                 if (pIterator != phonemeSet.end()) {
                     p.phonetic = pIterator->second;
                 } else {
-                    std::cout << "invalid phoneme: " << text << std::endl;
+                    std::cout << "unmapped phoneme: " << text << std::endl;
                     std::cout << "    at index " << i << " in " << transcriptionPath << std::endl;
                 }
                 phones[i] = p;
