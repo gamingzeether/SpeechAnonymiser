@@ -661,7 +661,8 @@ int commandTrain(const char* path) {
         train.fill(0.0);
         labels.fill(-1.0);
 
-        for (size_t c = 0; c < clipCount; c++) {
+#pragma omp parallel for
+        for (intptr_t c = 0; c < clipCount; c++) {
             Clip& currentClip = clips[c];
             if (!currentClip.loaded) {
                 continue;
