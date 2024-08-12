@@ -41,7 +41,7 @@ std::unordered_map<size_t, size_t> phonemeSet;
 std::vector<std::wstring> inversePhonemeSet;
 
 auto programStart = std::chrono::system_clock::now();
-int SAMPLE_RATE;
+int SAMPLE_RATE = 16000;
 
 size_t inputSize = FFT_REAL_SAMPLES;
 size_t outputSize = 0;
@@ -273,6 +273,28 @@ std::wstring utf8_to_utf16(const std::string& utf8)
     return utf16;
 }
 
+template <typename T>
+bool requestString(const std::string& request, std::string& out, T& value) {
+    std::cout << request << std::endl << "Default: " << value << std::endl;
+    std::getline(std::cin, out);
+    std::cout << std::endl;
+    return out != "";
+}
+
+void requestInput(const std::string& request, int& value) {
+    std::string response;
+    if (requestString(request, response, value)) {
+        value = std::stoi(response);
+    }
+}
+
+void requestInput(const std::string& request, float& value) {
+    std::string response;
+    if (requestString(request, response, value)) {
+        value = std::stof(response);
+    }
+}
+
 size_t customHasher(const std::wstring& str) {
     size_t v = 0;
     for (size_t i = 0; i < str.length(); i++) {
@@ -442,8 +464,18 @@ void processFrame(Frame& frame, const float* audio, const size_t& start, const s
 }
 
 void startFFT(InputData& inputData) {
+    float activationThreshold = 0.01;
+    requestInput("Set activation threshold", activationThreshold);
+    if (!data::Load(modelFile + modelExt, "model", network)) {
+        activationThreshold = std::numeric_limits<float>::max();
+        std::cout << "Model could not be loaded, disabling classification" << std::endl;
+    } else {
+        std::cout << "Model successfully loaded" << std::endl;
+    }
+
     Visualizer app;
     app.initWindow();
+    std::cout << "Starting visualizer" << std::endl;
     app.fftData.frames = FFT_FRAMES;
     app.fftData.currentFrame = 0;
     app.fftData.frequencies = new float* [FFT_FRAMES];
@@ -453,16 +485,16 @@ void startFFT(InputData& inputData) {
             app.fftData.frequencies[i][j] = 0.0;
         }
     }
-    std::thread fft = std::thread([&app, &inputData] {
+    std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
         cube data(inputSize, 1, FFT_FRAMES);
         cube out(outputSize, 1, FFT_FRAMES);
-        bool loaded = data::Load(modelFile + modelExt, "model", network, true);
 
         // Wait for visualization to open
         while (!app.isOpen) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+        std::cout << "Starting FFT thread processing" << std::endl;
         Frame frame = Frame();
         size_t lastSampleStart = 0;
         while (app.isOpen) {
@@ -482,24 +514,26 @@ void startFFT(InputData& inputData) {
             app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_FRAMES;
 
             // Pass data to neural network
-            for (size_t i = 0; i < FFT_FRAMES; i++) {
-                int frameIdx = (app.fftData.currentFrame + i) % FFT_FRAMES;
-                float* frameData = app.fftData.frequencies[frameIdx];
-                for (size_t j = 0; j < inputSize; j++) {
-                    data(j, 0, i) = frameData[j];
+            if (frame.volume > activationThreshold) {
+                for (size_t i = 0; i < FFT_FRAMES; i++) {
+                    int frameIdx = (app.fftData.currentFrame + i) % FFT_FRAMES;
+                    float* frameData = app.fftData.frequencies[frameIdx];
+                    for (size_t j = 0; j < inputSize; j++) {
+                        data(j, 0, i) = frameData[j];
+                    }
                 }
-            }
-            network.Predict(data, out);
-            size_t predicted = 0;
-            float max = out(0, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
-            for (size_t i = 0; i < outputSize; i++) {
-                const float& val = out(i, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
-                if (val > max) {
-                    max = val;
-                    predicted = i;
+                network.Predict(data, out);
+                size_t predicted = activationThreshold;
+                float max = out(0, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
+                for (size_t i = 0; i < outputSize; i++) {
+                    const float& val = out(i, 0, FFT_FRAMES - 1 - IDENTIFY_LATENCY);
+                    if (val > max) {
+                        max = val;
+                        predicted = i;
+                    }
                 }
+                std::cout << predicted << std::endl;
             }
-            std::cout << predicted << std::endl;
         }
         });
 
@@ -551,53 +585,10 @@ int commandHelp() {
 }
 
 int commandTrain(const char* path) {
-    //InputData inputData = InputData(2, SAMPLE_RATE * INPUT_BUFFER_TIME);
-
-    // Create and start output device
-#pragma region Output
-    /*
-    RtAudio::StreamOptions outputFlags;
-    outputFlags.flags |= RTAUDIO_NONINTERLEAVED;
-    RtAudio outputAudio;
-
-    RtAudio::StreamParameters outputParameters;
-    unsigned int defaultOutput = outputAudio.getDefaultOutputDevice();
-    if (defaultOutput == 0) {
-        std::cout << "No output devices available\n";
-        return 0;
-    }
-    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(defaultOutput);
-
-    std::cout << "Using output: " << outputInfo.name << '\n';
-    std::cout << "Sample rate: " << outputInfo.preferredSampleRate << '\n';
-
-    outputParameters.deviceId = defaultOutput;
-    outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = outputInfo.preferredSampleRate;
-    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
-
-    OutputData outputData = OutputData();
-    outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
-    outputData.channels = outputParameters.nChannels;
-    outputData.input = &inputData;
-
-
-    if (outputAudio.openStream(&outputParameters, NULL, OUTPUT_FORMAT,
-        outputSampleRate, &outputBufferFrames, &processOutput, (void*)&outputData, &outputFlags)) {
-        std::cout << outputAudio.getErrorText() << '\n';
-        return 0; // problem with device settings
-    }
-
-    if (outputAudio.startStream()) {
-        std::cout << outputAudio.getErrorText() << '\n';
-        cleanupRtAudio(outputAudio);
-        return 0;
-    }
-    */
-#pragma endregion
-
     std::vector<Phone> phones;
     std::cout << "Training mode\n";
+
+    requestInput("Select sample rate", SAMPLE_RATE);
 
     TSVReader tsv;
     tsv.open(combine(path, "/train.tsv"));
@@ -606,19 +597,13 @@ int commandTrain(const char* path) {
 
     std::vector<Frame> frames;
 
-    size_t batchSize = 100;
-    std::cout << "Set batch size (Default: " << batchSize << ")\n";
-    std::string response;
-    std::getline(std::cin, response);
-    if (response != "") {
-        batchSize = std::stoi(response); // Exits if unparsable
-        if (batchSize <= 0) {
-            assert("Out of range");
-        }
+    int batchSize = 100;
+    requestInput("Set batch size", batchSize);
+    if (batchSize <= 0) {
+        throw("Out of range");
     }
 
     std::vector<Clip> clips = std::vector<Clip>(batchSize);
-    std::vector<std::thread> loaders = std::vector<std::thread>(batchSize);
 
     bool loaded = data::Load(modelFile + modelExt, "model", network);
     if (loaded) {
@@ -647,13 +632,15 @@ int commandTrain(const char* path) {
     while (tsv.good()) {
         size_t clipCount = 0;
         for (size_t i = 0; i < batchSize && tsv.good(); i++) {
-            loaders[i] = std::thread(loadNextClip, std::ref(clipPath), std::ref(tsv), std::ref(clips[i]), -1);
+            loadNextClip(clipPath, tsv, clips[i], -1);
             clipCount++;
         }
+
 #pragma omp parallel for
         for (size_t i = 0; i < clipCount; i++) {
             clips[i].loadMP3(SAMPLE_RATE);
         }
+
         size_t maxFrames = 0;
         size_t actualLoadedClips = 0;
         for (size_t i = 0; i < clipCount; i++) {
@@ -795,8 +782,6 @@ int commandTrain(const char* path) {
         data::Save(modelFile + modelExt, "model", network, true);
     }
 
-    //cleanupRtAudio(outputAudio);
-
     return 0;
 }
 
@@ -920,65 +905,61 @@ int commandPreprocess(const char* path) {
 }
 
 int commandDefault() {
+    requestInput("Select sample rate", SAMPLE_RATE);
+
 #pragma region Input and output selector
     RtAudio audioQuery;
     auto devices = audioQuery.getDeviceIds();
-    unsigned int selectedInput = audioQuery.getDefaultInputDevice();
-    if (selectedInput == 0) {
+    unsigned int inDevice = audioQuery.getDefaultInputDevice();
+    if (inDevice == 0) {
         std::cout << "No input devices available\n";
         return 0;
     }
-    unsigned int selectedOutput = audioQuery.getDefaultOutputDevice();
-    if (selectedOutput == 0) {
+    unsigned int outDevice = audioQuery.getDefaultOutputDevice();
+    if (outDevice == 0) {
         std::cout << "No output devices available\n";
         return 0;
     }
     std::vector<RtAudio::DeviceInfo> inputDevices = std::vector<RtAudio::DeviceInfo>();
     std::vector<RtAudio::DeviceInfo> outputDevices = std::vector<RtAudio::DeviceInfo>();
-    size_t defaultInIdx = 0; // Just for display
-    size_t defaultOutIdx = 0;
+    int inIdx = 0;
+    int outIdx = 0;
     for (size_t i = 0; i < devices.size(); i++) {
         unsigned int deviceId = devices[i];
         RtAudio::DeviceInfo deviceInfo = audioQuery.getDeviceInfo(deviceId);
         if (deviceInfo.inputChannels > 0) {
             if (deviceInfo.isDefaultInput) {
-                defaultInIdx = inputDevices.size();
+                inIdx = inputDevices.size();
             }
             inputDevices.push_back(deviceInfo);
         }
         if (deviceInfo.outputChannels > 0) {
             if (deviceInfo.isDefaultOutput) {
-                defaultOutIdx = outputDevices.size();
+                outIdx = outputDevices.size();
             }
             outputDevices.push_back(deviceInfo);
         }
     }
 
     std::string response;
-    int responseInt;
-    std::cout << "Select input device (default: " << defaultInIdx << ")\n";
     for (size_t i = 0; i < inputDevices.size(); i++) {
         std::cout << i << ": " << inputDevices[i].name << std::endl;
     }
-    std::getline(std::cin, response);
-    if (response != "") {
-        responseInt = std::stoi(response); // Exit if unparsable
-        if (responseInt < inputDevices.size()) {
-            assert("Out of range");
-        }
-        selectedInput = inputDevices[responseInt].ID;
+    requestInput("Select input device", inIdx);
+    if (inIdx < 0 || inIdx >= inputDevices.size()) {
+        throw("Out of range");
+    } else {
+        inDevice = inputDevices[inIdx].ID;
     }
-    std::cout << "Select output device (default: " << defaultOutIdx << ")\n";
+
     for (size_t i = 0; i < outputDevices.size(); i++) {
         std::cout << i << ": " << outputDevices[i].name << std::endl;
     }
-    std::getline(std::cin, response);
-    if (response != "") {
-        responseInt = std::stoi(response); // Exit if unparsable
-        if (responseInt < outputDevices.size()) {
-            assert("Out of range");
-        }
-        selectedOutput = outputDevices[responseInt].ID;
+    requestInput("Select output device", outIdx);
+    if (outIdx < 0 || outIdx >= outputDevices.size()) {
+        throw("Out of range");
+    } else {
+        outDevice = outputDevices[outIdx].ID;
     }
 #pragma endregion
 
@@ -991,9 +972,9 @@ int commandDefault() {
 
     RtAudio::StreamParameters inputParameters;
 
-    RtAudio::DeviceInfo inputInfo = inputAudio.getDeviceInfo(selectedInput);
+    RtAudio::DeviceInfo inputInfo = inputAudio.getDeviceInfo(inDevice);
 
-    inputParameters.deviceId = selectedInput;
+    inputParameters.deviceId = inDevice;
     inputParameters.nChannels = inputInfo.inputChannels;
     unsigned int sampleRate = SAMPLE_RATE;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
@@ -1025,9 +1006,9 @@ int commandDefault() {
     RtAudio outputAudio;
 
     RtAudio::StreamParameters outputParameters;
-    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(selectedOutput);
+    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(outDevice);
 
-    outputParameters.deviceId = selectedOutput;
+    outputParameters.deviceId = outDevice;
     outputParameters.nChannels = outputInfo.outputChannels;
     unsigned int outputSampleRate = SAMPLE_RATE;
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
@@ -1055,6 +1036,8 @@ int commandDefault() {
     }
 #pragma endregion
 
+    std::cout << std::endl;
+
     // Setup data visualization
     startFFT(inputData);
 
@@ -1068,17 +1051,6 @@ int main(int argc, char** argv) {
     srand(static_cast <unsigned> (time(0)));
     initalizePhonemeSet();
     outputSize = phonemeSet.size();
-
-    std::string response;
-    SAMPLE_RATE = 16000;
-    std::cout << "Select sample rate (default: " << SAMPLE_RATE << ")\n";
-    std::getline(std::cin, response);
-    if (response != "") {
-        SAMPLE_RATE = std::stoi(response); // Exits if unparsable
-        if (SAMPLE_RATE <= 0) {
-            assert("Out of range");
-        }
-    }
 
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
