@@ -100,8 +100,11 @@ set(PROJECT_NAME SpeechAnonymiser)
 set(Headers
     "common_inc.h"
     "define.h"
+    "structs.h"
     "TSVReader.h"
     "Visualizer.h"
+    "ModelSerializer.h"
+    "PhonemeClassifier.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -109,6 +112,8 @@ set(Sources
     "SpeechAnonymiser.cpp"
     "TSVReader.cpp"
     "Visualizer.cpp"
+    "ModelSerializer.cpp"
+    "PhonemeClassifier.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
@@ -132,7 +137,9 @@ find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
 find_package(RtAudio CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Armadillo CONFIG REQUIRED)
-find_package(OpenMP REQUIRED)
+if (NOT MSVC)
+    find_package(OpenMP REQUIRED)
+endif()
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
@@ -147,8 +154,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+if (NOT MSVC)
+    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+endif()
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE SpeechAnonymiser)

@@ -30,7 +30,7 @@ public:
 	const std::string get_column_name(const int index) { return columns[index]; };
 	const int get_column_count() { return column_count; };
 
-	void open(const char* filepath);
+	void open(const std::string& filepath);
 	bool good();
 	std::string* read_line();
 };

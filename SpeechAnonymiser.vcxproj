@@ -141,6 +141,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ModelSerializer.cpp" />
+    <ClCompile Include="PhonemeClassifier.cpp" />
     <ClCompile Include="TSVReader.cpp" />
     <ClCompile Include="Visualizer.cpp" />
     <ClCompile Include="SpeechAnonymiser.cpp" />
@@ -148,6 +150,9 @@
   <ItemGroup>
     <ClInclude Include="common_inc.h" />
     <ClInclude Include="define.h" />
+    <ClInclude Include="ModelSerializer.h" />
+    <ClInclude Include="PhonemeClassifier.h" />
+    <ClInclude Include="structs.h" />
     <ClInclude Include="TSVReader.h" />
     <ClInclude Include="Visualizer.h" />
   </ItemGroup>

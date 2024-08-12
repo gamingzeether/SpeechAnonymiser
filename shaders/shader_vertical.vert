@@ -15,7 +15,7 @@ out gl_PerVertex {
 
 void main() {
     int index = gl_VertexIndex;
-    float amplitude = 0.8 * log(ubo.frequencies[index / 4][index % 4] + 1);
+    float amplitude = 0.3 * log(ubo.frequencies[index / 4][index % 4] + 1);
     gl_Position = vec4(-0.9 + amplitude, -inPosition.x, 0.0, 1.0);
     fragColor = vec3(1.0, 1.0, 1.0);
 }

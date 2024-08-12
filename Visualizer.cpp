@@ -1,4 +1,3 @@
-#pragma once
 #include "Visualizer.h"
 
 #include <iostream>

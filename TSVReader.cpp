@@ -2,8 +2,12 @@
 
 #include <iostream>
 #include <sstream>
+#include "structs.h"
 
-void TSVReader::open(const char* filepath) {
+void TSVReader::open(const std::string& filepath) {
+	if (reader.is_open()) {
+		reader.close();
+	}
 	reader.open(filepath);
 	if (reader.is_open()) {
 		char c;
@@ -27,13 +31,8 @@ void TSVReader::open(const char* filepath) {
 			}
 		}
 	} else {
-		std::cout << "Failed to open file at ";
-		int i = 0;
-		while (filepath[i] != NULL) {
-			std::cout << filepath[i];
-			i++;
-		}
-		static_assert("Failed to open file");
+		std::cout << "Failed to open file at " << filepath << std::endl;
+		throw("Failed to open file");
 	}
 }
 
