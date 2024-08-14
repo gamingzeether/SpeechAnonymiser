@@ -95,7 +95,7 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
             1e-8,           // Tolerance.
             true);
 
-        bool loaded = ModelSerializer::load((void*)&network);
+        bool loaded = ModelSerializer::load(&network);
         if (loaded) {
             std::cout << "Loaded model\n";
         } else {
@@ -133,8 +133,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
         size_t clipCount = 0;
         size_t testClips = 0;
         for (size_t i = 0; i < batchSize && trainTSV.good(); i++) {
-            double random = (double)rand() / RAND_MAX;
-            bool test = random < 0.1;
+            bool test = clipCount % 10 == 0;
             clips[i].isTest = test;
             TSVReader& targetReader = (test) ? testTSV : trainTSV;
             loadNextClip(clipPath, targetReader, clips[i], -1);
@@ -152,11 +151,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
         size_t totalTrainFrames = 0;
         size_t totalTestFrames = 0;
         size_t actualLoadedClips = 0;
-        size_t skipFrames = FFT_FRAMES / 2;
         for (size_t i = 0; i < clipCount; i++) {
             if (clips[i].loaded) {
                 size_t clipFrames = (clips[i].size + FFT_FRAME_SAMPLES) / FFT_FRAME_SPACING;
-                clipFrames = clipFrames / (FFT_FRAMES / skipFrames);
 
                 if (clips[i].isTest) {
                     totalTestFrames += clipFrames;
@@ -180,9 +177,13 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
         test.fill(0.0);
 
         size_t trainFrame = 0;
+        size_t testFrame = 0;
         std::vector<Frame> frames;
-#pragma omp parallel for
-        for (intptr_t c = 0; c < clipCount; c++) {
+        size_t* totalPhonemes = new size_t[outputSize];
+        for (size_t i = 0; i < outputSize; i++) {
+            totalPhonemes[i] = 0;
+        }
+        for (size_t c = 0; c < clipCount; c++) {
             Clip& currentClip = clips[c];
             if (!currentClip.loaded) {
                 continue;
@@ -193,6 +194,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
             const std::string path = currentClip.tsvElements[TSVReader::Indices::PATH];
             const std::string transcriptionPath = transcriptsPath + currentClip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
             if (!std::filesystem::exists(transcriptionPath)) {
+                std::cout << "Missing transcription: " << transcriptionPath << std::endl;
                 continue;
             }
             std::ifstream reader;
@@ -248,9 +250,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
             // Process frames of the whole clip
             size_t fftStart = 0;
             size_t currentFrame = 0;
-            size_t trainFrame = 0;
-            size_t testFrame = 0;
-            size_t sinceLastFrame = 0;
 
             while ((size_t)fftStart + FFT_FRAME_SAMPLES < currentClip.size) {
                 if (frames.size() <= currentFrame) {
@@ -283,8 +282,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
                     }
                 }
 
-                if (currentFrame >= FFT_FRAMES && sinceLastFrame >= skipFrames) {
-                    sinceLastFrame = 0;
+                if (currentFrame >= FFT_FRAMES) {
                     bool isTest = currentClip.isTest;
                     if (isTest) {
                         writeInput(frames, currentFrame, test, testFrame);
@@ -293,15 +291,47 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
                     } else {
                         writeInput(frames, currentFrame, train, trainFrame);
                         trainLabels(0, trainFrame) = maxIdx;
+                        totalPhonemes[maxIdx]++;
                         trainFrame++;
                     }
                 }
-                sinceLastFrame++;
 
                 fftStart += FFT_FRAME_SPACING;
                 currentFrame++;
             }
         }
+
+        // Calculate accuracy before training
+        size_t correctCount = 0;
+        size_t* correctPhonemes = new size_t[outputSize];
+        for (size_t i = 0; i < outputSize; i++) {
+            correctPhonemes[i] = 0;
+        }
+        for (size_t i = 0; i < totalTestFrames; i++) {
+            size_t result = classify(test.submat(span(0, inputSize - 1), span(i, i)));
+            size_t label = testLabels(0, i);
+            if (result == label) {
+                correctPhonemes[label]++;
+                correctCount++;
+            }
+        }
+        std::cout << "Accuracy: " << correctCount << " out of " << totalTestFrames << std::endl;
+        float lowestAccuracy = 1;
+        size_t lowestAccuracyIdx = 0;
+        for (size_t i = 0; i < outputSize; i++) {
+            if (totalPhonemes[i] == 0) {
+                continue;
+            }
+            float accuracy = (float)correctPhonemes[i] / totalPhonemes[i];
+            if (accuracy < lowestAccuracy) {
+                lowestAccuracy = accuracy;
+                lowestAccuracyIdx = i;
+            }
+        }
+        std::cout << "Lowest accuracy: " << inversePhonemeSet[lowestAccuracyIdx] << " at " << lowestAccuracy * 100 << "%\n    (" <<
+            correctPhonemes[lowestAccuracyIdx] << " / " << totalPhonemes[lowestAccuracyIdx] << ")\n";
+        delete[] correctPhonemes;
+        delete[] totalPhonemes;
 
         ens::StoreBestCoordinates<mat> bestCoordinates;
         network.Train(train,
@@ -313,7 +343,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
                 [&](const mat& /* param */)
                 {
                     double validationLoss = network.Evaluate(test, testLabels);
-                    cout << "Validation loss: " << validationLoss
+                    std::cout << "Validation loss: " << validationLoss
                         << "." << endl;
                     return validationLoss;
                 }),
@@ -323,7 +353,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
 
         network.Parameters() = bestCoordinates.BestCoordinates();
 
-        ModelSerializer::save((void*)&network);
+        ModelSerializer::save(&network);
     }
 }
 
@@ -348,7 +378,7 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
         max = fmaxf(max, abs(audio[i]));
     }
     frame.volume = max;
-    float scale = 1.0f / fmaxf(0.01f, frame.volume);
+    float scale = 1 + logf(1.0f / fmaxf(0.01f, frame.volume));
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         size_t readLocation = (start + i) % totalSize;
         const float& value = audio[readLocation];

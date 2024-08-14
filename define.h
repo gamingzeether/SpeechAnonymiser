@@ -31,4 +31,4 @@ typedef float OUTPUT_TYPE;
 #define CLIP_LENGTH 15
 
 #define STEP_SIZE 5e-3
-#define EPOCHS 1
+#define EPOCHS 5
