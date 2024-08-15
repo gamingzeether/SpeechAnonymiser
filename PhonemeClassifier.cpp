@@ -165,14 +165,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
         }
         std::cout << actualLoadedClips << " clips loaded out of " << clipCount << " total\n";
         std::cout << testClips << " test clips\n";
-        std::cout << totalTrainFrames << " train frames\n";
-        std::cout << totalTestFrames << " test frames\n";
 
         mat train = mat(inputSize, totalTrainFrames);
         mat trainLabels = mat(1, totalTrainFrames);
         mat test = mat(inputSize, totalTestFrames);
         mat testLabels = mat(1, totalTestFrames);
-        optimizer.MaxIterations() = EPOCHS * totalTrainFrames;
         train.fill(0.0);
         test.fill(0.0);
 
@@ -300,12 +297,111 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
                 currentFrame++;
             }
         }
+        train = train.submat(0, 0, inputSize - 1, trainFrame - 1);
+        trainLabels = trainLabels.submat(0, 0, 0, trainFrame - 1);
+        test = test.submat(0, 0, inputSize - 1, testFrame - 1);
+        testLabels = testLabels.submat(0, 0, 0, testFrame - 1);
+
+        // SMOTE
+        /*
+        size_t synthesisedFrames = 0;
+        double perPhoneme = (double)trainFrame / outputSize;
+        for (size_t i = 0; i < outputSize; i++) {
+            if (totalPhonemes[i] < 2 || totalPhonemes[i] > perPhoneme * 2)
+                continue;
+            std::vector<size_t> phonemeCols = std::vector<size_t>();
+            for (size_t j = 0; j < trainFrame; j++) {
+                const size_t& label = trainLabels(0, j);
+                if (label == i) {
+                    phonemeCols.push_back(j);
+                }
+            }
+
+            size_t totalCount = phonemeCols.size();
+            size_t wanted = ceil(perPhoneme / totalPhonemes[i]);
+            size_t remaining = totalCount;
+            std::vector<size_t> from = std::vector<size_t>();
+            for (size_t j = 0; j < totalCount; j++) {
+                double random = (double)rand() / RAND_MAX;
+                if (random <= ((double)wanted / remaining)) {
+                    from.push_back(phonemeCols[j]);
+                    wanted--;
+                }
+                remaining--;
+            }
+            u64_mat neighbors;
+            mat distances;
+            
+            mat phonemeMat = mat(inputSize, totalCount);
+            for (size_t j = 0; j < totalCount; j++) {
+                phonemeMat.col(j) = train.col(phonemeCols[j]);
+            }
+            KNN knn = KNN(phonemeMat);
+            knn.Search(1, neighbors, distances);
+
+            size_t start = train.n_cols;
+            size_t newFrames = from.size();
+            train.insert_cols(start, newFrames);
+            trainLabels.insert_cols(start, newFrames);
+            for (size_t j = 0; j < newFrames; j++) {
+                const size_t& p1 = from[j];
+                const size_t& p2 = neighbors(0, j);
+                double lerp = (double)rand() / RAND_MAX;
+                for (size_t k = 0; k < inputSize; k++) {
+                    const double& f1 = train(k, p1);
+                    const double& f2 = train(k, p2);
+                    train(k, start + j) = f1 + (f1 - f2) * lerp;
+                }
+                trainLabels(0, start + j) = i;
+            }
+            synthesisedFrames += newFrames;
+        }
+        std::cout << trainFrame << " train frames\n";
+        std::cout << synthesisedFrames << " synthesised frames\n";
+        std::cout << testFrame << " test frames\n";
+        trainFrame += synthesisedFrames;
+        optimizer.MaxIterations() = EPOCHS * trainFrame;
+        */
 
         // Calculate accuracy before training
         size_t correctCount = 0;
         size_t* correctPhonemes = new size_t[outputSize];
         for (size_t i = 0; i < outputSize; i++) {
             correctPhonemes[i] = 0;
+        }
+        for (size_t i = 0; i < testFrame; i++) {
+            size_t result = classify(test.submat(span(0, inputSize - 1), span(i, i)));
+            size_t label = testLabels(0, i);
+            if (result == label) {
+                correctPhonemes[label]++;
+                correctCount++;
+            }
+        }
+        std::cout << "Accuracy: " << correctCount << " out of " << testFrame << std::endl;
+        float lowestAccuracy = 1;
+        size_t lowestAccuracyIdx = 0;
+        for (size_t i = 0; i < outputSize; i++) {
+            if (totalPhonemes[i] == 0) {
+                continue;
+            }
+            float accuracy = (float)correctPhonemes[i] / totalPhonemes[i];
+            if (accuracy < lowestAccuracy) {
+                lowestAccuracy = accuracy;
+                lowestAccuracyIdx = i;
+            }
+        }
+        std::cout << "Lowest accuracy: " << inversePhonemeSet[lowestAccuracyIdx] << " at " << lowestAccuracy * 100 << "%\n    (" <<
+            correctPhonemes[lowestAccuracyIdx] << " / " << totalPhonemes[lowestAccuracyIdx] << ")\n";
+        delete[] totalPhonemes;
+        delete[] correctPhonemes;
+
+        // Calculate accuracy before training
+        size_t correctCount = 0;
+        size_t* correctPhonemes = new size_t[outputSize];
+        size_t* totalPhonemes = new size_t[outputSize];
+        for (size_t i = 0; i < outputSize; i++) {
+            correctPhonemes[i] = 0;
+            totalPhonemes[i] = 0;
         }
         for (size_t i = 0; i < totalTestFrames; i++) {
             size_t result = classify(test.submat(span(0, inputSize - 1), span(i, i)));
@@ -314,6 +410,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize) 
                 correctPhonemes[label]++;
                 correctCount++;
             }
+            totalPhonemes[label]++;
         }
         std::cout << "Accuracy: " << correctCount << " out of " << totalTestFrames << std::endl;
         float lowestAccuracy = 1;
