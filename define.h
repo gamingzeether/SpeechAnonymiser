@@ -23,7 +23,7 @@ typedef float OUTPUT_TYPE;
 
 #define FFT_FRAME_SAMPLES 512
 #define FFT_FRAME_SPACING (FFT_FRAME_SAMPLES / 2)
-#define FFT_FRAMES 8
+#define FFT_FRAMES 4
 #define FFT_REAL_SAMPLES (FFT_FRAME_SAMPLES / 2)
 #define VEC4_COUNT (FFT_REAL_SAMPLES / 4)
 
@@ -31,4 +31,3 @@ typedef float OUTPUT_TYPE;
 #define CLIP_LENGTH 15
 
 #define STEP_SIZE 5e-3
-#define EPOCHS 5

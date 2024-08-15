@@ -42,9 +42,9 @@ public:
     bool ready;
 
     void initalize(const size_t& sr, bool load);
-    void train(const std::string& path, const size_t& batchSize);
+    void train(const std::string& path, const size_t& batchSize, const size_t& epochs);
     size_t classify(const arma::mat& data);
-    void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize);
+    void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame);
     void writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, arma::mat& data, size_t col);
     std::string getPhonemeString(const size_t& in) { return inversePhonemeSet[in]; };
     void preprocessDataset(const std::string& path);
@@ -52,6 +52,7 @@ public:
     inline size_t getInputSize() { return inputSize; };
     inline size_t getOutputSize() { return outputSize; };
     inline size_t getSampleRate() { return SAMPLE_RATE; };
+    inline void setGain(float g) { gain = g; };
 
     void destroy() {
         if (!initalized) {
@@ -77,6 +78,7 @@ private:
     float* fftwIn;
     fftwf_complex* fftwOut;
     fftwf_plan fftwPlan;
+    float gain = 1;
 
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);

@@ -126,6 +126,9 @@ void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
     if (classifier.ready) {
         std::cout << "Model successfully loaded" << std::endl;
+        float gain = 1;
+        requestInput("Set gain", gain);
+        classifier.setGain(gain);
         requestInput("Set activation threshold", activationThreshold);
     } else {
         std::cout << "Model could not be loaded, disabling classification" << std::endl;
@@ -160,6 +163,7 @@ void startFFT(InputData& inputData) {
         size_t lastSampleStart = 0;
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
+            Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
             // Wait for enough samples to be recorded to pass to FFT
             while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
                 //auto start = std::chrono::high_resolution_clock::now();
@@ -169,7 +173,7 @@ void startFFT(InputData& inputData) {
             }
             lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             // Do FFT stuff
-            classifier.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames);
+            classifier.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
 
             // Write FFT output to visualizer
             app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_FRAMES;
@@ -208,11 +212,17 @@ int commandTrain(const std::string& path) {
 
     int batchSize = 100;
     requestInput("Set batch size", batchSize);
-    if (batchSize <= 0) {
+    if (batchSize <= 1) {
         throw("Out of range");
     }
 
-    classifier.train(path, batchSize);
+    int epochs = 5;
+    requestInput("Number of epochs", epochs);
+    if (epochs <= 0) {
+        throw("Out of range");
+    }
+
+    classifier.train(path, batchSize, epochs);
 
     return 0;
 }
