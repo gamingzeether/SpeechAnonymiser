@@ -109,15 +109,22 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
         } else {
             std::cout << "Model could not be loaded\n";
 
-            network.Add<Linear>(1024);
+            network.Add<Convolution>(10, 5, 1, 1, 1, 0, 2);
             network.Add<LeakyReLU>();
+            network.Add<BatchNorm>();
+            network.Add<Convolution>(1, 5, 1, 1, 1, 0, 2);
+            network.Add<LeakyReLU>();
+            network.Add<BatchNorm>();
             network.Add<Linear>(512);
             network.Add<LeakyReLU>();
-            network.Add<Linear>(512);
+            network.Add<Linear>(256);
+            network.Add<LeakyReLU>();
+            network.Add<Linear>(128);
             network.Add<LeakyReLU>();
             network.Add<Linear>(outputSize);
             network.Add<LogSoftMax>();
         }
+        network.InputDimensions() = { FFT_REAL_SAMPLES, FFT_FRAMES, 2 };
 
         ready = loaded;
     }
@@ -537,7 +544,7 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         max = fmaxf(max, abs(audio[i]));
     }
-    frame.volume = max;
+    frame.volume = max * gain;
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         size_t readLocation = (start + i) % totalSize;
         const float& value = audio[readLocation];
@@ -559,8 +566,8 @@ void PhonemeClassifier::writeInput(const std::vector<Frame>& frames, const size_
         const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
         size_t offset = f * FFT_REAL_SAMPLES * 2;
         for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
-            data(offset + i, col) = readFrame.real[i];
-            data(offset + FFT_REAL_SAMPLES + i, col) = readFrame.delta[i];
+            data(offset + i * 2, col) = readFrame.real[i];
+            data(offset + i * 2 + 1, col) = readFrame.delta[i];
         }
     }
 }

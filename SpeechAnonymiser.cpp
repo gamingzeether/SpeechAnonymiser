@@ -21,7 +21,7 @@ using namespace arma;
 using namespace mlpack;
 
 auto programStart = std::chrono::system_clock::now();
-int SAMPLE_RATE = 16000;
+int SAMPLE_RATE = 11025;
 
 PhonemeClassifier classifier;
 
