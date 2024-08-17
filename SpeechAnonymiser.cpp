@@ -21,7 +21,7 @@ using namespace arma;
 using namespace mlpack;
 
 auto programStart = std::chrono::system_clock::now();
-int SAMPLE_RATE = 11025;
+int SAMPLE_RATE = 16000;
 
 PhonemeClassifier classifier;
 
@@ -126,9 +126,6 @@ void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
     if (classifier.ready) {
         std::cout << "Model successfully loaded" << std::endl;
-        float gain = 1;
-        requestInput("Set gain", gain);
-        classifier.setGain(gain);
         requestInput("Set activation threshold", activationThreshold);
     } else {
         std::cout << "Model could not be loaded, disabling classification" << std::endl;
@@ -149,7 +146,6 @@ void startFFT(InputData& inputData) {
     }
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
-        classifier.initalize(SAMPLE_RATE, true);
         mat data(classifier.getInputSize(), 1);
         mat out(1, 1);
 
@@ -379,6 +375,10 @@ int main(int argc, char** argv) {
 
     requestInput("Select sample rate", SAMPLE_RATE);
     classifier.initalize(SAMPLE_RATE, true);
+
+    float gain = FFT_FRAME_SAMPLES * 2;
+    requestInput("Set gain", gain);
+    classifier.setGain(gain);
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

@@ -13,4 +13,3 @@ private:
 	inline static const std::string MODEL_FILE = "phoneme_model";
 	inline static const std::string MODEL_EXT = ".bin";
 };
-

@@ -2,6 +2,7 @@
 
 #define MLPACK_ENABLE_ANN_SERIALIZATION 
 #include <mlpack/mlpack.hpp>
+CEREAL_REGISTER_TYPE(mlpack::LinearType<arma::mat, mlpack::L2Regularizer>);
 
 #define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization>
 using namespace mlpack;

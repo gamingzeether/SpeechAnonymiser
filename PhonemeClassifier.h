@@ -69,7 +69,7 @@ private:
 
 	mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
 	ens::Adam optimizer;
-    size_t inputSize = FFT_REAL_SAMPLES * 2 * FFT_FRAMES;
+    size_t inputSize = FFT_REAL_SAMPLES * FFT_FRAMES;
     size_t outputSize = 0;
     size_t SAMPLE_RATE;
 
@@ -78,7 +78,11 @@ private:
     float* fftwIn;
     fftwf_complex* fftwOut;
     fftwf_plan fftwPlan;
-    float gain = 1;
+    float gain;
+
+    float** melTransform;
+    short* melStart;
+    short* melEnd;
 
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);

@@ -852,17 +852,17 @@ void Visualizer::updateUniformBuffer() {
 	float* avg = new float[FFT_REAL_SAMPLES];
 	std::fill_n(avg, FFT_REAL_SAMPLES, 0.0f);
 	for (int j = 0; j < fftData.frames; j++) {
-		int k = (j - currentFrame + FFT_FRAMES) % FFT_FRAMES;
+		int k = (currentFrame + FFT_FRAMES - j) % FFT_FRAMES;
 		double mult = 1.0 / (k + 2);
 		for (int i = 0; i < FFT_REAL_SAMPLES; i++) {
 			avg[i] += fftData.frequencies[j][i] * mult;
 		}
 	}
 	for (int i = 0; i < VEC4_COUNT; i++) {
-		float x = avg[i * 4] * 0.36787944; // 1 / e
-		float y = avg[i * 4 + 1] * 0.36787944;
-		float z = avg[i * 4 + 2] * 0.36787944;
-		float w = avg[i * 4 + 3] * 0.36787944;
+		float x = avg[i * 4];
+		float y = avg[i * 4 + 1];
+		float z = avg[i * 4 + 2];
+		float w = avg[i * 4 + 3];
 		glm::vec4 vec = glm::vec4(x, y, z, w);
 		ubo.frequencies[i] = vec;
 	}

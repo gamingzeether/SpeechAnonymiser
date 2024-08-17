@@ -23,29 +23,25 @@ using namespace arma;
 
 void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
     // Read mp3 file from tsv
-#pragma omp critical
-    std::cout << "Loading MP3: " << tsvElements[TSVReader::Indices::PATH] << '\n';
+    printf("Loading MP3: %s\n", tsvElements[TSVReader::Indices::PATH].c_str());
 
     drmp3_config cfg;
     drmp3_uint64 samples;
 
     std::string clipFullPath = clipPath + tsvElements[TSVReader::Indices::PATH];
     if (!std::filesystem::exists(clipFullPath)) {
-#pragma omp critical
-        std::cout << clipFullPath << " does not exist\n";
+        printf("%s does not exist\n", clipFullPath.c_str());
         return;
     }
 
     float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(clipFullPath.c_str(), &cfg, &samples, NULL);
 
     if (cfg.channels <= 0) {
-#pragma omp critical
-        std::cout << clipFullPath << " has invalid channel count (" << cfg.channels << ")\n";
+        printf("%s has invalid channel count (%d)\n", clipFullPath.c_str(), cfg.channels);
         return;
     }
     if (cfg.sampleRate <= 0) {
-#pragma omp critical
-        std::cout << clipFullPath << " has invalid sample rate (" << cfg.sampleRate << ")\n";
+        printf("%s has invalid sample rate (%d)\n", clipFullPath.c_str(), clipFullPath.c_str());
         return;
     }
 
@@ -70,13 +66,29 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
         size = outSize;
     }
     free(floatBuffer);
+
+    // Normalize volume
+    float max = 0;
+    for (size_t i = 0; i < size; i++) {
+        const float& val = buffer[i];
+        if (val > max) {
+            max = val;
+        }
+    }
+    for (size_t i = 0; i < size; i++) {
+        buffer[i] /= max;
+    }
+
     loaded = true;
 }
 
 void PhonemeClassifier::initalize(const size_t& sr, bool load) {
+    if (initalized) {
+        throw("Already initalized");
+    }
     SAMPLE_RATE = sr;
     initalizePhonemeSet();
-    outputSize = phonemeSet.size();
+    outputSize = inversePhonemeSet.size();
 
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
@@ -86,6 +98,47 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
         //window[i] = 0.355768f - 0.487396f * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.144232 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.012604 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Nuttall
         window[i] = 0.3635819 - 0.4891775 * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.1365995 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.0106411 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Blackman - Nuttall
     }
+
+#pragma region Mel transform
+    // Map fft to mel spectrum by index
+    melTransform = new float* [FFT_REAL_SAMPLES];
+    melStart = new short[FFT_REAL_SAMPLES];
+    melEnd = new short[FFT_REAL_SAMPLES];
+    double melMax = 2595.0f * log10f(1.0f + sr / 700.0f);
+    double fftStep = sr / FFT_REAL_SAMPLES;
+    for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+        double frequency = (double)(fftIdx * sr) / FFT_REAL_SAMPLES;
+        double melFrequency = 2595.0f * log10f(1.0f + frequency / 700.0f);
+        melTransform[fftIdx] = new float[FFT_REAL_SAMPLES];
+        melStart[fftIdx] = -1;
+        melEnd[fftIdx] = FFT_REAL_SAMPLES;
+        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
+            double melBinFrequency = ((double)melIdx / FFT_REAL_SAMPLES) * melMax;
+            double distance = abs(melFrequency - melBinFrequency);
+            distance /= fftStep * 1.2;
+            double effectMultiplier = 1.0 - (distance * distance);
+
+            if (effectMultiplier > 0 && melStart[fftIdx] == -1) {
+                melStart[fftIdx] = melIdx;
+            } else if (effectMultiplier <= 0 && melStart[fftIdx] != -1 && melEnd[fftIdx] == FFT_REAL_SAMPLES) {
+                melEnd[fftIdx] = melIdx;
+            }
+
+            effectMultiplier = std::max(0.0, effectMultiplier);
+            melTransform[fftIdx][melIdx] = effectMultiplier;
+        }
+    }
+    // Normalize
+    for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+        double sum = 0;
+        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
+            sum += melTransform[fftIdx][melIdx];
+        }
+        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
+            melTransform[fftIdx][melIdx] /= sum;
+        }
+    }
+#pragma endregion
 
     fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
     fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
@@ -109,29 +162,28 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
         } else {
             std::cout << "Model could not be loaded\n";
 
-            network.Add<Convolution>(10, 5, 1, 1, 1, 0, 2);
+            network.Add<Convolution>(3, 5, FFT_FRAMES, 1, 1, 0, 0);
             network.Add<LeakyReLU>();
-            network.Add<BatchNorm>();
-            network.Add<Convolution>(1, 5, 1, 1, 1, 0, 2);
+            network.Add<Convolution>(1, 5, 1, 1, 1, 0, 0);
             network.Add<LeakyReLU>();
-            network.Add<BatchNorm>();
-            network.Add<Linear>(512);
+            network.Add<LinearType<mat, L2Regularizer>>(2048, L2Regularizer(0.001));
             network.Add<LeakyReLU>();
-            network.Add<Linear>(256);
+            network.Add<LinearType<mat, L2Regularizer>>(1024, L2Regularizer(0.001));
             network.Add<LeakyReLU>();
-            network.Add<Linear>(128);
+            network.Add<LinearType<mat, L2Regularizer>>(512, L2Regularizer(0.001));
             network.Add<LeakyReLU>();
-            network.Add<Linear>(outputSize);
+            network.Add<LinearType<mat, L2Regularizer>>(outputSize, L2Regularizer(0.001));
             network.Add<LogSoftMax>();
         }
-        network.InputDimensions() = { FFT_REAL_SAMPLES, FFT_FRAMES, 2 };
+        network.InputDimensions() = { FFT_REAL_SAMPLES, FFT_FRAMES, 1 };
 
         ready = loaded;
     }
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs) {
-    optimizer.BatchSize() = batchSize;
+    optimizer.BatchSize() = 16;
+    optimizer.ResetPolicy() = false;
 
     TSVReader trainTSV;
     trainTSV.open(path + "/train.tsv");
@@ -326,13 +378,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         test = test.submat(0, 0, inputSize - 1, testFrame - 1);
         testLabels = testLabels.submat(0, 0, 0, testFrame - 1);
 
-        // SMOTE / Under sampling
-        std::cout << "Starting over/under sampling" << std::endl;
-#pragma region SMOTE
-        size_t synthesisedFrames = 0;
+        std::cout << "Starting under sampling" << std::endl;
+#pragma region Under sampling
         size_t droppedFrames = 0;
-        mat synth = mat(inputSize, 0);
-        mat synthLabels = mat(1, 0);
         uvec dropIndices = uvec();
         size_t dropIdx = 0;
         const double targetFraction = 1.0 / outputSize;
@@ -343,7 +391,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             trackerTotal += phonemeTracker[i];
         }
         int64_t targetPhonemeCount = targetFraction * trackerTotal;
-        mat shortMat = train.rows(0, FFT_REAL_SAMPLES);
         std::cout << "Target: " << trainFrame * targetFraction << std::endl;
         std::vector<std::vector<TYPE1>> phonemeCols = std::vector<std::vector<TYPE1>>(outputSize);
         for (size_t i = 0; i < trainFrame; i++) {
@@ -354,21 +401,21 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             size_t totalCount = phonemeCols[i].size();
             std::cout << inversePhonemeSet[i] << ": " << totalCount <<
                 " / " << phonemeTracker[i];
-
+        
             if (totalCount < 2) {
                 std::cout << std::endl;
                 continue;
             }
-
+        
             // How much higher it was than target
             // Negative if higher, positive if lower
             int64_t historicalOffset = targetPhonemeCount - phonemeTracker[i];
-            if (abs(historicalOffset) < tolerance * trackerTotal) {
+            if (historicalOffset >= -tolerance * trackerTotal) {
                 std::cout << std::endl;
                 phonemeTracker[i] += totalCount;
                 continue;
             }
-
+        
             if (historicalOffset < -tolerance * trackerTotal) {
                 // Under sampling
                 int64_t dropAmount = historicalOffset * -samplingFactor;
@@ -385,64 +432,28 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                         dropAmount--;
                     }
                 }
-            } else if (historicalOffset > tolerance * trackerTotal) {
-                // Else, continue to SMOTE
-                int64_t wanted = historicalOffset;
-                wanted = std::min(wanted, (int64_t)(totalCount * samplingFactor));
-                std::cout << " (Adding " << wanted << " frames)" << std::endl;
-                uvec indices = uvec(wanted);
-                size_t idx = 0;
-                phonemeTracker[i] += totalCount + wanted;
-                for (int j = totalCount - 1; j > 0; j--) {
-                    double random = (double)rand() / RAND_MAX;
-                    if (random < ((double)wanted / j)) {
-                        indices(idx) = phonemeCols[i][j];
-                        idx++;
-                        wanted--;
-                    }
-                }
-
-                Mat<TYPE2> neighbors;
-                mat distances;
-                typedef NeighborSearch<NearestNeighborSort, SquaredEuclideanDistance, mat, tree::BallTree> PhonemeNeighborSearch;
-                PhonemeNeighborSearch search = PhonemeNeighborSearch(shortMat.cols(uvec(phonemeCols[i])));
-                search.Search((size_t)1, neighbors, distances);
-
-                size_t start = train.n_cols;
-                size_t newFrames = indices.size();
-                synth.insert_cols(synth.n_cols, newFrames);
-                synthLabels.insert_cols(synthLabels.n_cols, newFrames);
-                for (size_t j = 0; j < newFrames; j++) {
-                    const size_t& p1 = indices[j];
-                    const size_t& p2 = neighbors(0, j);
-                    double lerp = (double)rand() / RAND_MAX;
-                    for (size_t k = 0; k < inputSize; k++) {
-                        const double& f1 = train(k, p1);
-                        const double& f2 = train(k, p2);
-                        synth(k, j) = f1 + (f1 - f2) * lerp;
-                    }
-                    synthLabels(0, j) = i;
-                }
-                synthesisedFrames += newFrames;
             }
         }
         // Apply changes to training data
         train.shed_cols(dropIndices);
         trainLabels.shed_cols(dropIndices);
-        train = join_rows(train, synth);
-        trainLabels = join_rows(trainLabels, synthLabels);
 #pragma endregion
 
         std::cout << trainFrame << " starting train frames\n";
         trainFrame -= droppedFrames;
-        trainFrame += synthesisedFrames;
         std::cout << droppedFrames << " dropped frames\n";
-        std::cout << synthesisedFrames << " synthesised frames\n";
         std::cout << trainFrame << " effective train frames\n";
         std::cout << testFrame << " test frames\n";
         optimizer.MaxIterations() = epochs * trainFrame;
 
-        // Calculate accuracy before training
+        network.Train(std::move(train),
+            std::move(trainLabels),
+            optimizer,
+            ens::PrintLoss(),
+            ens::ProgressBar(),
+            ens::EarlyStopAtMinLoss());
+
+        // Calculate accuracy
 #pragma region Calculate accuracy
         size_t correctCount = 0;
         size_t* correctPhonemes = new size_t[outputSize];
@@ -500,26 +511,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         delete[] correctPhonemes;
 #pragma endregion
 
-        ens::StoreBestCoordinates<mat> bestCoordinates;
-        //continue;
-        network.Train(std::move(train),
-            std::move(trainLabels),
-            optimizer,
-            ens::PrintLoss(),
-            ens::ProgressBar(),
-            ens::EarlyStopAtMinLoss(
-                [&](const mat& /* param */)
-                {
-                    double validationLoss = network.Evaluate(test, testLabels);
-                    std::cout << "Validation loss: " << validationLoss
-                        << "." << endl;
-                    return validationLoss;
-                }),
-            // Store best coordinates (neural network weights)
-            bestCoordinates);
-
-        network.Parameters() = bestCoordinates.BestCoordinates();
-
         ModelSerializer::save(&network);
     }
 }
@@ -551,23 +542,54 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
         fftwIn[i] = value * window[i];
     }
     fftwf_execute(fftwPlan);
+    float* melFrequencies = new float[FFT_REAL_SAMPLES];
+    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+        melFrequencies[i] = 0;
+    }
+    float adjGain = gain / FFT_REAL_SAMPLES;
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
-        float amplitude = abs(complex[0]) * gain;
-        amplitude = log10f(amplitude + 1);
-        frame.delta[i] = amplitude - prevFrame.real[i];
-        frame.real[i] = amplitude;
+        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]) * adjGain;
+        for (size_t melIdx = melStart[i]; melIdx < melEnd[i]; melIdx++) {
+            float& effect = melTransform[i][melIdx];
+            melFrequencies[melIdx] += effect * amplitude;
+        }
         frame.imaginary[i] = complex[1];
+    }
+    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+        // No log for higher difference in amplitudes
+        float melAmplitude = melFrequencies[i];
+        frame.delta[i] = melAmplitude - prevFrame.real[i];
+        frame.real[i] = melAmplitude;
+    }
+
+    // Find local minima/maxima
+    if (frame.volume > 0.001) {
+        const std::vector<float>& input = frame.real;
+        std::vector<size_t> maxima = std::vector<size_t>();
+        std::vector<size_t> minima = std::vector<size_t>();
+        for (size_t i = 2; i < input.size(); i++) {
+            const float& f1 = input[i - 2];
+            const float& f2 = input[i - 1];
+            const float& f3 = input[i];
+            float delta1 = f1 - f2;
+            float delta2 = f2 - f3;
+            if (delta1 > 0 && delta2 < 0) {
+                maxima.push_back(i - 1);
+            } else if (delta1 < 0 && delta2 > 0) {
+                minima.push_back(i - 1);
+            }
+        }
     }
 }
 
 void PhonemeClassifier::writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, mat& data, size_t col) {
     for (size_t f = 0; f < FFT_FRAMES; f++) {
         const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
-        size_t offset = f * FFT_REAL_SAMPLES * 2;
+        size_t offset = f * FFT_REAL_SAMPLES;
         for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
-            data(offset + i * 2, col) = readFrame.real[i];
-            data(offset + i * 2 + 1, col) = readFrame.delta[i];
+            data(offset + i, col) = readFrame.real[i];
+            //data(offset + i * 2 + 1, col) = readFrame.delta[i];
         }
     }
 }
@@ -778,52 +800,54 @@ void PhonemeClassifier::initalizePhonemeSet() {
 #define REGISTER_PHONEME(t, p) \
     phonemeSet[PhonemeClassifier::customHasher(L##p)] = _phonemeCounter++; \
     inversePhonemeSet.push_back(t);
+#define REGISTER_ALIAS(p) \
+    phonemeSet[PhonemeClassifier::customHasher(L##p)] = _phonemeCounter;
 
     size_t _phonemeCounter = 0;
     using namespace std::string_literals;
-    REGISTER_PHONEME("", "")
+        REGISTER_PHONEME(""  , ""   )
+        REGISTER_PHONEME("=" , "spn")
         REGISTER_PHONEME("ai", "aj" )
         REGISTER_PHONEME("ow", "aw" )
         REGISTER_PHONEME("b" , "b"  )
-        REGISTER_PHONEME("b" , "bʲ" )
+        REGISTER_ALIAS("bʲ" )
         REGISTER_PHONEME("c" , "c"  )
-        REGISTER_PHONEME("c" , "cʰ" )
-        REGISTER_PHONEME("c" , "cʷ" )
+        REGISTER_ALIAS("cʰ" )
+        REGISTER_ALIAS("cʷ" )
         REGISTER_PHONEME("d" , "d"  )
         REGISTER_PHONEME("j" , "dʒ" )
         REGISTER_PHONEME("th", "dʲ" )
         REGISTER_PHONEME("du", "d̪" )
         REGISTER_PHONEME("e" , "ej" )
         REGISTER_PHONEME("f" , "f"  )
-        REGISTER_PHONEME("f" , "fʲ" )
+        REGISTER_ALIAS("fʲ" )
         REGISTER_PHONEME("h" , "h"  )
         REGISTER_PHONEME("i" , "i"  )
-        REGISTER_PHONEME("i" , "iː" )
+        REGISTER_ALIAS("iː" )
         REGISTER_PHONEME("j" , "j"  )
         REGISTER_PHONEME("k" , "k"  )
-        REGISTER_PHONEME("k" , "kʰ" )
-        REGISTER_PHONEME("k" , "kʷ" )
+        REGISTER_ALIAS("kʰ" )
+        REGISTER_ALIAS("kʷ" )
         REGISTER_PHONEME("l" , "l"  )
         REGISTER_PHONEME("m" , "m"  )
-        REGISTER_PHONEME("m" , "mʲ" )
-        REGISTER_PHONEME("m" , "m̩" )
+        REGISTER_ALIAS("mʲ" )
+        REGISTER_ALIAS("m̩" )
         REGISTER_PHONEME("n" , "n"  )
         REGISTER_PHONEME("n" , "n̩" )
         REGISTER_PHONEME("o" , "ow" )
         REGISTER_PHONEME("p" , "p"  )
-        REGISTER_PHONEME("p" , "pʰ" )
-        REGISTER_PHONEME("p" , "pʲ" )
-        REGISTER_PHONEME("p" , "pʷ" )
+        REGISTER_ALIAS("pʰ" )
+        REGISTER_ALIAS("pʲ" )
+        REGISTER_ALIAS("pʷ" )
         REGISTER_PHONEME("s" , "s"  )
-        REGISTER_PHONEME("=" , "spn")
         REGISTER_PHONEME("t" , "t"  )
-        REGISTER_PHONEME("ch", "tʃ" )
-        REGISTER_PHONEME("t" , "tʰ" )
-        REGISTER_PHONEME("t" , "tʲ" )
-        REGISTER_PHONEME("t" , "tʷ" )
+        REGISTER_ALIAS("tʃ" )
+        REGISTER_ALIAS("tʰ" )
+        REGISTER_ALIAS("tʲ" )
+        REGISTER_ALIAS("tʷ" )
         REGISTER_PHONEME("th", "t̪" )
         REGISTER_PHONEME("v" , "v"  )
-        REGISTER_PHONEME("v" , "vʲ" )
+        REGISTER_ALIAS("vʲ" )
         REGISTER_PHONEME("w" , "w"  )
         REGISTER_PHONEME("z" , "z"  )
         REGISTER_PHONEME("ae", "æ"  )
@@ -832,30 +856,30 @@ void PhonemeClassifier::initalizePhonemeSet() {
         REGISTER_PHONEME("ng", "ŋ"  )
         REGISTER_PHONEME("a" , "ɐ"  )
         REGISTER_PHONEME("a" , "ɑ"  )
-        REGISTER_PHONEME("a" , "ɑː" )
+        REGISTER_ALIAS("ɑː" )
         REGISTER_PHONEME("a" , "ɒ"  )
-        REGISTER_PHONEME("a" , "ɒː" )
+        REGISTER_ALIAS("ɒː" )
         REGISTER_PHONEME("o" , "ɔj" )
         REGISTER_PHONEME("uh", "ə"  )
         REGISTER_PHONEME("ah", "ɚ"  )
         REGISTER_PHONEME("eh", "ɛ"  )
         REGISTER_PHONEME("uh", "ɝ"  )
         REGISTER_PHONEME("g" , "ɟ"  )
-        REGISTER_PHONEME("g" , "ɟʷ" )
+        REGISTER_ALIAS("ɟʷ" )
         REGISTER_PHONEME("g" , "ɡ"  )
-        REGISTER_PHONEME("g" , "ɡʷ" )
+        REGISTER_ALIAS("ɡʷ" )
         REGISTER_PHONEME("i" , "ɪ"  )
         REGISTER_PHONEME("l" , "ɫ"  )
-        REGISTER_PHONEME("l" , "ɫ̩" )
+        REGISTER_ALIAS("ɫ̩" )
         REGISTER_PHONEME("mf", "ɱ"  )
         REGISTER_PHONEME("ny", "ɲ"  )
         REGISTER_PHONEME("r" , "ɹ"  )
         REGISTER_PHONEME("tt", "ɾ"  )
-        REGISTER_PHONEME("tt", "ɾʲ" )
-        REGISTER_PHONEME("tt", "ɾ̃"  )
+        REGISTER_ALIAS("ɾʲ" )
+        REGISTER_ALIAS("ɾ̃"  )
         REGISTER_PHONEME("sh", "ʃ"  )
         REGISTER_PHONEME("u" , "ʉ"  )
-        REGISTER_PHONEME("u" , "ʉː" )
+        REGISTER_ALIAS("ʉː" )
         REGISTER_PHONEME("oo", "ʊ"  )
         REGISTER_PHONEME("ll", "ʎ"  )
         REGISTER_PHONEME("z" , "ʒ"  )
