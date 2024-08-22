@@ -42,7 +42,7 @@ public:
     bool ready;
 
     void initalize(const size_t& sr, bool load);
-    void train(const std::string& path, const size_t& batchSize, const size_t& epochs);
+    void train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize);
     size_t classify(const arma::mat& data);
     void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame);
     void writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, arma::mat& data, size_t col);

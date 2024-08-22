@@ -69,6 +69,13 @@ void requestInput(const std::string& request, float& value) {
     }
 }
 
+void requestInput(const std::string& request, double& value) {
+    std::string response;
+    if (requestString(request, response, value)) {
+        value = std::stod(response);
+    }
+}
+
 int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
     double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data) {
 
@@ -213,12 +220,18 @@ int commandTrain(const std::string& path) {
     }
 
     int epochs = 5;
-    requestInput("Number of epochs", epochs);
+    requestInput("Set number of epochs", epochs);
     if (epochs <= 0) {
         throw("Out of range");
     }
 
-    classifier.train(path, batchSize, epochs);
+    double stepSize = STEP_SIZE;
+    requestInput("Set training rate", stepSize);
+    if (stepSize <= 0) {
+        throw("Out of range");
+    }
+
+    classifier.train(path, batchSize, epochs, stepSize);
 
     return 0;
 }

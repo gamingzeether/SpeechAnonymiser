@@ -23,7 +23,7 @@ using namespace arma;
 
 void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
     // Read mp3 file from tsv
-    printf("Loading MP3: %s\n", tsvElements[TSVReader::Indices::PATH].c_str());
+    //printf("Loading MP3: %s\n", tsvElements[TSVReader::Indices::PATH].c_str());
 
     drmp3_config cfg;
     drmp3_uint64 samples;
@@ -172,7 +172,7 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
             network.Add<LeakyReLU>();
             network.Add<LinearType<mat, L2Regularizer>>(512, L2Regularizer(0.001));
             network.Add<LeakyReLU>();
-            network.Add<LinearType<mat, L2Regularizer>>(outputSize, L2Regularizer(0.001));
+            network.Add<Linear>(outputSize);
             network.Add<LogSoftMax>();
         }
         network.InputDimensions() = { FFT_REAL_SAMPLES, FFT_FRAMES, 1 };
@@ -181,9 +181,10 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
     }
 }
 
-void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs) {
+void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize) {
     optimizer.BatchSize() = 16;
     optimizer.ResetPolicy() = false;
+    optimizer.StepSize() = stepSize;
 
     TSVReader trainTSV;
     trainTSV.open(path + "/train.tsv");
@@ -385,7 +386,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         size_t dropIdx = 0;
         const double targetFraction = 1.0 / outputSize;
         const double tolerance = targetFraction * 0.01;
-        const double samplingFactor = 0.5;
+        const double samplingFactor = 0.75;
         size_t trackerTotal = 0;
         for (size_t i = 0; i < outputSize; i++) {
             trackerTotal += phonemeTracker[i];
@@ -401,11 +402,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             size_t totalCount = phonemeCols[i].size();
             std::cout << inversePhonemeSet[i] << ": " << totalCount <<
                 " / " << phonemeTracker[i];
-        
-            if (totalCount < 2) {
-                std::cout << std::endl;
-                continue;
-            }
         
             // How much higher it was than target
             // Negative if higher, positive if lower
@@ -446,20 +442,18 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         std::cout << testFrame << " test frames\n";
         optimizer.MaxIterations() = epochs * trainFrame;
 
-        network.Train(std::move(train),
-            std::move(trainLabels),
-            optimizer,
-            ens::PrintLoss(),
-            ens::ProgressBar(),
-            ens::EarlyStopAtMinLoss());
-
         // Calculate accuracy
 #pragma region Calculate accuracy
         size_t correctCount = 0;
         size_t* correctPhonemes = new size_t[outputSize];
+        size_t** confusionMatrix = new size_t * [outputSize];
         for (size_t i = 0; i < outputSize; i++) {
             correctPhonemes[i] = 0;
             totalPhonemes[i] = 0;
+            confusionMatrix[i] = new size_t[outputSize];
+            for (size_t j = 0; j < outputSize; j++) {
+                confusionMatrix[i][j] = 0;
+            }
         }
         for (size_t i = 0; i < testFrame; i++) {
             size_t result = classify(test.submat(span(0, inputSize - 1), span(i, i)));
@@ -468,48 +462,40 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 correctPhonemes[label]++;
                 correctCount++;
             }
+            confusionMatrix[label][result]++;
             totalPhonemes[label]++;
         }
         std::cout << "Accuracy: " << correctCount << " out of " << testFrame << std::endl;
-        float highestAccuracy = 0;
-        size_t highestAccuracyIdx = 0;
-        float secAccuracy = 0;
-        size_t secAccuracyIdx = 0;
-        float lowestAccuracy = 1;
-        size_t lowestAccuracyIdx = 0;
+        std::cout << "Confusion Matrix:" << std::endl;
+        std::cout << "   ";
         for (size_t i = 0; i < outputSize; i++) {
-            if (totalPhonemes[i] == 0) {
-                continue;
-            }
-            float accuracy = (float)correctPhonemes[i] / totalPhonemes[i];
-            if (accuracy > highestAccuracy) {
-                if (highestAccuracy > secAccuracy) {
-                    secAccuracy = highestAccuracy;
-                    secAccuracyIdx = highestAccuracyIdx;
-                }
-                highestAccuracy = accuracy;
-                highestAccuracyIdx = i;
-            } else if (accuracy < highestAccuracy && accuracy > secAccuracy) {
-                secAccuracy = accuracy;
-                secAccuracyIdx = i;
-            }
-            if (accuracy < lowestAccuracy) {
-                lowestAccuracy = accuracy;
-                lowestAccuracyIdx = i;
-            }
+            std::cout << std::setw(2) << inversePhonemeSet[i] << " ";
         }
-        std::cout << "Highest accuracy: " << inversePhonemeSet[highestAccuracyIdx] << " at " << highestAccuracy * 100 << "%\n    (" <<
-            correctPhonemes[highestAccuracyIdx] << " / " << totalPhonemes[highestAccuracyIdx] << ")\n";
-
-        std::cout << "2nd highest accuracy: " << inversePhonemeSet[secAccuracyIdx] << " at " << secAccuracy * 100 << "%\n    (" <<
-            correctPhonemes[secAccuracyIdx] << " / " << totalPhonemes[secAccuracyIdx] << ")\n";
-
-        std::cout << "Lowest accuracy: " << inversePhonemeSet[lowestAccuracyIdx] << " at " << lowestAccuracy * 100 << "%\n    (" <<
-            correctPhonemes[lowestAccuracyIdx] << " / " << totalPhonemes[lowestAccuracyIdx] << ")\n";
+        std::cout << std::endl;
+        for (size_t i = 0; i < outputSize; i++) {
+            std::cout << std::setw(2) << inversePhonemeSet[i] << " ";
+            size_t total = 1;
+            for (size_t j = 0; j < outputSize; j++) {
+                total += confusionMatrix[i][j];
+            }
+            for (size_t j = 0; j < outputSize; j++) {
+                double fraction = (double)confusionMatrix[i][j] / total;
+                int percent = fraction * 100;
+                std::cout << std::setw(2) << percent << " ";
+            }
+            std::cout << std::endl;
+        }
 
         delete[] totalPhonemes;
         delete[] correctPhonemes;
 #pragma endregion
+
+        network.Train(std::move(train),
+            std::move(trainLabels),
+            optimizer,
+            ens::PrintLoss(),
+            ens::ProgressBar(),
+            ens::EarlyStopAtMinLoss());
 
         ModelSerializer::save(&network);
     }
