@@ -79,13 +79,13 @@ void Visualizer::initWindow() {
 }
 
 void Visualizer::initVulkan() {
-	vertices = std::vector<Vertex>(FFT_REAL_SAMPLES);
+	vertices = std::vector<Vertex>(FRAME_SIZE);
 	for (int i = 0; i < vertices.size(); i++) {
 		double x = ((i * 1.8) / vertices.size()) - (1.8 / 2);
 		Vertex v = { {x, 0}, {1, 1, 1} };
 		vertices[i] = v;
 	}
-	indices = std::vector<uint16_t>(vertices.size() * 2 - 2);
+	indices = std::vector<uint16_t>((vertices.size() - 1) * 2);
 	for (int i = 0; i < indices.size() / 2; i++) {
 		indices[i * 2] = i;
 		indices[i * 2 + 1] = i + 1;

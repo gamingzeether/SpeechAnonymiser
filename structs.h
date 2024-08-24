@@ -46,7 +46,7 @@ struct Frame {
     float volume;
 
     void reset() {
-        for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+        for (size_t i = 0; i < FRAME_SIZE; i++) {
             real[i] = 0;
             imaginary[i] = 0;
             delta[i] = 0;
@@ -55,9 +55,9 @@ struct Frame {
     }
 
     Frame() {
-        real = std::vector<float>(FFT_REAL_SAMPLES);
-        imaginary = std::vector<float>(FFT_REAL_SAMPLES);
-        delta = std::vector<float>(FFT_REAL_SAMPLES);
+        real = std::vector<float>(FRAME_SIZE);
+        imaginary = std::vector<float>(FRAME_SIZE);
+        delta = std::vector<float>(FRAME_SIZE);
         volume = 0;
     }
 };

@@ -41,7 +41,7 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
         return;
     }
     if (cfg.sampleRate <= 0) {
-        printf("%s has invalid sample rate (%d)\n", clipFullPath.c_str(), clipFullPath.c_str());
+        printf("%s has invalid sample rate (%d)\n", clipFullPath.c_str(), cfg.sampleRate);
         return;
     }
 
@@ -99,23 +99,23 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
         window[i] = 0.3635819 - 0.4891775 * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.1365995 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.0106411 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Blackman - Nuttall
     }
 
-#pragma region Mel transform
+#pragma region Mel filterbank
     // Map fft to mel spectrum by index
     melTransform = new float* [FFT_REAL_SAMPLES];
     melStart = new short[FFT_REAL_SAMPLES];
     melEnd = new short[FFT_REAL_SAMPLES];
-    double melMax = 2595.0f * log10f(1.0f + sr / 700.0f);
-    double fftStep = sr / FFT_REAL_SAMPLES;
+    double melMax = 2595.0 * log10(1.0 + (sr / 700.0));
+    double fftStep = (double)sr / FFT_REAL_SAMPLES;
     for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
         double frequency = (double)(fftIdx * sr) / FFT_REAL_SAMPLES;
-        double melFrequency = 2595.0f * log10f(1.0f + frequency / 700.0f);
+        double melFrequency = 2595.0 * log10(1.0 + (frequency / 700.0));
         melTransform[fftIdx] = new float[FFT_REAL_SAMPLES];
         melStart[fftIdx] = -1;
         melEnd[fftIdx] = FFT_REAL_SAMPLES;
         for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
             double melBinFrequency = ((double)melIdx / FFT_REAL_SAMPLES) * melMax;
             double distance = abs(melFrequency - melBinFrequency);
-            distance /= fftStep * 1.2;
+            distance /= fftStep * 1.75;
             double effectMultiplier = 1.0 - (distance * distance);
 
             if (effectMultiplier > 0 && melStart[fftIdx] == -1) {
@@ -142,43 +142,46 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
 
     fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
     fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
-    fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE);
+    fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE | FFTW_DESTROY_INPUT);
+    dctIn = (float*)fftw_malloc(sizeof(float) * FFT_REAL_SAMPLES);
+    dctOut = (float*)fftw_malloc(sizeof(float) * FFT_REAL_SAMPLES);
+    dctPlan = fftwf_plan_r2r_1d(FFT_REAL_SAMPLES, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
     initalized = true;
 
+    optimizer = ens::Adam(
+        STEP_SIZE,  // Step size of the optimizer.
+        0, // Batch size. Number of data points that are used in each iteration.
+        0.9,        // Exponential decay rate for the first moment estimates.
+        0.999, // Exponential decay rate for the weighted infinity norm estimates.
+        1e-8,  // Value used to initialise the mean squared gradient parameter.
+        0, // Max number of iterations.
+        1e-8,           // Tolerance.
+        true);
+
+    bool loaded = false;
+    std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
     if (load) {
-        optimizer = ens::Adam(
-            STEP_SIZE,  // Step size of the optimizer.
-            0, // Batch size. Number of data points that are used in each iteration.
-            0.9,        // Exponential decay rate for the first moment estimates.
-            0.999, // Exponential decay rate for the weighted infinity norm estimates.
-            1e-8,  // Value used to initialise the mean squared gradient parameter.
-            0, // Max number of iterations.
-            1e-8,           // Tolerance.
-            true);
-
-        bool loaded = ModelSerializer::load(&network);
-        if (loaded) {
+        if (ModelSerializer::load(&network)) {
             std::cout << "Loaded model\n";
-        } else {
-            std::cout << "Model could not be loaded\n";
-
-            network.Add<Convolution>(3, 5, FFT_FRAMES, 1, 1, 0, 0);
-            network.Add<LeakyReLU>();
-            network.Add<Convolution>(1, 5, 1, 1, 1, 0, 0);
-            network.Add<LeakyReLU>();
-            network.Add<LinearType<mat, L2Regularizer>>(2048, L2Regularizer(0.001));
-            network.Add<LeakyReLU>();
-            network.Add<LinearType<mat, L2Regularizer>>(1024, L2Regularizer(0.001));
-            network.Add<LeakyReLU>();
-            network.Add<LinearType<mat, L2Regularizer>>(512, L2Regularizer(0.001));
-            network.Add<LeakyReLU>();
-            network.Add<Linear>(outputSize);
-            network.Add<LogSoftMax>();
+            loaded = true;
         }
-        network.InputDimensions() = { FFT_REAL_SAMPLES, FFT_FRAMES, 1 };
-
-        ready = loaded;
     }
+    if (!loaded) {
+        std::cout << "Model not loaded\n";
+
+        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<LeakyReLU>();
+        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<LeakyReLU>();
+        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<LeakyReLU>();
+        network.Add<LinearType<mat, L2Regularizer>>(outputSize, L2Regularizer(0.0001));
+        network.Add<LogSoftMax>();
+    }
+    network.InputDimensions() = inputDimensions;
+    optimizer.ResetPolicy() = false;
+
+    ready = loaded;
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize) {
@@ -199,6 +202,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
     }
     std::vector<Phone> phones;
     
+    double trainingSeconds = 0;
     size_t* phonemeTracker = new size_t[outputSize];
     for (size_t i = 0; i < outputSize; i++) {
         phonemeTracker[i] = 1;
@@ -323,6 +327,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             // Process frames of the whole clip
             size_t fftStart = 0;
             size_t currentFrame = 0;
+            trainingSeconds += (double)currentClip.size / currentClip.sampleRate;
 
             while ((size_t)fftStart + FFT_FRAME_SAMPLES < currentClip.size) {
                 if (frames.size() <= currentFrame) {
@@ -379,7 +384,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         test = test.submat(0, 0, inputSize - 1, testFrame - 1);
         testLabels = testLabels.submat(0, 0, 0, testFrame - 1);
 
-        std::cout << "Starting under sampling" << std::endl;
+        std::cout << "Starting under sampling\n";
 #pragma region Under sampling
         size_t droppedFrames = 0;
         uvec dropIndices = uvec();
@@ -465,8 +470,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             confusionMatrix[label][result]++;
             totalPhonemes[label]++;
         }
-        std::cout << "Accuracy: " << correctCount << " out of " << testFrame << std::endl;
-        std::cout << "Confusion Matrix:" << std::endl;
+        std::printf("Accuracy: %d out of %d (%.1f%%)\n", correctCount, testFrame, ((double)correctCount / testFrame) * 100);
+        std::cout << "Confusion Matrix:\n";
         std::cout << "   ";
         for (size_t i = 0; i < outputSize; i++) {
             std::cout << std::setw(2) << inversePhonemeSet[i] << " ";
@@ -487,7 +492,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
 
                 std::printf(format, percent);
             }
-            std::cout << std::endl;
+            std::cout << "\n";
         }
 
         delete[] totalPhonemes;
@@ -504,6 +509,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             ens::PrintLoss(),
             ens::ProgressBar(),
             ens::EarlyStopAtMinLoss());
+
+        std::cout << "Total hours trained: " << trainingSeconds / (60 * 60) << "\n";
 
         ModelSerializer::save(&network);
     }
@@ -535,54 +542,45 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
         const float& value = audio[readLocation];
         fftwIn[i] = value * window[i];
     }
+
+    // Get mel spectrum
     fftwf_execute(fftwPlan);
     float* melFrequencies = new float[FFT_REAL_SAMPLES];
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
-        melFrequencies[i] = 0;
+        melFrequencies[i] = 0.0001f;
     }
-    float adjGain = gain / FFT_REAL_SAMPLES;
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
-        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]) * adjGain;
+        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]) * gain;
         for (size_t melIdx = melStart[i]; melIdx < melEnd[i]; melIdx++) {
-            float& effect = melTransform[i][melIdx];
-            melFrequencies[melIdx] += effect * amplitude;
+            const float& effect = melTransform[i][melIdx];
+            melFrequencies[melIdx] += effect * (amplitude);
         }
-        frame.imaginary[i] = complex[1];
     }
-    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
-        // No log for higher difference in amplitudes
-        float melAmplitude = melFrequencies[i];
-        frame.delta[i] = melAmplitude - prevFrame.real[i];
-        frame.real[i] = melAmplitude;
-    }
-    delete[] melFrequencies;
 
-    // Find local minima/maxima
-    if (frame.volume > 0.001) {
-        const std::vector<float>& input = frame.real;
-        std::vector<size_t> maxima = std::vector<size_t>();
-        std::vector<size_t> minima = std::vector<size_t>();
-        for (size_t i = 2; i < input.size(); i++) {
-            const float& f1 = input[i - 2];
-            const float& f2 = input[i - 1];
-            const float& f3 = input[i];
-            float delta1 = f1 - f2;
-            float delta2 = f2 - f3;
-            if (delta1 > 0 && delta2 < 0) {
-                maxima.push_back(i - 1);
-            } else if (delta1 < 0 && delta2 > 0) {
-                minima.push_back(i - 1);
-            }
-        }
+    // DCT of mel spectrum
+    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+        //frame.delta[i] = melAmplitude - prevFrame.real[i];
+        //frame.real[i] = melAmplitude;
+        dctIn[i] = log10f(melFrequencies[i]);
     }
+    fftwf_execute(dctPlan);
+    
+    // Get the first FRAME_SIZE cepstrum coefficients
+    float dctScale = 10.0f / (FFT_REAL_SAMPLES * 2);
+    for (size_t i = 0; i < FRAME_SIZE; i++) {
+        float value = dctOut[i] * dctScale;
+        frame.real[i] = value;
+    }
+
+    delete[] melFrequencies;
 }
 
 void PhonemeClassifier::writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, mat& data, size_t col) {
     for (size_t f = 0; f < FFT_FRAMES; f++) {
         const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
-        size_t offset = f * FFT_REAL_SAMPLES;
-        for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+        size_t offset = f * FRAME_SIZE;
+        for (size_t i = 0; i < FRAME_SIZE; i++) {
             data(offset + i, col) = readFrame.real[i];
             //data(offset + i * 2 + 1, col) = readFrame.delta[i];
         }

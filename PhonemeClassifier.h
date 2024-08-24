@@ -69,7 +69,7 @@ private:
 
 	mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
 	ens::Adam optimizer;
-    size_t inputSize = FFT_REAL_SAMPLES * FFT_FRAMES;
+    size_t inputSize = FRAME_SIZE * FFT_FRAMES;
     size_t outputSize = 0;
     size_t SAMPLE_RATE;
 
@@ -78,6 +78,9 @@ private:
     float* fftwIn;
     fftwf_complex* fftwOut;
     fftwf_plan fftwPlan;
+    float* dctIn;
+    float* dctOut;
+    fftwf_plan dctPlan;
     float gain;
 
     float** melTransform;

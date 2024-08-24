@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
     requestInput("Select sample rate", SAMPLE_RATE);
     classifier.initalize(SAMPLE_RATE, true);
 
-    float gain = FFT_FRAME_SAMPLES * 2;
+    float gain = 1;
     requestInput("Set gain", gain);
     classifier.setGain(gain);
 
