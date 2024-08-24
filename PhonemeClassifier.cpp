@@ -481,7 +481,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             for (size_t j = 0; j < outputSize; j++) {
                 double fraction = (double)confusionMatrix[i][j] / total;
                 int percent = fraction * 100;
-                std::cout << std::setw(2) << percent << " ";
+
+                const char* format = (i == j) ? "\033[36m%2d\033[0m " : 
+                    (confusionMatrix[i][j] > confusionMatrix[i][i]) ? "\033[31m%2d\033[0m " : "%2d ";
+
+                std::printf(format, percent);
             }
             std::cout << std::endl;
         }
