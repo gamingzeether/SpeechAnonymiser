@@ -488,6 +488,10 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
 
         delete[] totalPhonemes;
         delete[] correctPhonemes;
+        for (size_t i = 0; i < outputSize; i++) {
+            delete[] confusionMatrix[i];
+        }
+        delete[] confusionMatrix;
 #pragma endregion
 
         network.Train(std::move(train),
@@ -548,6 +552,7 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
         frame.delta[i] = melAmplitude - prevFrame.real[i];
         frame.real[i] = melAmplitude;
     }
+    delete[] melFrequencies;
 
     // Find local minima/maxima
     if (frame.volume > 0.001) {
