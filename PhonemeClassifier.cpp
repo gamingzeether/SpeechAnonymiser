@@ -207,6 +207,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
     for (size_t i = 0; i < outputSize; i++) {
         phonemeTracker[i] = 1;
     }
+
+    std::thread trainThread;
+    bool isTraining = false;
     while (trainTSV.good()) {
 #pragma region Prepare to load clips
         size_t clipCount = 0;
@@ -222,9 +225,15 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             clipCount++;
         }
 
+        size_t clipsLoaded = 0;
 #pragma omp parallel for
         for (size_t i = 0; i < clipCount; i++) {
             clips[i].loadMP3(SAMPLE_RATE);
+#pragma omp critical
+            clipsLoaded++;
+            if (!isTraining) {
+                std::cout << clipsLoaded << "\r" << std::flush;
+            }
         }
 
         size_t totalTrainFrames = 0;
@@ -242,8 +251,14 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 actualLoadedClips++;
             }
         }
+
         std::cout << actualLoadedClips << " clips loaded out of " << clipCount << " total\n";
         std::cout << testClips << " test clips\n";
+
+        if (trainThread.joinable()) {
+            trainThread.join();
+            std::cout << "Finished\n";
+        }
 
         mat train = mat(inputSize, totalTrainFrames);
         mat trainLabels = mat(1, totalTrainFrames);
@@ -378,6 +393,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 fftStart += FFT_FRAME_SPACING;
                 currentFrame++;
             }
+            if (!isTraining) {
+                std::cout << c << "\r" << std::flush;
+            }
         }
         train = train.submat(0, 0, inputSize - 1, trainFrame - 1);
         trainLabels = trainLabels.submat(0, 0, 0, trainFrame - 1);
@@ -407,7 +425,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             size_t totalCount = phonemeCols[i].size();
             std::cout << inversePhonemeSet[i] << ": " << totalCount <<
                 " / " << phonemeTracker[i];
-        
+
             // How much higher it was than target
             // Negative if higher, positive if lower
             int64_t historicalOffset = targetPhonemeCount - phonemeTracker[i];
@@ -416,7 +434,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 phonemeTracker[i] += totalCount;
                 continue;
             }
-        
+
             if (historicalOffset < -tolerance * trackerTotal) {
                 // Under sampling
                 int64_t dropAmount = historicalOffset * -samplingFactor;
@@ -470,7 +488,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             confusionMatrix[label][result]++;
             totalPhonemes[label]++;
         }
-        std::printf("Accuracy: %d out of %d (%.1f%%)\n", correctCount, testFrame, ((double)correctCount / testFrame) * 100);
+        std::printf("Accuracy: %d out of %d (%.1f%%)\n", (int)correctCount, (int)testFrame, ((double)correctCount / testFrame) * 100);
         std::cout << "Confusion Matrix:\n";
         std::cout << "   ";
         for (size_t i = 0; i < outputSize; i++) {
@@ -487,8 +505,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 double fraction = (double)confusionMatrix[i][j] / total;
                 int percent = fraction * 100;
 
-                const char* format = (i == j) ? "\033[36m%2d\033[0m " : 
-                    (confusionMatrix[i][j] > confusionMatrix[i][i]) ? "\033[31m%2d\033[0m " : "%2d ";
+                const char* format = (i == j) ? "\033[36m%2d\033[0m " /* cyan */ :
+                    (confusionMatrix[i][j] > confusionMatrix[i][i]) ? "\033[31m%2d\033[0m " /* red */ : "%2d ";
 
                 std::printf(format, percent);
             }
@@ -503,16 +521,20 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         delete[] confusionMatrix;
 #pragma endregion
 
-        network.Train(std::move(train),
-            std::move(trainLabels),
-            optimizer,
-            ens::PrintLoss(),
-            ens::ProgressBar(),
-            ens::EarlyStopAtMinLoss());
+        isTraining = true;
+        trainThread = std::thread([this, train, trainLabels, &trainingSeconds, &isTraining]{
+            network.Train(std::move(train),
+                std::move(trainLabels),
+                optimizer,
+                ens::PrintLoss(),
+                ens::ProgressBar(),
+                ens::EarlyStopAtMinLoss());
 
-        std::cout << "Total hours trained: " << trainingSeconds / (60 * 60) << "\n";
+            std::cout << "Total hours trained: " << trainingSeconds / (60 * 60) << "\n";
 
-        ModelSerializer::save(&network);
+            ModelSerializer::save(&network);
+            isTraining = false;
+            });
     }
 }
 
