@@ -41,6 +41,10 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
 
     float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(clipFullPath.c_str(), &cfg, &samples, NULL);
 
+    if (floatBuffer == NULL) {
+        printf("Failed to open file: %s\n", clipFullPath.c_str());
+        return;
+    }
     if (cfg.channels <= 0) {
         printf("%s has invalid channel count (%d)\n", clipFullPath.c_str(), cfg.channels);
         return;
