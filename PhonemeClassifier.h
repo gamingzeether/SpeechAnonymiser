@@ -5,6 +5,7 @@
 #include <fftw3.h>
 #include <mlpack/mlpack.hpp>
 #include "TSVReader.h"
+#include "JSONHelper.h"
 #include "structs.h"
 #include "define.h"
 
@@ -41,7 +42,7 @@ public:
 
     bool ready;
 
-    void initalize(const size_t& sr, bool load);
+    void initalize(const size_t& sr);
     void train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize);
     size_t classify(const arma::mat& data);
     void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame);
@@ -62,8 +63,11 @@ public:
         free(fftwIn);
         fftwf_free(fftwOut);
         delete[] window;
+        json.close();
     };
 private:
+    JSONHelper json;
+
     std::unordered_map<size_t, size_t> phonemeSet;
     std::vector<std::string> inversePhonemeSet;
 

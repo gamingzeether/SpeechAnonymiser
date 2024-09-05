@@ -11,6 +11,11 @@
 #define TYPE2 size_t 
 #endif
 
+// Update this when adding/remove json things
+#define CURRENT_VERSION 0
+
+#define CLASSIFIER_VERSION 0
+
 #include <filesystem>
 #include <dr_mp3.h>
 #include <dr_wav.h>
@@ -82,13 +87,23 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
     loaded = true;
 }
 
-void PhonemeClassifier::initalize(const size_t& sr, bool load) {
+void PhonemeClassifier::initalize(const size_t& sr) {
     if (initalized) {
         throw("Already initalized");
     }
     SAMPLE_RATE = sr;
     initalizePhonemeSet();
     outputSize = inversePhonemeSet.size();
+
+
+    bool opened = json.open("classifier.json", CURRENT_VERSION);
+
+    if (!opened) {
+        json["classifier_version"] = CLASSIFIER_VERSION;
+        json["training_seconds"] = 0.0;
+        json.save();
+    }
+    int classifierVersion = json["classifier_version"].get_int();
 
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
@@ -160,14 +175,13 @@ void PhonemeClassifier::initalize(const size_t& sr, bool load) {
 
     bool loaded = false;
     std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
-    if (load) {
-        if (ModelSerializer::load(&network)) {
-            std::cout << "Loaded model\n";
-            loaded = true;
-        }
+    if (classifierVersion == CLASSIFIER_VERSION && ModelSerializer::load(&network)) {
+        std::cout << "Loaded model\n";
+        loaded = true;
     }
     if (!loaded) {
         std::cout << "Model not loaded\n";
+        json["training_seconds"] = 0.0;
 
         network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
         network.Add<LeakyReLU>();
@@ -202,7 +216,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
     }
     std::vector<Phone> phones;
     
-    double trainingSeconds = 0;
+    double trainingSeconds = json["training_seconds"].get_real();
     size_t* phonemeTracker = new size_t[outputSize];
     for (size_t i = 0; i < outputSize; i++) {
         phonemeTracker[i] = 1;
@@ -531,6 +545,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 ens::EarlyStopAtMinLoss());
 
             std::cout << "Total hours trained: " << trainingSeconds / (60 * 60) << "\n";
+            json["training_seconds"] = trainingSeconds;
+            json.save();
 
             ModelSerializer::save(&network);
             isTraining = false;

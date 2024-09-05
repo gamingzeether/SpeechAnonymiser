@@ -6,8 +6,9 @@
     "glfw3",
     "glm",
     "libsamplerate",
+    "mlpack",
     "rtaudio",
     "vulkan",
-    "mlpack"
+    "yyjson"
   ]
 }

@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
     srand(static_cast <unsigned> (time(0)));
 
     requestInput("Select sample rate", SAMPLE_RATE);
-    classifier.initalize(SAMPLE_RATE, true);
+    classifier.initalize(SAMPLE_RATE);
 
     float gain = 1;
     requestInput("Set gain", gain);

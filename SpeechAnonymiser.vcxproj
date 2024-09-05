@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="JSONHelper.cpp" />
     <ClCompile Include="ModelSerializer.cpp" />
     <ClCompile Include="PhonemeClassifier.cpp" />
     <ClCompile Include="TSVReader.cpp" />
@@ -150,6 +151,7 @@
   <ItemGroup>
     <ClInclude Include="common_inc.h" />
     <ClInclude Include="define.h" />
+    <ClInclude Include="JSONHelper.h" />
     <ClInclude Include="ModelSerializer.h" />
     <ClInclude Include="PhonemeClassifier.h" />
     <ClInclude Include="structs.h" />

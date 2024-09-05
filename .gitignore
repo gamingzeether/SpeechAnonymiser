@@ -404,3 +404,4 @@ vcpkg_installed/*
 enc_temp_folder/*
 *.bin
 build/*
+classifier.json

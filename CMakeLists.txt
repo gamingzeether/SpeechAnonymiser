@@ -105,6 +105,7 @@ set(Headers
     "Visualizer.h"
     "ModelSerializer.h"
     "PhonemeClassifier.h"
+    "JSONHelper.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -114,6 +115,7 @@ set(Sources
     "Visualizer.cpp"
     "ModelSerializer.cpp"
     "PhonemeClassifier.cpp"
+    "JSONHelper.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
@@ -137,6 +139,7 @@ find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
 find_package(RtAudio CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Armadillo CONFIG REQUIRED)
+find_package(yyjson CONFIG REQUIRED)
 if (NOT MSVC)
     find_package(OpenMP REQUIRED)
 endif()
@@ -154,6 +157,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
+target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
