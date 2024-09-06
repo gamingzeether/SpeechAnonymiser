@@ -13,7 +13,8 @@ void TSVReader::open(const std::string& filepath) {
 		char c;
 		std::string column = "";
 		column_count = 0;
-		while (reader) {
+		bool done = false;
+		while (reader && !done) {
 			c = reader.get();
 			switch (c) {
 			case '\t':
@@ -23,33 +24,47 @@ void TSVReader::open(const std::string& filepath) {
 				break;
 			case '\n':
 				columns.push_back(column);
+				done = true;
 				column_count++;
-				return;
+				break;
 			default:
 				column += c;
 				break;
 			}
 		}
 	} else {
-		std::cout << "Failed to open file at " << filepath << std::endl;
+		printf("Failed to open file at %s\n", filepath.c_str());
 		throw("Failed to open file");
 	}
+
+	printf("Loading TSV: %s\n", filepath.c_str());
+	std::string line;
+	while (std::getline(reader, line)) {
+		std::string* elements = new std::string[3];
+		size_t last = 0, next;
+		size_t col = 0;
+		for (int i = 0; i < column_count; i++) {
+			next = line.find('\t', last);
+			if (i == CLIENT_ID || 
+				i == PATH) {
+				elements[col] = line.substr(last, next - last);
+				col++;
+			}
+			last = next + 1;
+		}
+		lines.push_back(elements);
+	}
+	printf("Loaded %zu lines\n", lines.size());
+	reader.close();
 }
 
-bool TSVReader::good() {
-	char c = reader.peek();
-	return c != '\n' && c != EOF;
-};
-
 std::string* TSVReader::read_line() {
-	std::string* elements = new std::string[column_count];
-	std::string line;
-	std::getline(reader, line);
-	size_t last = 0, next;
-	for (int i = 0; i < column_count; i++) {
-		next = line.find('\t', last);
-		elements[i] = line.substr(last, next - last);
-		last = next + 1;
+	return lines[rand() % lines.size()];
+}
+
+std::string* TSVReader::read_line_ordered() {
+	if (readLine <= lines.size()) {
+		return lines[readLine];
 	}
-	return elements;
+	return NULL;
 }

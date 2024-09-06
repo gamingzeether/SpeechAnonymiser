@@ -13,7 +13,7 @@
 
 // Update this when adding/remove json things
 #define CURRENT_VERSION 0
-
+// Update this when modifying classifier parameters
 #define CLASSIFIER_VERSION 0
 
 #include <filesystem>
@@ -92,17 +92,16 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
 }
 
 void PhonemeClassifier::initalize(const size_t& sr) {
-    if (initalized) {
-        throw("Already initalized");
-    }
+    // Check if already initalized
+    assert(!initalized);
+
     SAMPLE_RATE = sr;
     initalizePhonemeSet();
     outputSize = inversePhonemeSet.size();
 
-
-    bool opened = json.open("classifier.json", CURRENT_VERSION);
-
-    if (!opened) {
+    // Load JSON
+    bool openedJson = json.open("classifier.json", CURRENT_VERSION);
+    if (!openedJson) {
         json["classifier_version"] = CLASSIFIER_VERSION;
         json["training_seconds"] = 0.0;
         json.save();
@@ -200,6 +199,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     optimizer.ResetPolicy() = false;
 
     ready = loaded;
+    std::cout << "Classifier initalized\n\n";
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize) {
@@ -228,11 +228,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
 
     std::thread trainThread;
     bool isTraining = false;
-    while (trainTSV.good()) {
+    while (true) {
 #pragma region Prepare to load clips
         size_t clipCount = 0;
         size_t testClips = 0;
-        for (size_t i = 0; i < batchSize && trainTSV.good(); i++) {
+        for (size_t i = 0; i < batchSize; i++) {
             bool test = clipCount % 10 == 0;
             clips[i].isTest = test;
             TSVReader& targetReader = (test) ? testTSV : trainTSV;
@@ -634,8 +634,8 @@ void PhonemeClassifier::preprocessDataset(const std::string& path) {
     TSVReader dictReader;
     dictReader.open(path + "/english_us_mfa.dict");
     std::vector<std::string> phonemeList = std::vector<std::string>();
-    while (dictReader.good()) {
-        std::string* tabSeperated = dictReader.read_line();
+    std::string* tabSeperated = dictReader.read_line_ordered();
+    while (tabSeperated != NULL) {
         std::string& phonemes = tabSeperated[1];
         int start = 0;
         int end = 0;
@@ -656,6 +656,7 @@ void PhonemeClassifier::preprocessDataset(const std::string& path) {
                 phonemeList.push_back(p);
             }
         }
+        tabSeperated = dictReader.read_line();
     }
     std::sort(phonemeList.begin(), phonemeList.end());
     std::fstream out = std::fstream("F:/Data/phonemes.txt", std::fstream::out);
@@ -680,16 +681,18 @@ void PhonemeClassifier::preprocessDataset(const std::string& path) {
         tsv.open(path + tables[i].c_str());
 
         unsigned long globalCounter = 0;
-        while (tsv.good()) {
+        bool tsvGood = true;
+        while (tsvGood) {
             auto start = std::chrono::system_clock::now();
             // Batches
             int counter = 0;
             Clip clip = Clip();
             clip.initSampleRate(SAMPLE_RATE);
-            while (tsv.good() && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
+            std::string* tabSeperated = tsv.read_line_ordered();
+            while (tabSeperated != NULL && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
                 std::cout << globalCounter << "\n";
 
-                loadNextClip(clipPath, tsv, clip, -1);
+                loadNextClip(clipPath, tabSeperated, clip, -1);
 
                 globalCounter++;
                 std::string transcriptPath = std::string(path) + "/transcript/" + clip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + clip.tsvElements[TSVReader::Indices::PATH];
@@ -821,14 +824,18 @@ size_t PhonemeClassifier::customHasher(const std::wstring& str) {
     return v;
 }
 
-void PhonemeClassifier::loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate) {
+void PhonemeClassifier::loadNextClip(const std::string& clipPath, std::string* tabSeperated, OUT Clip& clip, int sampleRate) {
     clip.clipPath = clipPath;
     clip.loaded = false;
-    std::string* elements = tsv.read_line();
-    clip.tsvElements = elements;
+    clip.tsvElements = tabSeperated;
     if (sampleRate > 0) {
         clip.loadMP3(sampleRate);
     }
+}
+
+void PhonemeClassifier::loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate) {
+    std::string* elements = tsv.read_line();
+    loadNextClip(clipPath, elements, clip, sampleRate);
 }
 
 void PhonemeClassifier::initalizePhonemeSet() {

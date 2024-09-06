@@ -94,6 +94,7 @@ private:
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);
     static size_t customHasher(const std::wstring& str);
+    void loadNextClip(const std::string& clipPath, std::string* tabSeperated, OUT Clip& clip, int sampleRate);
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
     void initalizePhonemeSet();
 };
