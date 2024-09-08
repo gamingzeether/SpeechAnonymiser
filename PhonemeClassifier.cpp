@@ -58,6 +58,14 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
         memcpy(buffer, floatBuffer, sizeof(float) * samples);
         size = samples;
         sampleRate = cfg.sampleRate;
+    } else if (cfg.sampleRate % targetSampleRate == 0 && cfg.sampleRate > targetSampleRate) {
+        // Integer down sample rate conversion
+        int factor = cfg.sampleRate / targetSampleRate;
+        size = samples / factor;
+        for (size_t i = 0; i < size; i++) {
+            buffer[i] = floatBuffer[i * factor];
+        }
+        sampleRate = targetSampleRate;
     } else {
         SRC_DATA upsampleData = SRC_DATA();
         upsampleData.data_in = floatBuffer;
