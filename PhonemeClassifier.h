@@ -16,6 +16,7 @@ public:
         std::string clipPath;
         std::string* tsvElements;
         float* buffer;
+        float allocatedLength;
         size_t size;
         std::string sentence;
         unsigned int sampleRate;
@@ -24,7 +25,8 @@ public:
 
         void loadMP3(int targetSampleRate);
         void initSampleRate(size_t sr) {
-            buffer = new float[sr * CLIP_LENGTH];
+            allocatedLength = 5;
+            buffer = new float[sr * allocatedLength];
         };
 
         Clip() {

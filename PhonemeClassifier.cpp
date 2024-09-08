@@ -14,7 +14,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 0
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 0
+#define CLASSIFIER_VERSION 1
 
 #include <filesystem>
 #include <dr_mp3.h>
@@ -52,6 +52,15 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
     if (cfg.sampleRate <= 0) {
         printf("%s has invalid sample rate (%d)\n", clipFullPath.c_str(), cfg.sampleRate);
         return;
+    }
+
+    float length = (double)samples / cfg.sampleRate;
+    float newLength = length + 0.1f;
+    if (newLength > allocatedLength) {
+        // Not very efficient but should slow/stop after a certain point
+        delete[] buffer;
+        buffer = new float[targetSampleRate * newLength];
+        allocatedLength = newLength;
     }
 
     if (cfg.sampleRate == targetSampleRate) {
@@ -92,8 +101,10 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
             max = val;
         }
     }
+    float targetMax = 1.0f;
+    float factor = targetMax / max;
     for (size_t i = 0; i < size; i++) {
-        buffer[i] /= max;
+        buffer[i] *= factor;
     }
 
     loaded = true;
@@ -193,14 +204,15 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     if (!loaded) {
         std::cout << "Model not loaded\n";
         json["training_seconds"] = 0.0;
+        json["classifier_version"] = CLASSIFIER_VERSION;
 
-        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<Linear>(256);
         network.Add<LeakyReLU>();
-        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<Linear>(256);
         network.Add<LeakyReLU>();
-        network.Add<LinearType<mat, L2Regularizer>>(256, L2Regularizer(0.0001));
+        network.Add<Linear>(256);
         network.Add<LeakyReLU>();
-        network.Add<LinearType<mat, L2Regularizer>>(outputSize, L2Regularizer(0.0001));
+        network.Add<Linear>(outputSize);
         network.Add<LogSoftMax>();
     }
     network.InputDimensions() = inputDimensions;
@@ -532,7 +544,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 int percent = fraction * 100;
 
                 const char* format = (i == j) ? "\033[36m%2d\033[0m " /* cyan */ :
-                    (confusionMatrix[i][j] > confusionMatrix[i][i]) ? "\033[31m%2d\033[0m " /* red */ : "%2d ";
+                    (percent > 2) ? "\033[31m%2d\033[0m " /* red */ : "%2d ";
 
                 std::printf(format, percent);
             }
@@ -590,7 +602,7 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         size_t readLocation = (start + i) % totalSize;
         const float& value = audio[readLocation];
-        fftwIn[i] = value * window[i];
+        fftwIn[i] = value * window[i] * gain;
     }
 
     // Get mel spectrum
@@ -601,7 +613,7 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
     }
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
-        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]) * gain;
+        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]);
         for (size_t melIdx = melStart[i]; melIdx < melEnd[i]; melIdx++) {
             const float& effect = melTransform[i][melIdx];
             melFrequencies[melIdx] += effect * (amplitude);
@@ -848,6 +860,9 @@ void PhonemeClassifier::loadNextClip(const std::string& clipPath, TSVReader& tsv
 
 void PhonemeClassifier::initalizePhonemeSet() {
 #define REGISTER_PHONEME(t, p) \
+    if (phonemeSet.find(PhonemeClassifier::customHasher(L##p)) != phonemeSet.end()) { \
+        throw("Hash collision"); \
+    } \
     phonemeSet[PhonemeClassifier::customHasher(L##p)] = _phonemeCounter++; \
     inversePhonemeSet.push_back(t);
 #define REGISTER_ALIAS(p) \
@@ -856,48 +871,49 @@ void PhonemeClassifier::initalizePhonemeSet() {
     size_t _phonemeCounter = 0;
     using namespace std::string_literals;
         REGISTER_PHONEME(""  , ""   )
-        REGISTER_PHONEME("=" , "spn")
+        REGISTER_ALIAS("spn")
+        REGISTER_ALIAS("ʔ")
         REGISTER_PHONEME("ai", "aj" )
         REGISTER_PHONEME("ow", "aw" )
         REGISTER_PHONEME("b" , "b"  )
-        REGISTER_ALIAS("bʲ" )
+        REGISTER_PHONEME("bj", "bʲ" )
         REGISTER_PHONEME("c" , "c"  )
-        REGISTER_ALIAS("cʰ" )
-        REGISTER_ALIAS("cʷ" )
+        REGISTER_PHONEME("cg", "cʰ" )
+        REGISTER_PHONEME("cw", "cʷ" )
         REGISTER_PHONEME("d" , "d"  )
         REGISTER_PHONEME("j" , "dʒ" )
         REGISTER_PHONEME("th", "dʲ" )
         REGISTER_PHONEME("du", "d̪" )
         REGISTER_PHONEME("e" , "ej" )
         REGISTER_PHONEME("f" , "f"  )
-        REGISTER_ALIAS("fʲ" )
+        REGISTER_PHONEME("fj", "fʲ" )
         REGISTER_PHONEME("h" , "h"  )
         REGISTER_PHONEME("i" , "i"  )
-        REGISTER_ALIAS("iː" )
+        REGISTER_PHONEME("i:", "iː" )
         REGISTER_PHONEME("j" , "j"  )
         REGISTER_PHONEME("k" , "k"  )
-        REGISTER_ALIAS("kʰ" )
-        REGISTER_ALIAS("kʷ" )
+        REGISTER_PHONEME("kh", "kʰ" )
+        REGISTER_PHONEME("kw", "kʷ" )
         REGISTER_PHONEME("l" , "l"  )
         REGISTER_PHONEME("m" , "m"  )
-        REGISTER_ALIAS("mʲ" )
-        REGISTER_ALIAS("m̩" )
+        REGISTER_PHONEME("mj", "mʲ" )
+        REGISTER_PHONEME("m.", "m̩" )
         REGISTER_PHONEME("n" , "n"  )
-        REGISTER_PHONEME("n" , "n̩" )
+        REGISTER_PHONEME("n.", "n̩" )
         REGISTER_PHONEME("o" , "ow" )
         REGISTER_PHONEME("p" , "p"  )
-        REGISTER_ALIAS("pʰ" )
-        REGISTER_ALIAS("pʲ" )
-        REGISTER_ALIAS("pʷ" )
+        REGISTER_PHONEME("ph", "pʰ" )
+        REGISTER_PHONEME("pj", "pʲ" )
+        REGISTER_PHONEME("pw", "pʷ" )
         REGISTER_PHONEME("s" , "s"  )
         REGISTER_PHONEME("t" , "t"  )
-        REGISTER_ALIAS("tʃ" )
-        REGISTER_ALIAS("tʰ" )
-        REGISTER_ALIAS("tʲ" )
-        REGISTER_ALIAS("tʷ" )
+        REGISTER_PHONEME("tf", "tʃ" )
+        REGISTER_PHONEME("th", "tʰ" )
+        REGISTER_PHONEME("tj", "tʲ" )
+        REGISTER_PHONEME("tw", "tʷ" )
         REGISTER_PHONEME("th", "t̪" )
         REGISTER_PHONEME("v" , "v"  )
-        REGISTER_ALIAS("vʲ" )
+        REGISTER_PHONEME("vj", "vʲ" )
         REGISTER_PHONEME("w" , "w"  )
         REGISTER_PHONEME("z" , "z"  )
         REGISTER_PHONEME("ae", "æ"  )
@@ -906,34 +922,34 @@ void PhonemeClassifier::initalizePhonemeSet() {
         REGISTER_PHONEME("ng", "ŋ"  )
         REGISTER_PHONEME("a" , "ɐ"  )
         REGISTER_PHONEME("a" , "ɑ"  )
-        REGISTER_ALIAS("ɑː" )
+        REGISTER_PHONEME("a:", "ɑː" )
         REGISTER_PHONEME("a" , "ɒ"  )
-        REGISTER_ALIAS("ɒː" )
+        REGISTER_PHONEME("a:", "ɒː" )
         REGISTER_PHONEME("o" , "ɔj" )
         REGISTER_PHONEME("uh", "ə"  )
         REGISTER_PHONEME("ah", "ɚ"  )
         REGISTER_PHONEME("eh", "ɛ"  )
         REGISTER_PHONEME("uh", "ɝ"  )
         REGISTER_PHONEME("g" , "ɟ"  )
-        REGISTER_ALIAS("ɟʷ" )
+        REGISTER_PHONEME("fw", "ɟʷ" )
         REGISTER_PHONEME("g" , "ɡ"  )
-        REGISTER_ALIAS("ɡʷ" )
+        REGISTER_PHONEME("gw", "ɡʷ" )
         REGISTER_PHONEME("i" , "ɪ"  )
         REGISTER_PHONEME("l" , "ɫ"  )
-        REGISTER_ALIAS("ɫ̩" )
+        REGISTER_PHONEME("lw", "ɫ̩" )
         REGISTER_PHONEME("mf", "ɱ"  )
         REGISTER_PHONEME("ny", "ɲ"  )
         REGISTER_PHONEME("r" , "ɹ"  )
         REGISTER_PHONEME("tt", "ɾ"  )
-        REGISTER_ALIAS("ɾʲ" )
-        REGISTER_ALIAS("ɾ̃"  )
+        REGISTER_PHONEME("tj", "ɾʲ" )
+        REGISTER_PHONEME("r~", "ɾ̃"  )
         REGISTER_PHONEME("sh", "ʃ"  )
         REGISTER_PHONEME("u" , "ʉ"  )
-        REGISTER_ALIAS("ʉː" )
+        REGISTER_PHONEME("u-", "ʉː" )
         REGISTER_PHONEME("oo", "ʊ"  )
         REGISTER_PHONEME("ll", "ʎ"  )
         REGISTER_PHONEME("z" , "ʒ"  )
-        REGISTER_PHONEME("/" , "ʔ"  )
         REGISTER_PHONEME("th", "θ"  )
 #undef REGISTER_PHONEME
+#undef ALIAS
 }
