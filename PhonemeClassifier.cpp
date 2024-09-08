@@ -211,7 +211,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize) {
-    optimizer.BatchSize() = 16;
+    optimizer.BatchSize() = 64;
     optimizer.ResetPolicy() = false;
     optimizer.StepSize() = stepSize;
 
