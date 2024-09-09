@@ -44,6 +44,7 @@ struct Frame {
 
     std::vector<float> delta;
     float volume;
+    size_t phone;
 
     void reset() {
         for (size_t i = 0; i < FRAME_SIZE; i++) {
@@ -52,6 +53,7 @@ struct Frame {
             delta[i] = 0;
         }
         volume = 0;
+        phone = 0;
     }
 
     Frame() {
@@ -59,5 +61,6 @@ struct Frame {
         imaginary = std::vector<float>(FRAME_SIZE);
         delta = std::vector<float>(FRAME_SIZE);
         volume = 0;
+        phone = 0;
     }
 };

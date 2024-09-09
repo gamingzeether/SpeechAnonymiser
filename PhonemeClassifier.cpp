@@ -14,7 +14,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 0
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 1
+#define CLASSIFIER_VERSION 2
 
 #include <filesystem>
 #include <dr_mp3.h>
@@ -59,7 +59,7 @@ void PhonemeClassifier::Clip::loadMP3(int targetSampleRate) {
     if (newLength > allocatedLength) {
         // Not very efficient but should slow/stop after a certain point
         delete[] buffer;
-        buffer = new float[targetSampleRate * newLength];
+        buffer = new float[(size_t)(targetSampleRate * newLength)];
         allocatedLength = newLength;
     }
 
@@ -196,7 +196,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         true);
 
     bool loaded = false;
-    std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
     if (classifierVersion == CLASSIFIER_VERSION && ModelSerializer::load(&network)) {
         std::cout << "Loaded model\n";
         loaded = true;
@@ -206,16 +205,16 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["training_seconds"] = 0.0;
         json["classifier_version"] = CLASSIFIER_VERSION;
 
-        network.Add<Linear>(256);
+        network.Add<LSTM>(32);
         network.Add<LeakyReLU>();
-        network.Add<Linear>(256);
+        network.Add<LSTM>(32);
         network.Add<LeakyReLU>();
-        network.Add<Linear>(256);
+        network.Add<LSTM>(32);
         network.Add<LeakyReLU>();
         network.Add<Linear>(outputSize);
         network.Add<LogSoftMax>();
     }
-    network.InputDimensions() = inputDimensions;
+    network.BPTTSteps() = TRAINING_RHO;
     optimizer.ResetPolicy() = false;
 
     ready = loaded;
@@ -298,10 +297,10 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             std::cout << "Finished\n";
         }
 
-        mat train = mat(inputSize, totalTrainFrames);
-        mat trainLabels = mat(1, totalTrainFrames);
-        mat test = mat(inputSize, totalTestFrames);
-        mat testLabels = mat(1, totalTestFrames);
+        cube train = cube(inputSize, totalTrainFrames, TRAINING_RHO);
+        cube trainLabels = cube(1, totalTrainFrames, TRAINING_RHO);
+        cube test = cube(inputSize, totalTestFrames, 1);
+        cube testLabels = cube(1, totalTestFrames, 1);
         train.fill(0.0);
         test.fill(0.0);
 
@@ -414,16 +413,20 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                     }
                 }
                 totalPhonemes[maxIdx]++;
+                frame.phone = maxIdx;
 #pragma endregion
-                if (currentFrame >= FFT_FRAMES) {
+                if (currentFrame >= TRAINING_RHO) {
                     bool isTest = currentClip.isTest;
                     if (isTest) {
-                        writeInput(frames, currentFrame, test, testFrame);
-                        testLabels(0, testFrame) = maxIdx;
+                        writeInput(frame, test, testFrame, 0);
+                        testLabels(0, testFrame, 0) = maxIdx;
                         testFrame++;
                     } else {
-                        writeInput(frames, currentFrame, train, trainFrame);
-                        trainLabels(0, trainFrame) = maxIdx;
+                        for (size_t s = 0; s < TRAINING_RHO; s++) {
+                            const Frame& readFrame = frames[currentFrame - s];
+                            writeInput(frame, train, trainFrame, TRAINING_RHO - 1 - s);
+                            trainLabels(0, trainFrame, TRAINING_RHO - 1 - s) = frame.phone;
+                        }
                         trainFrame++;
                     }
                 }
@@ -435,11 +438,12 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 std::cout << c << "\r" << std::flush;
             }
         }
-        train = train.submat(0, 0, inputSize - 1, trainFrame - 1);
-        trainLabels = trainLabels.submat(0, 0, 0, trainFrame - 1);
-        test = test.submat(0, 0, inputSize - 1, testFrame - 1);
-        testLabels = testLabels.submat(0, 0, 0, testFrame - 1);
+        train = train.subcube(0, 0, 0, inputSize - 1, trainFrame - 1, TRAINING_RHO - 1);
+        trainLabels = trainLabels.subcube(0, 0, 0, 0, trainFrame - 1, TRAINING_RHO - 1);
+        test = test.subcube(0, 0, 0, inputSize - 1, testFrame - 1, 0);
+        testLabels = testLabels.subcube(0, 0, 0, 0, testFrame - 1, 0);
 
+        /*
         std::cout << "Starting under sampling\n";
 #pragma region Under sampling
         size_t droppedFrames = 0;
@@ -463,7 +467,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             size_t totalCount = phonemeCols[i].size();
             std::cout << inversePhonemeSet[i] << ": " << totalCount <<
                 " / " << phonemeTracker[i];
-
+        
             // How much higher it was than target
             // Negative if higher, positive if lower
             int64_t historicalOffset = targetPhonemeCount - phonemeTracker[i];
@@ -472,7 +476,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 phonemeTracker[i] += totalCount;
                 continue;
             }
-
+        
             if (historicalOffset < -tolerance * trackerTotal) {
                 // Under sampling
                 int64_t dropAmount = historicalOffset * -samplingFactor;
@@ -495,10 +499,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
         train.shed_cols(dropIndices);
         trainLabels.shed_cols(dropIndices);
 #pragma endregion
+        */
 
         std::cout << trainFrame << " starting train frames\n";
-        trainFrame -= droppedFrames;
-        std::cout << droppedFrames << " dropped frames\n";
+        //trainFrame -= droppedFrames;
+        //std::cout << droppedFrames << " dropped frames\n";
         std::cout << trainFrame << " effective train frames\n";
         std::cout << testFrame << " test frames\n";
         optimizer.MaxIterations() = epochs * trainFrame;
@@ -517,8 +522,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
             }
         }
         for (size_t i = 0; i < testFrame; i++) {
-            size_t result = classify(test.submat(span(0, inputSize - 1), span(i, i)));
-            size_t label = testLabels(0, i);
+            size_t result = classify(test.subcube(span(0, inputSize - 1), span(i, i), span(0, 0)));
+            size_t label = testLabels(0, i, 0);
             if (result == label) {
                 correctPhonemes[label]++;
                 correctCount++;
@@ -578,8 +583,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
     }
 }
 
-size_t PhonemeClassifier::classify(const arma::mat& data) {
-    mat results = mat();
+size_t PhonemeClassifier::classify(const arma::cube& data) {
+    cube results = cube();
     network.Predict(data, results);
     float max = results(0);
     size_t maxIdx = 0;
@@ -638,14 +643,10 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
     delete[] melFrequencies;
 }
 
-void PhonemeClassifier::writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, mat& data, size_t col) {
-    for (size_t f = 0; f < FFT_FRAMES; f++) {
-        const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
-        size_t offset = f * FRAME_SIZE;
-        for (size_t i = 0; i < FRAME_SIZE; i++) {
-            data(offset + i, col) = readFrame.real[i];
-            //data(offset + i * 2 + 1, col) = readFrame.delta[i];
-        }
+void PhonemeClassifier::writeInput(const Frame& frame, cube& data, size_t col, size_t slice) {
+    for (size_t i = 0; i < FRAME_SIZE; i++) {
+        data(i, col, slice) = frame.real[i];
+        //data(offset + i * 2 + 1, col) = readFrame.delta[i];
     }
 }
 
