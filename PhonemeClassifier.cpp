@@ -14,7 +14,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 0
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 2
+#define CLASSIFIER_VERSION 3
 
 #include <filesystem>
 #include <dr_mp3.h>
@@ -138,41 +138,45 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
 #pragma region Mel filterbank
     // Map fft to mel spectrum by index
-    melTransform = new float* [FFT_REAL_SAMPLES];
-    melStart = new short[FFT_REAL_SAMPLES];
-    melEnd = new short[FFT_REAL_SAMPLES];
+    melTransform = new float* [MEL_BINS];
+    melStart = new short[MEL_BINS];
+    melEnd = new short[MEL_BINS];
     double melMax = 2595.0 * log10(1.0 + (sr / 700.0));
     double fftStep = (double)sr / FFT_REAL_SAMPLES;
-    for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
-        double frequency = (double)(fftIdx * sr) / FFT_REAL_SAMPLES;
-        double melFrequency = 2595.0 * log10(1.0 + (frequency / 700.0));
-        melTransform[fftIdx] = new float[FFT_REAL_SAMPLES];
-        melStart[fftIdx] = -1;
-        melEnd[fftIdx] = FFT_REAL_SAMPLES;
-        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
-            double melBinFrequency = ((double)melIdx / FFT_REAL_SAMPLES) * melMax;
-            double distance = abs(melFrequency - melBinFrequency);
-            distance /= fftStep * 1.75;
+
+    for (int melIdx = 0; melIdx < MEL_BINS; melIdx++) {
+        melTransform[melIdx] = new float[FFT_REAL_SAMPLES];
+        melStart[melIdx] = -1;
+        melEnd[melIdx] = FFT_REAL_SAMPLES;
+        double melFrequency = ((double)melIdx / MEL_BINS + (1.0 / MEL_BINS)) * melMax;
+
+        for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+            double frequency = (double)(fftIdx * sr) / FFT_REAL_SAMPLES;
+            double fftFrequency = 2595.0 * log10(1.0 + (frequency / 700.0));
+
+            double distance = abs(melFrequency - fftFrequency);
+            distance /= fftStep * 2;
             double effectMultiplier = 1.0 - (distance * distance);
 
-            if (effectMultiplier > 0 && melStart[fftIdx] == -1) {
-                melStart[fftIdx] = melIdx;
-            } else if (effectMultiplier <= 0 && melStart[fftIdx] != -1 && melEnd[fftIdx] == FFT_REAL_SAMPLES) {
-                melEnd[fftIdx] = melIdx;
+            if (effectMultiplier > 0 && melStart[melIdx] == -1) {
+                melStart[melIdx] = fftIdx;
+            } else if (effectMultiplier <= 0 && melStart[melIdx] != -1 && melEnd[melIdx] == FFT_REAL_SAMPLES) {
+                melEnd[melIdx] = fftIdx;
             }
 
             effectMultiplier = std::max(0.0, effectMultiplier);
-            melTransform[fftIdx][melIdx] = effectMultiplier;
+            melTransform[melIdx][fftIdx] = effectMultiplier;
         }
     }
     // Normalize
-    for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+    for (int melIdx = 0; melIdx < MEL_BINS; melIdx++) {
         double sum = 0;
-        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
-            sum += melTransform[fftIdx][melIdx];
+        for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+            sum += melTransform[melIdx][fftIdx];
         }
-        for (int melIdx = 0; melIdx < FFT_REAL_SAMPLES; melIdx++) {
-            melTransform[fftIdx][melIdx] /= sum;
+        double factor = 1.0 / sum;
+        for (int fftIdx = 0; fftIdx < FFT_REAL_SAMPLES; fftIdx++) {
+            melTransform[melIdx][fftIdx] *= factor;
         }
     }
 #pragma endregion
@@ -180,9 +184,9 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
     fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
     fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE | FFTW_DESTROY_INPUT);
-    dctIn = (float*)fftw_malloc(sizeof(float) * FFT_REAL_SAMPLES);
-    dctOut = (float*)fftw_malloc(sizeof(float) * FFT_REAL_SAMPLES);
-    dctPlan = fftwf_plan_r2r_1d(FFT_REAL_SAMPLES, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
+    dctIn = (float*)fftw_malloc(sizeof(float) * MEL_BINS);
+    dctOut = (float*)fftw_malloc(sizeof(float) * MEL_BINS);
+    dctPlan = fftwf_plan_r2r_1d(MEL_BINS, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
     initalized = true;
 
     optimizer = ens::Adam(
@@ -205,11 +209,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["training_seconds"] = 0.0;
         json["classifier_version"] = CLASSIFIER_VERSION;
 
-        network.Add<LSTM>(32);
-        network.Add<LeakyReLU>();
-        network.Add<LSTM>(32);
-        network.Add<LeakyReLU>();
-        network.Add<LSTM>(32);
+        network.Add<LinearNoBias>(outputSize * FRAME_SIZE);
         network.Add<LeakyReLU>();
         network.Add<Linear>(outputSize);
         network.Add<LogSoftMax>();
@@ -288,6 +288,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                 actualLoadedClips++;
             }
         }
+        totalTrainFrames /= 8;
 
         std::cout << actualLoadedClips << " clips loaded out of " << clipCount << " total\n";
         std::cout << testClips << " test clips\n";
@@ -419,13 +420,13 @@ void PhonemeClassifier::train(const std::string& path, const size_t& batchSize, 
                     bool isTest = currentClip.isTest;
                     if (isTest) {
                         writeInput(frame, test, testFrame, 0);
-                        testLabels(0, testFrame, 0) = maxIdx;
+                        testLabels(0, testFrame, 0) = frame.phone;
                         testFrame++;
-                    } else {
+                    } else if (currentFrame % 10 == 0) {
                         for (size_t s = 0; s < TRAINING_RHO; s++) {
                             const Frame& readFrame = frames[currentFrame - s];
-                            writeInput(frame, train, trainFrame, TRAINING_RHO - 1 - s);
-                            trainLabels(0, trainFrame, TRAINING_RHO - 1 - s) = frame.phone;
+                            writeInput(readFrame, train, trainFrame, TRAINING_RHO - 1 - s);
+                            trainLabels(0, trainFrame, TRAINING_RHO - 1 - s) = readFrame.phone;
                         }
                         trainFrame++;
                     }
@@ -612,21 +613,25 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
 
     // Get mel spectrum
     fftwf_execute(fftwPlan);
-    float* melFrequencies = new float[FFT_REAL_SAMPLES];
-    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
-        melFrequencies[i] = 0.0001f;
-    }
+    float* fftAmplitudes = new float[FFT_REAL_SAMPLES];
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
-        float amplitude = (complex[0] * complex[0] + complex[1] * complex[1]);
-        for (size_t melIdx = melStart[i]; melIdx < melEnd[i]; melIdx++) {
-            const float& effect = melTransform[i][melIdx];
-            melFrequencies[melIdx] += effect * (amplitude);
+        fftAmplitudes[i] = (complex[0] * complex[0] + complex[1] * complex[1]);
+    }
+    float* melFrequencies = new float[MEL_BINS];
+    for (size_t i = 0; i < MEL_BINS; i++) {
+        melFrequencies[i] = 0.0001f;
+    }
+    for (size_t melIdx = 0; melIdx < MEL_BINS; melIdx++) {
+        for (size_t fftIdx = melStart[melIdx]; fftIdx < melEnd[melIdx]; fftIdx++) {
+            const float& effect = melTransform[melIdx][fftIdx];
+            melFrequencies[melIdx] += effect * fftAmplitudes[fftIdx];
         }
     }
+    delete[] fftAmplitudes;
 
     // DCT of mel spectrum
-    for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
+    for (size_t i = 0; i < MEL_BINS; i++) {
         //frame.delta[i] = melAmplitude - prevFrame.real[i];
         //frame.real[i] = melAmplitude;
         dctIn[i] = log10f(melFrequencies[i]);
@@ -634,9 +639,10 @@ void PhonemeClassifier::processFrame(Frame& frame, const float* audio, const siz
     fftwf_execute(dctPlan);
     
     // Get the first FRAME_SIZE cepstrum coefficients
-    float dctScale = 10.0f / (FFT_REAL_SAMPLES * 2);
+    float dctScale = 10.0f / (MEL_BINS * 2);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         float value = dctOut[i] * dctScale;
+        //frame.real[i] = melFrequencies[i];
         frame.real[i] = value;
     }
 

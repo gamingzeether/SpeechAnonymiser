@@ -136,7 +136,7 @@ void startFFT(InputData& inputData) {
         requestInput("Set activation threshold", activationThreshold);
     } else {
         std::cout << "Model could not be loaded, disabling classification" << std::endl;
-        activationThreshold = std::numeric_limits<float>::max();
+        //activationThreshold = std::numeric_limits<float>::max();
     }
 
     Visualizer app;
