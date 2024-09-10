@@ -46,9 +46,9 @@ public:
 
     void initalize(const size_t& sr);
     void train(const std::string& path, const size_t& batchSize, const size_t& epochs, const double& stepSize);
-    size_t classify(const arma::cube& data);
+    size_t classify(const arma::mat& data);
     void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame);
-    void writeInput(const Frame& frame, arma::cube& data, size_t col, size_t slice);
+    void writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, arma::mat& data, size_t col);
     std::string getPhonemeString(const size_t& in) { return inversePhonemeSet[in]; };
     void preprocessDataset(const std::string& path);
 
@@ -73,9 +73,9 @@ private:
     std::unordered_map<size_t, size_t> phonemeSet;
     std::vector<std::string> inversePhonemeSet;
 
-	mlpack::RNN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
+	mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
 	ens::Adam optimizer;
-    size_t inputSize = FRAME_SIZE;
+    size_t inputSize = FRAME_SIZE * FFT_FRAMES;
     size_t outputSize = 0;
     size_t SAMPLE_RATE;
 

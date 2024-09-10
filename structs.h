@@ -40,17 +40,16 @@ struct Phone {
 
 struct Frame {
     std::vector<float> real;
-    std::vector<float> imaginary;
-
-    std::vector<float> delta;
+    //std::vector<float> imaginary;
+    //std::vector<float> delta;
     float volume;
     size_t phone;
 
     void reset() {
         for (size_t i = 0; i < FRAME_SIZE; i++) {
             real[i] = 0;
-            imaginary[i] = 0;
-            delta[i] = 0;
+            //imaginary[i] = 0;
+            //delta[i] = 0;
         }
         volume = 0;
         phone = 0;
@@ -58,8 +57,8 @@ struct Frame {
 
     Frame() {
         real = std::vector<float>(FRAME_SIZE);
-        imaginary = std::vector<float>(FRAME_SIZE);
-        delta = std::vector<float>(FRAME_SIZE);
+        //imaginary = std::vector<float>(FRAME_SIZE);
+        //delta = std::vector<float>(FRAME_SIZE);
         volume = 0;
         phone = 0;
     }

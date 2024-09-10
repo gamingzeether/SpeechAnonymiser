@@ -153,8 +153,8 @@ void startFFT(InputData& inputData) {
     }
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
-        cube data(classifier.getInputSize(), 1, 1);
-        cube out(1, 1, 1);
+        mat data(classifier.getInputSize(), 1);
+        mat out(1, 1);
 
         // Wait for visualization to open
         while (!app.isOpen) {
@@ -179,12 +179,12 @@ void startFFT(InputData& inputData) {
             classifier.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
 
             // Write FFT output to visualizer
-            app.fftData.currentFrame = (app.fftData.currentFrame + 1) % FFT_FRAMES;
-            memcpy(app.fftData.frequencies[app.fftData.currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
+            app.fftData.currentFrame = currentFrame;
+            memcpy(app.fftData.frequencies[currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
 
             // Pass data to neural network
             if (frame.volume > activationThreshold) {
-                classifier.writeInput(frames[currentFrame], data, 0, 0);
+                classifier.writeInput(frames, currentFrame, data, 0);
                 size_t phoneme = classifier.classify(data);
                 std::cout << classifier.getPhonemeString(phoneme) << std::endl;
             }
