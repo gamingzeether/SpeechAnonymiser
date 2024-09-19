@@ -1,3 +1,3 @@
-cmake -B "build"
-cmake --build "build" --config Release
+cmake -B "out\build"
+cmake --build "out\build" --config Release
 pause

@@ -1,14 +1,14 @@
 {
-  "dependencies": [
-    "cargs",
-    "drlibs",
-    "fftw3",
-    "glfw3",
-    "glm",
-    "libsamplerate",
-    "mlpack",
-    "rtaudio",
-    "vulkan",
-    "yyjson"
-  ]
+    "dependencies": [
+        "cargs",
+        "drlibs",
+        "fftw3",
+        "glfw3",
+        "glm",
+        "libsamplerate",
+        "mlpack",
+        "rtaudio",
+        "vulkan",
+        "yyjson"
+    ]
 }

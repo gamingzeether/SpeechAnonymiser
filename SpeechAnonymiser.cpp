@@ -164,6 +164,9 @@ void startFFT(InputData& inputData) {
         std::vector<Frame> frames = std::vector<Frame>(FFT_FRAMES);
         size_t currentFrame = 0;
         size_t lastSampleStart = 0;
+
+        //std::printf("Maximum time per frame: %fms", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
+
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
@@ -185,8 +188,13 @@ void startFFT(InputData& inputData) {
             // Pass data to neural network
             if (frame.volume > activationThreshold) {
                 classifier.writeInput(frames, currentFrame, data, 0);
+
+                //auto classifyStart = std::chrono::high_resolution_clock::now();
                 size_t phoneme = classifier.classify(data);
+                //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
+
                 std::cout << classifier.getPhonemeString(phoneme) << std::endl;
+                //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
             }
             currentFrame = (currentFrame + 1) % FFT_FRAMES;
         }
@@ -376,9 +384,6 @@ int commandDefault() {
 
     // Setup data visualization
     startFFT(inputData);
-
-    cleanupRtAudio(inputAudio);
-    cleanupRtAudio(outputAudio);
 
     return 0;
 }

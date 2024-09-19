@@ -1,2 +1,2 @@
-cmake -B "build"
-cmake --build "build"
+cmake -B "out\build"
+cmake --build "out\build"
