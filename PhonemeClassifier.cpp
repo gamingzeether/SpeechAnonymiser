@@ -427,7 +427,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             }
             minExamples = minTemp;
             if (!isTraining) {
-                std::printf("%d clips; Min: %d of %s\r", totalClips, minExamples, inversePhonemeSet[minIdx]);
+                std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, inversePhonemeSet[minIdx].c_str());
+                fflush(stdout);
             }
         }
 
