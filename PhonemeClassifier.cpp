@@ -217,6 +217,8 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         std::cout << "Model not loaded\n";
         json["training_seconds"] = 0.0;
         json["classifier_version"] = CLASSIFIER_VERSION;
+        json["input_features"] = (int)inputSize;
+        json["output_features"] = (int)outputSize;
 
         network.Add<LinearNoBias>(512);
         network.Add<LeakyReLU>();
@@ -446,7 +448,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         // Start training thread
         isTraining = true;
         bool copyDone = false;
-        trainThread = std::thread([this, examples, &exampleData, &exampleLabel, &trainingSeconds, &isTraining, &copyDone]{
+        trainThread = std::thread([this, examples, &exampleData, &exampleLabel, &trainingSeconds, &isTraining, &copyDone, loops]{
             size_t totalExamples = examples * outputSize;
             mat data = mat(inputSize, totalExamples);
             mat labels = mat(1, totalExamples);
@@ -542,7 +544,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             json["training_seconds"] = trainingSeconds;
             json.save();
 
-            ModelSerializer::save(&network);
+            ModelSerializer::save(&network, loops);
             isTraining = false;
             });
         
