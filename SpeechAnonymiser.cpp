@@ -221,9 +221,9 @@ int commandHelp() {
 int commandTrain(const std::string& path) {
     std::cout << "Training mode\n";
 
-    int batchSize = 100;
-    requestInput("Set batch size", batchSize);
-    if (batchSize <= 1) {
+    int examples = 5000;
+    requestInput("Set examples per phoneme", examples);
+    if (examples <= 0) {
         throw("Out of range");
     }
 
@@ -239,7 +239,7 @@ int commandTrain(const std::string& path) {
         throw("Out of range");
     }
 
-    classifier.train(path, batchSize, epochs, stepSize);
+    classifier.train(path, examples, epochs, stepSize);
 
     return 0;
 }
