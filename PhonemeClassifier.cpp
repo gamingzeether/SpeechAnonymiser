@@ -232,8 +232,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     network.InputDimensions() = inputDimensions;
     optimizer.ResetPolicy() = false;
 
+    std::printf("Model initalized with %zd input features and %zd output features\n", inputSize, outputSize);
+
     ready = loaded;
-    std::cout << "Classifier initalized\n\n";
+    std::cout << "Classifier ready\n\n";
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize) {
@@ -279,6 +281,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         Clip clip = Clip();
         clip.initSampleRate(SAMPLE_RATE);
         size_t totalClips = 0;
+        size_t testedClips = 0;
         while ((minExamples < examples || isTraining) && minExamples < examples * MMAX_EXAMPLE_F) {
             loadNextClip(clipPath, trainTSV, clip, -1);
 
@@ -349,6 +352,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     break;
                 }
             }
+            testedClips++;
             if (!shouldLoad) {
                 continue;
             }
@@ -433,6 +437,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         }
 
         std::printf("Finished loading with minimum factor of %f\n", (double)minExamples / examples);
+        std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 
         if (trainThread.joinable()) {
             trainThread.join();
@@ -834,97 +839,120 @@ void PhonemeClassifier::loadNextClip(const std::string& clipPath, TSVReader& tsv
 }
 
 void PhonemeClassifier::initalizePhonemeSet() {
+    int _phonemeCounter = -1;
 #define REGISTER_PHONEME(t, p) \
     if (phonemeSet.find(PhonemeClassifier::customHasher(L##p)) != phonemeSet.end()) { \
         throw("Hash collision"); \
     } \
-    phonemeSet[PhonemeClassifier::customHasher(L##p)] = _phonemeCounter++; \
+    phonemeSet[PhonemeClassifier::customHasher(L##p)] = (size_t)(++_phonemeCounter); \
     inversePhonemeSet.push_back(t);
 #define REGISTER_ALIAS(p) \
-    phonemeSet[PhonemeClassifier::customHasher(L##p)] = _phonemeCounter;
+    phonemeSet[PhonemeClassifier::customHasher(L##p)] = (size_t)_phonemeCounter;
 
-    size_t _phonemeCounter = 0;
     using namespace std::string_literals;
-        REGISTER_PHONEME(""  , ""   )
-        REGISTER_ALIAS("spn")
-        REGISTER_ALIAS("ʔ")
-        REGISTER_PHONEME("ai", "aj" )
-        REGISTER_PHONEME("ow", "aw" )
-        REGISTER_PHONEME("b" , "b"  )
-        REGISTER_PHONEME("bj", "bʲ" )
-        REGISTER_PHONEME("c" , "c"  )
-        REGISTER_PHONEME("cg", "cʰ" )
-        REGISTER_PHONEME("cw", "cʷ" )
-        REGISTER_ALIAS("kʷ")
-        REGISTER_PHONEME("d" , "d"  )
-        REGISTER_ALIAS("ɾ")
-        REGISTER_PHONEME("j" , "dʒ" )
-        REGISTER_PHONEME("th", "dʲ" )
-        REGISTER_PHONEME("du", "d̪" )
-        REGISTER_PHONEME("e" , "ej" )
-        REGISTER_PHONEME("f" , "f"  )
-        REGISTER_PHONEME("fj", "fʲ" )
-        REGISTER_PHONEME("h" , "h"  )
-        REGISTER_PHONEME("i" , "i"  )
-        REGISTER_PHONEME("i:", "iː" )
-        REGISTER_PHONEME("j" , "j"  )
-        REGISTER_PHONEME("k" , "k"  )
-        REGISTER_PHONEME("kh", "kʰ" )
-        REGISTER_PHONEME("l" , "l"  )
-        REGISTER_PHONEME("m" , "m"  )
-        REGISTER_ALIAS("m̩")
-        REGISTER_ALIAS("ɱ")
-        REGISTER_PHONEME("mj", "mʲ" )
-        REGISTER_PHONEME("n" , "n"  )
-        REGISTER_PHONEME("n.", "n̩" )
-        REGISTER_PHONEME("o" , "ow" )
-        REGISTER_PHONEME("p" , "p"  )
-        REGISTER_ALIAS("pʷ")
-        REGISTER_PHONEME("ph", "pʰ" )
-        REGISTER_PHONEME("pj", "pʲ" )
-        REGISTER_PHONEME("s" , "s"  )
-        REGISTER_PHONEME("t" , "t"  )
-        REGISTER_ALIAS("tʰ")
-        REGISTER_ALIAS("tʲ")
-        REGISTER_ALIAS("ɾʲ")
-        REGISTER_PHONEME("tf", "tʃ" )
-        REGISTER_PHONEME("tw", "tʷ" )
-        REGISTER_PHONEME("th", "t̪" )
-        REGISTER_PHONEME("v" , "v"  )
-        REGISTER_PHONEME("vj", "vʲ" )
-        REGISTER_PHONEME("w" , "w"  )
-        REGISTER_PHONEME("z" , "z"  )
-        REGISTER_PHONEME("ae", "æ"  )
-        REGISTER_PHONEME("s" , "ç"  )
-        REGISTER_PHONEME("th", "ð"  )
-        REGISTER_PHONEME("ng", "ŋ"  )
-        REGISTER_PHONEME("a" , "ɐ"  )
-        REGISTER_PHONEME("a" , "ɑ"  )
-        REGISTER_PHONEME("a:", "ɑː" )
-        REGISTER_PHONEME("a" , "ɒ"  )
-        REGISTER_PHONEME("a:", "ɒː" )
-        REGISTER_PHONEME("o" , "ɔj" )
-        REGISTER_PHONEME("uh", "ə"  )
-        REGISTER_PHONEME("ah", "ɚ"  )
-        REGISTER_PHONEME("eh", "ɛ"  )
-        REGISTER_PHONEME("uh", "ɝ"  )
-        REGISTER_PHONEME("g" , "ɟ"  )
-        REGISTER_ALIAS("ɡ")
-        REGISTER_PHONEME("gw", "ɟʷ" )
-        REGISTER_ALIAS("ɡʷ")
-        REGISTER_PHONEME("i" , "ɪ"  )
-        REGISTER_PHONEME("l" , "ɫ"  )
-        REGISTER_PHONEME("lw", "ɫ̩" )
-        REGISTER_PHONEME("ny", "ɲ"  )
-        REGISTER_ALIAS("ɾ̃")
-        REGISTER_PHONEME("r" , "ɹ"  )
-        REGISTER_PHONEME("sh", "ʃ"  )
-        REGISTER_PHONEME("u" , "ʉ"  )
-        REGISTER_PHONEME("u-", "ʉː" )
-        REGISTER_PHONEME("oo", "ʊ"  )
-        REGISTER_PHONEME("ll", "ʎ"  )
-        REGISTER_PHONEME("z" , "ʒ"  )
-        REGISTER_PHONEME("th", "θ"  )
+        REGISTER_PHONEME("p", "p")
+            REGISTER_ALIAS("pʷ")
+            REGISTER_ALIAS("pʰ")
+            REGISTER_ALIAS("pʲ")
+            REGISTER_ALIAS("kp")
+        REGISTER_PHONEME("b", "b")
+            REGISTER_ALIAS("bʲ")
+            REGISTER_ALIAS("ɡb")
+        REGISTER_PHONEME("f", "f")
+            REGISTER_ALIAS("fʷ")
+            REGISTER_ALIAS("fʲ")
+        REGISTER_PHONEME("v", "v")
+            REGISTER_ALIAS("vʷ")
+            REGISTER_ALIAS("vʲ")
+        REGISTER_PHONEME("0", "θ")
+        REGISTER_PHONEME("t_", "t̪")
+        REGISTER_PHONEME("th", "ð")
+        REGISTER_PHONEME("du", "d̪")
+        REGISTER_PHONEME("t", "t")
+            REGISTER_ALIAS("tʷ")
+            REGISTER_ALIAS("tʰ")
+            REGISTER_ALIAS("tʲ")
+            REGISTER_ALIAS("ʈ")
+            REGISTER_ALIAS("ʈʲ")
+            REGISTER_ALIAS("ʈʷ")
+        REGISTER_PHONEME("d", "d")
+            REGISTER_ALIAS("dʲ")
+            REGISTER_ALIAS("ɖ")
+            REGISTER_ALIAS("ɖʲ")
+        REGISTER_PHONEME("r", "ɾ")
+            REGISTER_ALIAS("ɾʲ")
+        REGISTER_PHONEME("tf", "tʃ")
+        REGISTER_PHONEME("j", "dʒ")
+        REGISTER_PHONEME("sh", "ʃ")
+        REGISTER_PHONEME("dz", "ʒ")
+        REGISTER_PHONEME("s", "s")
+        REGISTER_PHONEME("z", "z")
+        REGISTER_PHONEME("r", "ɹ")
+        REGISTER_PHONEME("m", "m")
+            REGISTER_ALIAS("m̩")
+        REGISTER_PHONEME("mj", "mʲ")
+        REGISTER_PHONEME("n", "n")
+            REGISTER_ALIAS("n̩")
+            REGISTER_ALIAS("ɱ")
+        REGISTER_PHONEME("ny", "ɲ")
+            REGISTER_ALIAS("ɾ̃")
+            REGISTER_ALIAS("ŋ")
+        REGISTER_PHONEME("l", "l")
+        REGISTER_PHONEME("l", "ɫ")
+            REGISTER_ALIAS("ɫ̩")
+            REGISTER_ALIAS("ʎ")
+        REGISTER_PHONEME("g", "ɟ")
+            REGISTER_ALIAS("ɟʷ")
+            REGISTER_ALIAS("ɡ")
+            REGISTER_ALIAS("ɡʷ")
+        REGISTER_PHONEME("c", "c")
+            REGISTER_ALIAS("cʷ")
+            REGISTER_ALIAS("cʰ")
+        REGISTER_PHONEME("k", "k")
+            REGISTER_ALIAS("kʷ")
+            REGISTER_ALIAS("kʰ")
+        REGISTER_PHONEME("s", "ç")
+        REGISTER_PHONEME("h", "h")
+        REGISTER_PHONEME("a", "ɐ")
+            REGISTER_ALIAS("ə")
+        //REGISTER_PHONEME("uh", "ɜː")
+            //REGISTER_ALIAS("ɜ")
+        REGISTER_PHONEME("uh", "ɝ")
+            REGISTER_ALIAS("ɚ")
+        REGISTER_PHONEME("oo", "ʊ")
+        REGISTER_PHONEME("i", "ɪ")
+        REGISTER_PHONEME("a", "ɑ")
+            REGISTER_ALIAS("ɑː")
+        REGISTER_PHONEME("a", "ɒ")
+            REGISTER_ALIAS("ɒː")
+            REGISTER_ALIAS("ɔ")
+        //REGISTER_PHONEME("a", "aː")
+            //REGISTER_ALIAS("a")
+        REGISTER_PHONEME("ae", "æ")
+        REGISTER_PHONEME("aj", "aj")
+        REGISTER_PHONEME("aw", "aw")
+        REGISTER_PHONEME("i", "i")
+            REGISTER_ALIAS("iː")
+        REGISTER_PHONEME("j", "j")
+        REGISTER_PHONEME("eh", "ɛː")
+            REGISTER_ALIAS("ɛ")
+        REGISTER_PHONEME("e", "e")
+            REGISTER_ALIAS("eː")
+            REGISTER_ALIAS("ej")
+        REGISTER_PHONEME("u", "ʉ")
+            REGISTER_ALIAS("ʉː")
+        //REGISTER_PHONEME("u", "uː")
+            //REGISTER_ALIAS("u")
+        REGISTER_PHONEME("w", "w")
+        //REGISTER_PHONEME("w", "ʋ")
+        REGISTER_PHONEME("o", "ɔj")
+        REGISTER_PHONEME("o", "ow")
+            REGISTER_ALIAS("əw")
+            REGISTER_ALIAS("o")
+            REGISTER_ALIAS("oː")
+        REGISTER_PHONEME("", "")
+            REGISTER_ALIAS("spn")
+            REGISTER_ALIAS("ʔ")
 #undef REGISTER_PHONEME
 #undef ALIAS
 }
