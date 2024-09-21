@@ -111,6 +111,8 @@ set(Headers
     "ModelSerializer.h"
     "PhonemeClassifier.h"
     "JSONHelper.h"
+    "Dataset.h"
+    "ClassifierHelper.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -121,6 +123,8 @@ set(Sources
     "ModelSerializer.cpp"
     "PhonemeClassifier.cpp"
     "JSONHelper.cpp"
+    "Dataset.cpp"
+    "ClassifierHelper.cpp"
 )
 source_group("Sources" FILES ${Sources})
 

@@ -16,6 +16,8 @@
 #include "ModelSerializer.h"
 #include "structs.h"
 #include "PhonemeClassifier.h"
+#include "ClassifierHelper.h"
+#include "Dataset.h"
 
 using namespace arma;
 using namespace mlpack;
@@ -167,6 +169,8 @@ void startFFT(InputData& inputData) {
 
         //std::printf("Maximum time per frame: %fms", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
 
+        ClassifierHelper& helper = ClassifierHelper::instance();
+
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
@@ -179,7 +183,7 @@ void startFFT(InputData& inputData) {
             }
             lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             // Do FFT stuff
-            classifier.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
+            helper.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
 
             // Write FFT output to visualizer
             app.fftData.currentFrame = currentFrame;
@@ -187,7 +191,7 @@ void startFFT(InputData& inputData) {
 
             // Pass data to neural network
             if (frame.volume > activationThreshold) {
-                classifier.writeInput(frames, currentFrame, data, 0);
+                helper.writeInput<mat>(frames, currentFrame, data, 0);
 
                 //auto classifyStart = std::chrono::high_resolution_clock::now();
                 size_t phoneme = classifier.classify(data);
@@ -221,13 +225,13 @@ int commandHelp() {
 int commandTrain(const std::string& path) {
     std::cout << "Training mode\n";
 
-    int examples = 5000;
+    int examples = 10000;
     requestInput("Set examples per phoneme", examples);
     if (examples <= 0) {
         throw("Out of range");
     }
 
-    int epochs = 5;
+    int epochs = 50;
     requestInput("Set number of epochs", epochs);
     if (epochs <= 0) {
         throw("Out of range");
@@ -245,7 +249,8 @@ int commandTrain(const std::string& path) {
 }
 
 int commandPreprocess(const std::string& path) {
-    classifier.preprocessDataset(path);
+    Dataset ds(path, 16000, path);
+    ds.preprocessDataset(path);
 
     return 0;
 }
@@ -396,7 +401,7 @@ int main(int argc, char** argv) {
 
     float gain = 1;
     requestInput("Set gain", gain);
-    classifier.setGain(gain);
+    ClassifierHelper::instance().setGain(gain);
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
