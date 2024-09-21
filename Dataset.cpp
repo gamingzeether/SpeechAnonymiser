@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <thread>
 #include <iostream>
+#include <condition_variable>
 #include <dr_mp3.h>
 #include <dr_wav.h>
 #include <samplerate.h>
@@ -19,13 +20,13 @@ void Dataset::get(OUT arma::mat& data, OUT arma::mat& labels, bool destroy) {
 
     data = arma::mat(inputSize, 0);
     labels = arma::mat(1, 0);
-    for (size_t i = outputSize - 1; i > 0; i--) {
-        arma::mat& dataMat = exampleData[i];
-        arma::mat& labelMat = exampleLabel[i];
+    for (size_t i = 0; i < outputSize; i++) {
+        const arma::mat& dataMat = exampleData.back();
+        const arma::mat& labelMat = exampleLabel.back();
         data.resize(inputSize, data.n_cols + examples);
         labels.resize(1, labels.n_cols + examples);
 
-        size_t offset = examples * (outputSize - i - 1);
+        size_t offset = examples * i;
         for (size_t c = 0; c < examples; c++ /* <-- he said the name of the movie! */) {
             for (size_t r = 0; r < inputSize; r++) {
                 data(r, offset + c) = dataMat(r, c);
@@ -78,22 +79,127 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     clip.initSampleRate(sampleRate);
     size_t totalClips = 0;
     size_t testedClips = 0;
-    while ((minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F) {
-        loadNextClip(clipPath, reader, clip, -1);
+    std::string* nextClip;
+    std::vector<Phone> phones;
+    std::mutex loaderMutex;
+    std::condition_variable loaderWaiter;
+    bool loaderReady = false;
+    bool loaderFinished = true;
 
+    // Load and process clip in seperate thread
+    // Allow searching for next clip while current clip is being loaded
+#pragma region MP3 Loader thread
+    std::thread loaderThread = std::thread([this, &clip, &totalClips, &frames, &exampleCount, &examples, &outputSize, &minExamples, 
+        &print, &phones, &loaderMutex, &loaderWaiter, &loaderReady, &loaderFinished] {
+        while ((minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F) {
+            {
+                std::unique_lock<std::mutex> lock(loaderMutex);
+                loaderWaiter.wait(lock, [&loaderReady] { return loaderReady; });
+                loaderReady = false;
+            }
+
+            clip.loadMP3(sampleRate);
+            if (!clip.loaded) {
+                return;
+            }
+            totalClips++;
+
+            // Process frames of the whole clip
+            size_t fftStart = 0;
+            size_t currentFrame = 0;
+            while ((size_t)fftStart + FFT_FRAME_SAMPLES < clip.size) {
+                if (frames.size() <= currentFrame) {
+                    frames.push_back(Frame());
+                }
+                Frame& frame = frames[currentFrame];
+                Frame& prevFrame = (currentFrame > 0) ? frames[currentFrame - 1] : frame;
+                frame.reset();
+
+                ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
+#pragma region Phoneme overlap finder
+                size_t maxOverlap = 0;
+                size_t maxIdx = 0;
+                for (int i = 0; i < phones.size(); i++) {
+                    const Phone& p = phones[i];
+
+                    if (p.maxIdx <= fftStart)
+                        continue;
+                    size_t fftEnd = fftStart + FFT_FRAME_SPACING;
+                    if (p.minIdx >= fftEnd)
+                        break;
+
+                    size_t overlapA = p.maxIdx - fftStart;
+                    size_t overlapB = fftEnd - p.minIdx;
+                    size_t overlapC = FFT_FRAME_SPACING; // Window size
+                    size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
+
+                    if (overlapSize > maxOverlap) {
+                        overlapSize = maxOverlap;
+                        maxIdx = p.phonetic;
+                    }
+                }
+                frame.phone = maxIdx;
+#pragma endregion
+                if (currentFrame >= FFT_FRAMES) {
+                    const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
+                    size_t exampleIndex = exampleCount[currentPhone]++;
+
+                    if (exampleIndex >= examples) {
+                        // Random chance to not write anything
+                        // Chance decreases as number of examples goes over max
+                        double chance = (double)examples / exampleIndex;
+                        int ran = rand();
+                        double rnd = (double)ran / RAND_MAX;
+                        if (rnd < chance) {
+                            continue;
+                        }
+                        exampleIndex = ran % examples;
+                    }
+
+                    ClassifierHelper::instance().writeInput<arma::mat>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
+                }
+
+                fftStart += FFT_FRAME_SPACING;
+                currentFrame++;
+            }
+            size_t minTemp = exampleCount[0];
+            size_t minIdx = 0;
+            for (size_t i = 1; i < outputSize; i++) {
+                if (exampleCount[i] < minTemp) {
+                    minTemp = exampleCount[i];
+                    minIdx = i;
+                }
+            }
+            minExamples = minTemp;
+            if (print && endFlag) {
+                std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
+                fflush(stdout);
+            }
+            
+            {
+                std::lock_guard<std::mutex> lock(loaderMutex);
+                loaderFinished = true;
+                loaderWaiter.notify_one();
+            }
+        }
+    });
+#pragma endregion
+    
+    while ((minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F) {
+        nextClip = reader.read_line();
         // Get transcription
-        const std::string path = clip.tsvElements[TSVReader::Indices::PATH];
-        const std::string transcriptionPath = transcriptsPath + clip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
+        const std::string path = nextClip[TSVReader::Indices::PATH];
+        const std::string transcriptionPath = transcriptsPath + nextClip[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
         if (!std::filesystem::exists(transcriptionPath)) {
             //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
             continue;
         }
-        std::vector<Phone> phones = parseTextgrid(transcriptionPath);
+        std::vector tempPhones = parseTextgrid(transcriptionPath);
 
         // Check if the clip should be loaded
         bool shouldLoad = false;
-        for (size_t i = 0; i < phones.size(); i++) {
-            size_t binCount = exampleCount[phones[i].phonetic];
+        for (size_t i = 0; i < tempPhones.size(); i++) {
+            size_t binCount = exampleCount[tempPhones[i].phonetic];
             if (binCount < examples * MMAX_EXAMPLE_F) {
                 shouldLoad = true;
                 break;
@@ -103,85 +209,24 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
         if (!shouldLoad) {
             continue;
         }
-        clip.loadMP3(sampleRate);
-        if (!clip.loaded) {
-            continue;
+
+        {
+            std::unique_lock<std::mutex> lock(loaderMutex);
+            loaderWaiter.wait(lock, [&loaderFinished] { return loaderFinished; });
+            loaderFinished = false;
         }
-        totalClips++;
 
-        // Process frames of the whole clip
-        size_t fftStart = 0;
-        size_t currentFrame = 0;
-        while ((size_t)fftStart + FFT_FRAME_SAMPLES < clip.size) {
-            if (frames.size() <= currentFrame) {
-                frames.push_back(Frame());
-            }
-            Frame& frame = frames[currentFrame];
-            Frame& prevFrame = (currentFrame > 0) ? frames[currentFrame - 1] : frame;
-            frame.reset();
+        phones = tempPhones;
+        loadNextClip(clipPath, nextClip, clip, -1);
 
-            ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
-#pragma region Phoneme overlap finder
-            size_t maxOverlap = 0;
-            size_t maxIdx = 0;
-            for (int i = 0; i < phones.size(); i++) {
-                const Phone& p = phones[i];
-
-                if (p.maxIdx <= fftStart)
-                    continue;
-                size_t fftEnd = fftStart + FFT_FRAME_SPACING;
-                if (p.minIdx >= fftEnd)
-                    break;
-
-                size_t overlapA = p.maxIdx - fftStart;
-                size_t overlapB = fftEnd - p.minIdx;
-                size_t overlapC = FFT_FRAME_SPACING; // Window size
-                size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
-
-                if (overlapSize > maxOverlap) {
-                    overlapSize = maxOverlap;
-                    maxIdx = p.phonetic;
-                }
-            }
-            frame.phone = maxIdx;
-#pragma endregion
-            if (currentFrame >= FFT_FRAMES) {
-                const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
-                size_t exampleIndex = exampleCount[currentPhone]++;
-
-                if (exampleIndex >= examples) {
-                    // Random chance to not write anything
-                    // Chance decreases as number of examples goes over max
-                    double chance = (double)examples / exampleIndex;
-                    int ran = rand();
-                    double rnd = (double)ran / RAND_MAX;
-                    if (rnd < chance) {
-                        continue;
-                    }
-                    exampleIndex = ran % examples;
-                }
-
-                ClassifierHelper::instance().writeInput<arma::mat>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
-            }
-
-            fftStart += FFT_FRAME_SPACING;
-            currentFrame++;
-        }
-        size_t minTemp = exampleCount[0];
-        size_t minIdx = 0;
-        for (size_t i = 1; i < outputSize; i++) {
-            if (exampleCount[i] < minTemp) {
-                minTemp = exampleCount[i];
-                minIdx = i;
-            }
-        }
-        minExamples = minTemp;
-        if (print && endFlag) {
-            std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
-            fflush(stdout);
+        {
+            std::lock_guard<std::mutex> lock(loaderMutex);
+            loaderReady = true;
+            loaderWaiter.notify_one();
         }
     }
 
+    loaderThread.join();
     std::printf("Finished loading with minimum factor of %f\n", (double)minExamples / examples);
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
