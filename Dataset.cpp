@@ -99,81 +99,80 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
             }
 
             clip.loadMP3(sampleRate);
-            if (!clip.loaded) {
-                return;
-            }
-            totalClips++;
+            if (clip.loaded) {
+                totalClips++;
 
-            // Process frames of the whole clip
-            size_t fftStart = 0;
-            size_t currentFrame = 0;
-            while ((size_t)fftStart + FFT_FRAME_SAMPLES < clip.size) {
-                if (frames.size() <= currentFrame) {
-                    frames.push_back(Frame());
-                }
-                Frame& frame = frames[currentFrame];
-                Frame& prevFrame = (currentFrame > 0) ? frames[currentFrame - 1] : frame;
-                frame.reset();
+                // Process frames of the whole clip
+                size_t fftStart = 0;
+                size_t currentFrame = 0;
+                while ((size_t)fftStart + FFT_FRAME_SAMPLES < clip.size) {
+                    if (frames.size() <= currentFrame) {
+                        frames.push_back(Frame());
+                    }
+                    Frame& frame = frames[currentFrame];
+                    Frame& prevFrame = (currentFrame > 0) ? frames[currentFrame - 1] : frame;
+                    frame.reset();
 
-                ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
+                    ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
 #pragma region Phoneme overlap finder
-                size_t maxOverlap = 0;
-                size_t maxIdx = 0;
-                for (int i = 0; i < phones.size(); i++) {
-                    const Phone& p = phones[i];
+                    size_t maxOverlap = 0;
+                    size_t maxIdx = 0;
+                    for (int i = 0; i < phones.size(); i++) {
+                        const Phone& p = phones[i];
 
-                    if (p.maxIdx <= fftStart)
-                        continue;
-                    size_t fftEnd = fftStart + FFT_FRAME_SPACING;
-                    if (p.minIdx >= fftEnd)
-                        break;
-
-                    size_t overlapA = p.maxIdx - fftStart;
-                    size_t overlapB = fftEnd - p.minIdx;
-                    size_t overlapC = FFT_FRAME_SPACING; // Window size
-                    size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
-
-                    if (overlapSize > maxOverlap) {
-                        overlapSize = maxOverlap;
-                        maxIdx = p.phonetic;
-                    }
-                }
-                frame.phone = maxIdx;
-#pragma endregion
-                if (currentFrame >= FFT_FRAMES) {
-                    const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
-                    size_t exampleIndex = exampleCount[currentPhone]++;
-
-                    if (exampleIndex >= examples) {
-                        // Random chance to not write anything
-                        // Chance decreases as number of examples goes over max
-                        double chance = (double)examples / exampleIndex;
-                        int ran = rand();
-                        double rnd = (double)ran / RAND_MAX;
-                        if (rnd < chance) {
+                        if (p.maxIdx <= fftStart)
                             continue;
+                        size_t fftEnd = fftStart + FFT_FRAME_SPACING;
+                        if (p.minIdx >= fftEnd)
+                            break;
+
+                        size_t overlapA = p.maxIdx - fftStart;
+                        size_t overlapB = fftEnd - p.minIdx;
+                        size_t overlapC = FFT_FRAME_SPACING; // Window size
+                        size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
+
+                        if (overlapSize > maxOverlap) {
+                            overlapSize = maxOverlap;
+                            maxIdx = p.phonetic;
                         }
-                        exampleIndex = ran % examples;
+                    }
+                    frame.phone = maxIdx;
+#pragma endregion
+                    if (currentFrame >= FFT_FRAMES) {
+                        const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
+                        size_t exampleIndex = exampleCount[currentPhone]++;
+
+                        if (exampleIndex >= examples) {
+                            // Random chance to not write anything
+                            // Chance decreases as number of examples goes over max
+                            double chance = (double)examples / exampleIndex;
+                            int ran = rand();
+                            double rnd = (double)ran / RAND_MAX;
+                            if (rnd < chance) {
+                                continue;
+                            }
+                            exampleIndex = ran % examples;
+                        }
+
+                        ClassifierHelper::instance().writeInput<arma::mat>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
                     }
 
-                    ClassifierHelper::instance().writeInput<arma::mat>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
+                    fftStart += FFT_FRAME_SPACING;
+                    currentFrame++;
                 }
-
-                fftStart += FFT_FRAME_SPACING;
-                currentFrame++;
-            }
-            size_t minTemp = exampleCount[0];
-            size_t minIdx = 0;
-            for (size_t i = 1; i < outputSize; i++) {
-                if (exampleCount[i] < minTemp) {
-                    minTemp = exampleCount[i];
-                    minIdx = i;
+                size_t minTemp = exampleCount[0];
+                size_t minIdx = 0;
+                for (size_t i = 1; i < outputSize; i++) {
+                    if (exampleCount[i] < minTemp) {
+                        minTemp = exampleCount[i];
+                        minIdx = i;
+                    }
                 }
-            }
-            minExamples = minTemp;
-            if (print && endFlag) {
-                std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
-                fflush(stdout);
+                minExamples = minTemp;
+                if (print && endFlag) {
+                    std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
+                    fflush(stdout);
+                }
             }
             
             {
