@@ -207,7 +207,15 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 optimizer,
                 ens::PrintLoss(),
                 ens::ProgressBar(),
-                ens::EarlyStopAtMinLoss());
+                ens::EarlyStopAtMinLoss(
+                    [&](const arma::mat& /* param */)
+                    {
+                        double validationLoss = network.Evaluate(validateData, validateLabel);
+                        cout << "Validation loss: " << validationLoss
+                            << "." << endl;
+                        ModelSerializer::save(&network);
+                        return validationLoss;
+                    }, 2));
 
             json.save();
 
