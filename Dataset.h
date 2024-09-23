@@ -63,4 +63,5 @@ private:
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);
+    inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F; };
 };

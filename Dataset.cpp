@@ -89,9 +89,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     // Load and process clip in seperate thread
     // Allow searching for next clip while current clip is being loaded
 #pragma region MP3 Loader thread
-    std::thread loaderThread = std::thread([this, &clip, &totalClips, &frames, &exampleCount, &examples, &outputSize, &minExamples, 
-        &print, &phones, &loaderMutex, &loaderWaiter, &loaderReady, &loaderFinished] {
-        while ((minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F) {
+    std::thread loaderThread = std::thread([&] {
+        while (keepLoading(minExamples, examples)) {
             {
                 std::unique_lock<std::mutex> lock(loaderMutex);
                 loaderWaiter.wait(lock, [&loaderReady] { return loaderReady; });
@@ -184,7 +183,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     });
 #pragma endregion
     
-    while ((minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F) {
+    while (keepLoading(minExamples, examples)) {
         nextClip = reader.read_line();
         // Get transcription
         const std::string path = nextClip[TSVReader::Indices::PATH];
@@ -226,7 +225,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     }
 
     loaderThread.join();
-    std::printf("Finished loading with minimum factor of %f\n", (double)minExamples / examples);
+    std::printf("Finished loading clips from %s with minimum factor of %f\n", reader.path().c_str(), (double)minExamples / examples);
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
 

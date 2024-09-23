@@ -114,7 +114,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         std::printf("Starting loop %zd\n", loops++);
 
         train.start(inputSize, outputSize, examples, true);
-        validate.start(inputSize, outputSize, examples / 5);
+        validate.start(inputSize, outputSize, examples / 2);
         test.start(inputSize, outputSize, examples / 5);
 
         if (trainThread.joinable()) {
@@ -127,7 +127,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
         // Start training thread
         bool copyDone = false;
-        trainThread = std::thread([this, examples, &train, &validate, &test, &copyDone, loops]{
+        trainThread = std::thread([&]{
             mat trainData, trainLabel;
             train.get(trainData, trainLabel);
             mat validateData, validateLabel;
@@ -156,12 +156,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             }
             size_t testedExamples = 0;
             for (size_t i = 0; i < testCount; i++) {
-                // 80% to skip / 20% to check
-                double rnd = (double)rand() / RAND_MAX;
-                if (rnd > 0.2) {
-                    continue;
-                }
-
                 size_t result = classify(testData.submat(span(0, inputSize - 1), span(i, i)));
                 size_t label = testLabel(0, i);
                 if (result == label) {
@@ -181,7 +175,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             std::cout << std::endl;
             for (size_t i = 0; i < outputSize; i++) {
                 std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
-                size_t total = 1;
+                size_t total = 0;
                 for (size_t j = 0; j < outputSize; j++) {
                     total += confusionMatrix[i][j];
                 }
@@ -189,10 +183,13 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     double fraction = (double)confusionMatrix[i][j] / total;
                     int percent = fraction * 100;
 
-                    const char* format = (i == j) ? "\033[36m%2d\033[0m " /* cyan */ :
-                        (percent > 0) ? "\033[31m%2d\033[0m " /* red */ : "%2d ";
+                    const char* format = (i == j) ? (
+                        (percent == 100) ? "\033[32m%2d\033[0m " /* 100% accuracy: green */ :
+                        "\033[36m%2d\033[0m ") /* diagonal: cyan */ :
+                        (percent > 0) ? "\033[31m%2d\033[0m " /* >= 1% misclassify: red */ : 
+                        "%2d " /* everything else: white */;
 
-                    std::printf(format, percent);
+                    std::printf(format, (percent % 100));
                 }
                 std::cout << "\n";
             }

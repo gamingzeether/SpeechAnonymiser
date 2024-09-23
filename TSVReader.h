@@ -26,6 +26,8 @@ public:
 	const std::string get_column_name(const int index) { return columns[index]; };
 	const int get_column_count() { return column_count; };
 
+    std::string path() const { return filePath; };
+
 	void open(const std::string& filepath);
 	std::string* read_line();
     std::string* read_line_ordered();
@@ -35,4 +37,5 @@ private:
     int column_count;
     std::vector<std::string*> lines;
     size_t readLine = 0;
+    std::string filePath;
 };
