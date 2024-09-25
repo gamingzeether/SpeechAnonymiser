@@ -5,6 +5,7 @@
 #include "structs.h"
 
 void TSVReader::open(const std::string& filepath) {
+	filePath = filepath;
 	if (reader.is_open()) {
 		reader.close();
 	}
@@ -40,31 +41,46 @@ void TSVReader::open(const std::string& filepath) {
 	printf("Loading TSV: %s\n", filepath.c_str());
 	std::string line;
 	while (std::getline(reader, line)) {
-		std::string* elements = new std::string[3];
+		TSVLine parsedLine;
 		size_t last = 0, next;
 		size_t col = 0;
-		for (int i = 0; i < column_count; i++) {
+		bool lineParseCheck = true;
+		for (int i = 0; i < column_count - 1; i++) {
 			next = line.find('\t', last);
-			if (i == CLIENT_ID || 
-				i == PATH) {
-				elements[col] = line.substr(last, next - last);
-				col++;
+			if (next == std::string::npos) {
+				lineParseCheck = false;
+				std::printf("Failed to parse line:\n  %s\n", line.c_str());
+				break;
+			}
+			std::string elem = line.substr(last, next - last);
+			switch (i) {
+			case 0:
+				parsedLine.CLIENT_ID = elem;
+				break;
+			case 1:
+				parsedLine.PATH = elem;
+				break;
+			case 3:
+				parsedLine.SENTENCE = elem;
+				break;
 			}
 			last = next + 1;
 		}
-		lines.push_back(elements);
+		if (lineParseCheck) {
+			lines.push_back(parsedLine);
+		}
 	}
 	printf("Loaded %zu lines\n", lines.size());
 	reader.close();
 }
 
-std::string* TSVReader::read_line() {
-	return lines[rand() % lines.size()];
+TSVReader::TSVLine* TSVReader::read_line() {
+	return &(lines[rand() % lines.size()]);
 }
 
-std::string* TSVReader::read_line_ordered() {
+TSVReader::TSVLine* TSVReader::read_line_ordered() {
 	if (readLine <= lines.size()) {
-		return lines[readLine];
+		return &(lines[readLine]);
 	}
 	return NULL;
 }

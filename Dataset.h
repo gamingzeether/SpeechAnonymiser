@@ -20,7 +20,7 @@ public:
 private:
     struct Clip {
         std::string clipPath;
-        std::string* tsvElements;
+        TSVReader::TSVLine* tsvElements;
         float* buffer;
         float allocatedLength;
         size_t size;
@@ -43,7 +43,6 @@ private:
             sampleRate = 0;
         }
         ~Clip() {
-            delete[] tsvElements;
             delete[] buffer;
         }
     };
@@ -59,7 +58,7 @@ private:
 
     void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
 	std::vector<Phone> parseTextgrid(const std::string& path);
-    void loadNextClip(const std::string& clipPath, std::string* tabSeperated, OUT Clip& clip, int sampleRate);
+    void loadNextClip(const std::string& clipPath, TSVReader::TSVLine* tabSeperated, OUT Clip& clip, int sampleRate);
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);

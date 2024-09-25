@@ -72,24 +72,24 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
         exampleCount[i] = 0;
     }
 
-    std::vector<Frame> frames;
-
     size_t minExamples = 0;
     Clip clip = Clip();
     clip.initSampleRate(sampleRate);
-    size_t totalClips = 0;
-    size_t testedClips = 0;
-    std::string* nextClip;
     std::vector<Phone> phones;
     std::mutex loaderMutex;
     std::condition_variable loaderWaiter;
     bool loaderReady = false;
     bool loaderFinished = true;
+    size_t totalClips = 0;
 
     // Load and process clip in seperate thread
     // Allow searching for next clip while current clip is being loaded
 #pragma region MP3 Loader thread
-    std::thread loaderThread = std::thread([&] {
+    std::thread loaderThread = std::thread(
+      [this, &minExamples, &outputSize, &print, &examples, &exampleCount,
+      &loaderMutex, &loaderWaiter, &loaderReady, 
+      &clip, &loaderFinished, &phones, &totalClips] {
+        std::vector<Frame> frames;
         while (keepLoading(minExamples, examples)) {
             {
                 std::unique_lock<std::mutex> lock(loaderMutex);
@@ -182,12 +182,14 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
         }
     });
 #pragma endregion
-    
+
+    size_t testedClips = 0;
+    TSVReader::TSVLine* nextClip;
     while (keepLoading(minExamples, examples)) {
         nextClip = reader.read_line();
         // Get transcription
-        const std::string path = nextClip[TSVReader::Indices::PATH];
-        const std::string transcriptionPath = transcriptsPath + nextClip[TSVReader::Indices::CLIENT_ID] + "/" + path.substr(0, path.length() - 4) + ".TextGrid";
+        const std::string& nextClipPath = nextClip->PATH;
+        const std::string transcriptionPath = transcriptsPath + nextClip->CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
         if (!std::filesystem::exists(transcriptionPath)) {
             //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
             continue;
@@ -224,7 +226,13 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
         }
     }
 
+    {
+        std::lock_guard<std::mutex> lock(loaderMutex);
+        loaderReady = true;
+        loaderWaiter.notify_one();
+    }
     loaderThread.join();
+
     std::printf("Finished loading clips from %s with minimum factor of %f\n", reader.path().c_str(), (double)minExamples / examples);
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
@@ -282,7 +290,7 @@ std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
     return phones;
 }
 
-void Dataset::loadNextClip(const std::string& clipPath, std::string* tabSeperated, OUT Clip& clip, int sampleRate) {
+void Dataset::loadNextClip(const std::string& clipPath, TSVReader::TSVLine* tabSeperated, OUT Clip& clip, int sampleRate) {
     clip.clipPath = clipPath;
     clip.loaded = false;
     clip.tsvElements = tabSeperated;
@@ -292,7 +300,7 @@ void Dataset::loadNextClip(const std::string& clipPath, std::string* tabSeperate
 }
 
 void Dataset::loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate) {
-    std::string* elements = tsv.read_line();
+    TSVReader::TSVLine* elements = tsv.read_line();
     loadNextClip(clipPath, elements, clip, sampleRate);
 }
 
@@ -303,7 +311,7 @@ void Dataset::Clip::loadMP3(int targetSampleRate) {
     drmp3_config cfg;
     drmp3_uint64 samples;
 
-    std::string clipFullPath = clipPath + tsvElements[TSVReader::Indices::PATH];
+    std::string clipFullPath = clipPath + tsvElements->PATH;
     if (!std::filesystem::exists(clipFullPath)) {
         printf("%s does not exist\n", clipFullPath.c_str());
         return;
@@ -385,9 +393,9 @@ void Dataset::preprocessDataset(const std::string& path) {
     TSVReader dictReader;
     dictReader.open(path + "/english_us_mfa.dict");
     std::vector<std::string> phonemeList = std::vector<std::string>();
-    std::string* tabSeperated = dictReader.read_line_ordered();
+    TSVReader::TSVLine* tabSeperated = dictReader.read_line_ordered();
     while (tabSeperated != NULL) {
-        std::string& phonemes = tabSeperated[1];
+        std::string& phonemes = tabSeperated->PATH; // TSV is not dataset, get index 1
         int start = 0;
         int end = 0;
         std::string p;
@@ -439,25 +447,25 @@ void Dataset::preprocessDataset(const std::string& path) {
             int counter = 0;
             Clip clip = Clip();
             clip.initSampleRate(sampleRate);
-            std::string* tabSeperated = tsv.read_line_ordered();
+            TSVReader::TSVLine* tabSeperated = tsv.read_line_ordered();
             while (tabSeperated != NULL && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
                 std::cout << globalCounter << "\n";
 
                 loadNextClip(clipPath, tabSeperated, clip, -1);
 
                 globalCounter++;
-                std::string transcriptPath = std::string(path) + "/transcript/" + clip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/" + clip.tsvElements[TSVReader::Indices::PATH];
+                std::string transcriptPath = std::string(path) + "/transcript/" + clip.tsvElements->CLIENT_ID + "/" + clip.tsvElements->PATH;
                 transcriptPath = transcriptPath.substr(0, transcriptPath.length() - 4) + ".TextGrid";
                 if (std::filesystem::exists(transcriptPath)) {
                     continue;
                 }
                 clip.loadMP3(16000);
 
-                std::string speakerPath = corpusPath + clip.tsvElements[TSVReader::Indices::CLIENT_ID] + "/";
+                std::string speakerPath = corpusPath + clip.tsvElements->CLIENT_ID + "/";
                 if (!std::filesystem::is_directory(speakerPath)) {
                     std::filesystem::create_directory(speakerPath);
                 }
-                std::string originalPath = clip.tsvElements[TSVReader::Indices::PATH];
+                std::string originalPath = clip.tsvElements->PATH;
                 std::string fileName = speakerPath + originalPath.substr(0, originalPath.length() - 4);
 
                 // Convert audio to wav
@@ -475,7 +483,7 @@ void Dataset::preprocessDataset(const std::string& path) {
                 // Transcript
                 std::ofstream fstream;
                 fstream.open(fileName + ".txt");
-                std::string sentence = clip.tsvElements[TSVReader::Indices::SENTENCE];
+                std::string sentence = clip.tsvElements->SENTENCE;
                 fstream.write(sentence.c_str(), sentence.length());
                 fstream.close();
 

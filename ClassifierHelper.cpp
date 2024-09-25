@@ -1,5 +1,7 @@
 ﻿#include "ClassifierHelper.h"
 
+#include <math.h>
+
 void ClassifierHelper::initalize(size_t sr) {
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {

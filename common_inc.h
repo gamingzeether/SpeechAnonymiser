@@ -8,6 +8,3 @@
 #define _DISABLE_VECTOR_ANNOTATION
 #define _DISABLE_STRING_ANNOTATION
 #endif
-
-#include <cmath>
-#define VALID_FLOAT(v) if (!std::isfinite(v)) throw("fuck");
