@@ -29,7 +29,7 @@ typedef float OUTPUT_TYPE;
 #define MEL_BINS 32
 #define FRAME_SIZE 24
 #define VEC4_COUNT (FRAME_SIZE / 4)
-#define MMAX_EXAMPLE_F 10
+#define MMAX_EXAMPLE_F 5
 
 #define PREPROCESS_BATCH_SIZE 1500
 #define CLIP_LENGTH 15

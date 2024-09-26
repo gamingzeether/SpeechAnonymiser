@@ -81,14 +81,15 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     bool loaderReady = false;
     bool loaderFinished = true;
     size_t totalClips = 0;
+    size_t lineIndex;
 
     // Load and process clip in seperate thread
     // Allow searching for next clip while current clip is being loaded
 #pragma region MP3 Loader thread
     std::thread loaderThread = std::thread(
-      [this, &minExamples, &outputSize, &print, &examples, &exampleCount,
-      &loaderMutex, &loaderWaiter, &loaderReady, 
-      &clip, &loaderFinished, &phones, &totalClips] {
+        [this, &minExamples, &outputSize, &print, &examples, &exampleCount,
+        &loaderMutex, &loaderWaiter, &loaderReady, 
+        &clip, &loaderFinished, &phones, &totalClips, &lineIndex] {
         std::vector<Frame> frames;
         while (keepLoading(minExamples, examples)) {
             {
@@ -172,6 +173,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
                     std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
                     fflush(stdout);
                 }
+            } else { // Could not load
+                reader.dropIdx(lineIndex);
             }
             
             {
@@ -186,12 +189,13 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     size_t testedClips = 0;
     TSVReader::TSVLine* nextClip;
     while (keepLoading(minExamples, examples)) {
-        nextClip = reader.read_line();
+        nextClip = reader.read_line(lineIndex);
         // Get transcription
         const std::string& nextClipPath = nextClip->PATH;
         const std::string transcriptionPath = transcriptsPath + nextClip->CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
         if (!std::filesystem::exists(transcriptionPath)) {
             //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
+            reader.dropIdx(lineIndex);
             continue;
         }
         std::vector tempPhones = parseTextgrid(transcriptionPath);

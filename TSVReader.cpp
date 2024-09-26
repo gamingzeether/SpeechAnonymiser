@@ -4,6 +4,11 @@
 #include <sstream>
 #include "structs.h"
 
+void TSVReader::dropIdx(size_t index) {
+	lines[index] = lines.back();
+	lines.pop_back();
+}
+
 void TSVReader::open(const std::string& filepath) {
 	filePath = filepath;
 	if (reader.is_open()) {
@@ -75,7 +80,13 @@ void TSVReader::open(const std::string& filepath) {
 }
 
 TSVReader::TSVLine* TSVReader::read_line() {
-	return &(lines[rand() % lines.size()]);
+	size_t index;
+	return read_line(index);
+}
+
+TSVReader::TSVLine* TSVReader::read_line(OUT size_t& index) {
+	index = rand() % lines.size();
+	return &(lines[index]);
 }
 
 TSVReader::TSVLine* TSVReader::read_line_ordered() {

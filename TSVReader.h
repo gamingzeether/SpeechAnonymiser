@@ -28,8 +28,12 @@ public:
 
     std::string path() const { return filePath; };
 
+    // Drop line at index (messes up order)
+    void dropIdx(size_t index);
+
     void open(const std::string& filepath);
     TSVLine* read_line();
+    TSVLine* read_line(OUT size_t& index);
     TSVLine* read_line_ordered();
 private:
     std::ifstream reader;
