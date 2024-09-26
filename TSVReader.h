@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <vector>
+#include <cstdint>
 
 class TSVReader {
 public:

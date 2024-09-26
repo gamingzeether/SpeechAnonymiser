@@ -1,9 +1,9 @@
 #include "common_inc.h"
 
 #include <thread>
+#include <mlpack/base.hpp>
 #include "TSVReader.h"
 #include "structs.h"
-#include <mlpack/base.hpp>
 
 class Dataset {
 public:

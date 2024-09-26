@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <random>
 #include <unordered_set>
+#include <format>
 #include <rtaudio/RtAudio.h>
 #include <cargs.h>
 #include "Visualizer.h"
@@ -18,6 +19,7 @@
 #include "PhonemeClassifier.h"
 #include "ClassifierHelper.h"
 #include "Dataset.h"
+#include "Logger.h"
 
 using namespace arma;
 using namespace mlpack;
@@ -26,6 +28,8 @@ auto programStart = std::chrono::system_clock::now();
 int SAMPLE_RATE = 16000;
 
 PhonemeClassifier classifier;
+
+Logger logger;
 
 static struct cag_option options[] = {
   {
@@ -134,16 +138,16 @@ void cleanupRtAudio(RtAudio audio) {
 void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
     if (classifier.ready) {
-        std::cout << "Model successfully loaded" << std::endl;
+        logger.log("Model successfully loaded", Logger::INFO);
         requestInput("Set activation threshold", activationThreshold);
     } else {
-        std::cout << "Model could not be loaded, disabling classification" << std::endl;
+        logger.log("Model could not be loaded, disabling classification", Logger::WARNING);
         //activationThreshold = std::numeric_limits<float>::max();
     }
 
     Visualizer app;
     app.initWindow();
-    std::cout << "Starting visualizer" << std::endl;
+    logger.log("Starting visualizer", Logger::INFO);
     app.fftData.frames = FFT_FRAMES;
     app.fftData.currentFrame = 0;
     app.fftData.frequencies = new float* [FFT_FRAMES];
@@ -162,7 +166,7 @@ void startFFT(InputData& inputData) {
         while (!app.isOpen) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        std::cout << "Starting FFT thread processing" << std::endl;
+        logger.log("Starting FFT thread processing", Logger::VERBOSE);
         std::vector<Frame> frames = std::vector<Frame>(FFT_FRAMES);
         size_t currentFrame = 0;
         size_t lastSampleStart = 0;
@@ -223,22 +227,25 @@ int commandHelp() {
 }
 
 int commandTrain(const std::string& path) {
-    std::cout << "Training mode\n";
+    logger.log("Training mode", Logger::INFO);
 
     int examples = 10000;
     requestInput("Set examples per phoneme", examples);
+    logger.log(std::format("Set examples count: {}", examples), Logger::VERBOSE);
     if (examples <= 0) {
         throw("Out of range");
     }
 
     int epochs = 50;
     requestInput("Set number of epochs", epochs);
+    logger.log(std::format("Set epochs: {}", epochs), Logger::VERBOSE);
     if (epochs <= 0) {
         throw("Out of range");
     }
 
     double stepSize = STEP_SIZE;
     requestInput("Set training rate", stepSize);
+    logger.log(std::format("Set training rate: {}", stepSize), Logger::VERBOSE);
     if (stepSize <= 0) {
         throw("Out of range");
     }
@@ -328,9 +335,9 @@ int commandDefault() {
     unsigned int sampleRate = SAMPLE_RATE;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
-    std::cout << "Using input: " << inputInfo.name << '\n';
-    std::cout << "Sample rate: " << sampleRate << '\n';
-    std::cout << "Channels: " << inputInfo.inputChannels << '\n';
+    logger.log(std::format("Using input: {}", inputInfo.name), Logger::INFO);
+    logger.log(std::format("Sample rate: {}", sampleRate), Logger::INFO);
+    logger.log(std::format("Channels: {}", inputInfo.inputChannels), Logger::INFO);
 
     InputData inputData = InputData(inputParameters.nChannels, sampleRate * INPUT_BUFFER_TIME);
 
@@ -362,9 +369,10 @@ int commandDefault() {
     unsigned int outputSampleRate = SAMPLE_RATE;
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
-    std::cout << "Using output: " << outputInfo.name << '\n';
-    std::cout << "Sample rate: " << outputSampleRate << '\n';
-    std::cout << "Channels: " << outputInfo.outputChannels << '\n';
+
+    logger.log(std::format("Using output: {}", outputInfo.name), Logger::INFO);
+    logger.log(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
+    logger.log(std::format("Channels: {}", outputInfo.inputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -394,13 +402,28 @@ int commandDefault() {
 }
 
 int main(int argc, char** argv) {
+    logger = Logger();
+    logger.addStream(Logger::Stream("main.log").
+        outputTo(Logger::VERBOSE).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream(std::cout).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
+
     srand(static_cast <unsigned> (time(0)));
 
     requestInput("Select sample rate", SAMPLE_RATE);
     classifier.initalize(SAMPLE_RATE);
+    logger.log(std::format("Set sample rate: {}", SAMPLE_RATE), Logger::VERBOSE);
 
     float gain = 1;
     requestInput("Set gain", gain);
+    logger.log(std::format("Set gain: {}", gain), Logger::VERBOSE);
     ClassifierHelper::instance().setGain(gain);
 
     cag_option_context context;

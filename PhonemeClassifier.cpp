@@ -23,6 +23,19 @@ using namespace mlpack;
 using namespace arma;
 
 void PhonemeClassifier::initalize(const size_t& sr) {
+    logger = Logger();
+    logger.addStream(Logger::Stream("classifier.log").
+        outputTo(Logger::VERBOSE).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream(std::cout).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
+
     // Check if already initalized
     assert(!initalized);
 
@@ -63,11 +76,11 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         savedInputSize == inputSize &&
         savedOutputSize == outputSize);
     if (metaMatch && ModelSerializer::load(&network)) {
-        std::cout << "Loaded model\n";
+        logger.log("Loaded model", Logger::INFO);
         loaded = true;
     }
     if (!loaded) {
-        std::cout << "Model not loaded\n";
+        logger.log("Model not loaded", Logger::WARNING);
         json["classifier_version"] = CLASSIFIER_VERSION;
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
@@ -86,10 +99,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     network.InputDimensions() = inputDimensions;
     optimizer.ResetPolicy() = false;
 
-    std::printf("Model initalized with %zd input features and %zd output features\n", inputSize, outputSize);
+    logger.log(std::format("Model initalized with {} input features and {} output features", inputSize, outputSize), Logger::INFO);
 
     ready = loaded;
-    std::cout << "Classifier ready\n\n";
+    logger.log("Classifier ready", Logger::INFO);
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize) {
@@ -111,7 +124,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     Dataset test(path + "/test.tsv", SAMPLE_RATE, path);
     size_t loops = 0;
     while (true) {
-        std::printf("Starting loop %zd\n", loops++);
+        logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
 
         train.start(inputSize, outputSize, examples, true);
         validate.start(inputSize, outputSize, examples / 2);
@@ -166,7 +179,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 totalPhonemes[label]++;
                 testedExamples++;
             }
-            std::printf("Accuracy: %d out of %d (%.1f%%)\n", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100);
+            logger.log(std::format("Accuracy: %d out of %d (%.1f%%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
             std::cout << "Confusion Matrix:\n";
             std::cout << "   ";
             for (size_t i = 0; i < outputSize; i++) {

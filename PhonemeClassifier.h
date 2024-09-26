@@ -5,6 +5,7 @@
 #include <mlpack/mlpack.hpp>
 #include "TSVReader.h"
 #include "JSONHelper.h"
+#include "Logger.h"
 #include "structs.h"
 #include "define.h"
 
@@ -30,6 +31,8 @@ public:
     };
 private:
     JSONHelper json;
+
+    Logger logger;
 
 	mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
 	ens::Adam optimizer;

@@ -113,6 +113,7 @@ set(Headers
     "JSONHelper.h"
     "Dataset.h"
     "ClassifierHelper.h"
+    "Logger.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -125,6 +126,7 @@ set(Sources
     "JSONHelper.cpp"
     "Dataset.cpp"
     "ClassifierHelper.cpp"
+    "Logger.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
