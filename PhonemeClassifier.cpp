@@ -11,7 +11,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 2
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 4
+#define CLASSIFIER_VERSION 5
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -85,15 +85,15 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
 
-        network.Add<LinearNoBiasType<MAT_TYPE>>(512);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE>>(512);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE>>(512);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE>>(512);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearType<MAT_TYPE>>(outputSize);
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(0.001));
         network.Add<LogSoftMaxType<MAT_TYPE>>();
     }
     network.InputDimensions() = inputDimensions;
