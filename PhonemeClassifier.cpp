@@ -127,21 +127,17 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
 
         train.start(inputSize, outputSize, examples, true);
-        validate.start(inputSize, outputSize, examples / 2);
-        test.start(inputSize, outputSize, examples / 5);
 
         if (trainThread.joinable()) {
             trainThread.join();
         }
 
-        train.join();
-        validate.join();
-        test.join();
+        test.start(inputSize, outputSize, examples / 5);
 
         // Start training thread
         bool copyDone = false;
         trainThread = std::thread([&]{
-
+            test.join();
             // Calculate accuracy
             {
                 MAT_TYPE testData, testLabel;
@@ -175,7 +171,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     totalPhonemes[label]++;
                     testedExamples++;
                 }
-                logger.log(std::format("Accuracy: %d out of %d (%.1f%%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
+                logger.log(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
                 std::cout << "Confusion Matrix:\n";
                 std::cout << "   ";
                 for (size_t i = 0; i < outputSize; i++) {
@@ -211,6 +207,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 delete[] confusionMatrix;
 #pragma endregion
             }
+
+            validate.start(inputSize, outputSize, examples / 4);
+            train.join();
+            validate.join();
+
             MAT_TYPE trainData, trainLabel;
             train.get(trainData, trainLabel);
             MAT_TYPE validateData, validateLabel;
@@ -231,8 +232,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         ModelSerializer::save(&network);
                         return validationLoss;
                     }, 2));
-
-            json.save();
 
             ModelSerializer::save(&network, loops);
             });
