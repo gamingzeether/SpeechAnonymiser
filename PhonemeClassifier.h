@@ -16,7 +16,7 @@ public:
 
     void initalize(const size_t& sr);
     void train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize);
-    size_t classify(const arma::mat& data);
+    size_t classify(const MAT_TYPE& data);
     std::string getPhonemeString(const size_t& in);
 
     inline size_t getInputSize() { return inputSize; };
@@ -34,7 +34,7 @@ private:
 
     Logger logger;
 
-	mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization> network;
+	mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE> network;
 	ens::Adam optimizer;
     size_t inputSize = FRAME_SIZE * FFT_FRAMES;
     size_t outputSize = 0;

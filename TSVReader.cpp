@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <sstream>
+#include <format>
+#include <string>
 #include "structs.h"
 
 void TSVReader::dropIdx(size_t index) {
@@ -9,7 +11,32 @@ void TSVReader::dropIdx(size_t index) {
 	lines.pop_back();
 }
 
-void TSVReader::open(const std::string& filepath) {
+TSVReader::TSVLine TSVReader::convert(const TSVReader::CompactTSVLine& compact) {
+	TSVReader::TSVLine expanded;
+	std::string idString = "";
+	for (int i = 0; i < 8; i++) {
+		idString += std::format("{:016x}", compact.CLIENT_ID[i]);
+	}
+	expanded.CLIENT_ID = idString;
+	expanded.PATH = std::format("common_voice_en_{}.mp3", compact.PATH);
+	return expanded;
+}
+
+TSVReader::CompactTSVLine TSVReader::convert(const TSVReader::TSVLine& expanded) {
+	TSVReader::CompactTSVLine compact;
+	compact.CLIENT_ID = new uint64_t[8];
+	for (int i = 0; i < 8; i++) {
+		std::string substr = expanded.CLIENT_ID.substr(i * 16, 16);
+		compact.CLIENT_ID[i] = std::stoull(substr, nullptr, 16);
+	}
+	std::string pathNumber = expanded.PATH.substr(16);
+	pathNumber = pathNumber.substr(0, pathNumber.size() - 4);
+	compact.PATH = std::stoi(pathNumber);
+	compact.SENTENCE = expanded.SENTENCE;
+	return compact;
+}
+
+void TSVReader::open(const std::string& filepath, bool readSentence) {
 	filePath = filepath;
 	if (reader.is_open()) {
 		reader.close();
@@ -66,30 +93,33 @@ void TSVReader::open(const std::string& filepath) {
 				parsedLine.PATH = elem;
 				break;
 			case 3:
-				parsedLine.SENTENCE = elem;
+				if (readSentence) {
+					parsedLine.SENTENCE = elem;
+				}
 				break;
 			}
 			last = next + 1;
 		}
 		if (lineParseCheck) {
-			lines.push_back(parsedLine);
+			lines.push_back(TSVReader::convert(parsedLine));
+			TSVReader::convert(lines.back());
 		}
 	}
 	printf("Loaded %zu lines\n", lines.size());
 	reader.close();
 }
 
-TSVReader::TSVLine* TSVReader::read_line() {
+TSVReader::CompactTSVLine* TSVReader::read_line() {
 	size_t index;
 	return read_line(index);
 }
 
-TSVReader::TSVLine* TSVReader::read_line(OUT size_t& index) {
+TSVReader::CompactTSVLine* TSVReader::read_line(OUT size_t& index) {
 	index = rand() % lines.size();
 	return &(lines[index]);
 }
 
-TSVReader::TSVLine* TSVReader::read_line_ordered() {
+TSVReader::CompactTSVLine* TSVReader::read_line_ordered() {
 	if (readLine <= lines.size()) {
 		return &(lines[readLine]);
 	}

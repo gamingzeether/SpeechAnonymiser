@@ -159,8 +159,8 @@ void startFFT(InputData& inputData) {
     }
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
-        mat data(classifier.getInputSize(), 1);
-        mat out(1, 1);
+        MAT_TYPE data(classifier.getInputSize(), 1);
+        MAT_TYPE out(1, 1);
 
         // Wait for visualization to open
         while (!app.isOpen) {
@@ -195,7 +195,7 @@ void startFFT(InputData& inputData) {
 
             // Pass data to neural network
             if (frame.volume > activationThreshold) {
-                helper.writeInput<mat>(frames, currentFrame, data, 0);
+                helper.writeInput<MAT_TYPE>(frames, currentFrame, data, 0);
 
                 //auto classifyStart = std::chrono::high_resolution_clock::now();
                 size_t phoneme = classifier.classify(data);

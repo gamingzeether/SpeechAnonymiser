@@ -7,7 +7,7 @@
 
 class Dataset {
 public:
-	void get(OUT arma::mat& data, OUT arma::mat& labels, bool destroy = true);
+	void get(OUT MAT_TYPE& data, OUT MAT_TYPE& labels, bool destroy = true);
 
     void start(size_t inputSize, size_t outputSize, size_t examples, bool print = false);
 
@@ -20,7 +20,7 @@ public:
 private:
     struct Clip {
         std::string clipPath;
-        TSVReader::TSVLine* tsvElements;
+        TSVReader::TSVLine tsvElements;
         float* buffer;
         float allocatedLength;
         size_t size;
@@ -37,7 +37,7 @@ private:
 
         Clip() {
             clipPath = "";
-            tsvElements = NULL;
+            tsvElements = TSVReader::TSVLine();
             size = 0;
             sentence = "";
             sampleRate = 0;
@@ -53,12 +53,12 @@ private:
     std::thread loaderThread;
     bool endFlag; // Set to true when training is done to end loading after minExamples > examples instead of examples * MMAX_EXAMPLE_F
 
-	std::vector<arma::mat> exampleData;
-	std::vector<arma::mat> exampleLabel;
+	std::vector<MAT_TYPE> exampleData;
+	std::vector<MAT_TYPE> exampleLabel;
 
     void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
 	std::vector<Phone> parseTextgrid(const std::string& path);
-    void loadNextClip(const std::string& clipPath, TSVReader::TSVLine* tabSeperated, OUT Clip& clip, int sampleRate);
+    void loadNextClip(const std::string& clipPath, TSVReader::TSVLine tabSeperated, OUT Clip& clip, int sampleRate);
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);

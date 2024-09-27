@@ -8,3 +8,5 @@
 #define _DISABLE_VECTOR_ANNOTATION
 #define _DISABLE_STRING_ANNOTATION
 #endif
+
+#define MAT_TYPE arma::fmat

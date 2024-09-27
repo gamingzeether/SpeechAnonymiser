@@ -3,14 +3,16 @@
 #define MLPACK_ENABLE_ANN_SERIALIZATION 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
-CEREAL_REGISTER_TYPE(mlpack::LinearType<arma::mat, mlpack::L2Regularizer>);
+CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
+CEREAL_REGISTER_TYPE(mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>);
+CEREAL_REGISTER_TYPE(mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>);
 
-#define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihood, mlpack::RandomInitialization>
+#define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE>
 using namespace mlpack;
 
 void ModelSerializer::save(const void* network, int checkpoint) {
 	const NETWORK_TYPE& netRef = *(NETWORK_TYPE*)network;
-	data::Save(MODEL_FILE + MODEL_EXT, "model", netRef);
+	data::Save(MODEL_FILE + MODEL_EXT, "model", netRef, true);
 	if (checkpoint >= 0) {
 		std::filesystem::copy_file(
 			MODEL_FILE + MODEL_EXT,
