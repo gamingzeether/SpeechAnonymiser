@@ -3,6 +3,13 @@
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
 
+#ifdef __GNUC__
+// Fix an issue where some frames have nan values
+// Seems to come from the dct returning nan but not sure why
+// Doesnt seem to happen on x64 msvc143 but does occasionally on aarch64 gcc13
+#define DO_NAN_CHECK
+#endif
+
 #include <algorithm>
 #include <filesystem>
 #include <thread>
@@ -85,9 +92,11 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
 
     // Load and process clip in seperate thread
     // Allow searching for next clip while current clip is being loaded
+    // Find clip -> Find clip -> Find clip -> etc
+    //  \-> Load clip -\-> Load clip
 #pragma region MP3 Loader thread
     std::thread loaderThread = std::thread(
-        [this, &minExamples, &outputSize, &print, &examples, &exampleCount,
+        [this, &minExamples, &inputSize, &outputSize, &print, &examples, &exampleCount,
         &loaderMutex, &loaderWaiter, &loaderReady, 
         &clip, &loaderFinished, &phones, &totalClips, &lineIndex] {
         std::vector<Frame> frames;
@@ -140,7 +149,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
 #pragma endregion
                     if (currentFrame >= FFT_FRAMES) {
                         const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
-                        size_t exampleIndex = exampleCount[currentPhone]++;
+                        size_t exampleIndex = exampleCount[currentPhone];
 
                         if (exampleIndex >= examples) {
                             // Random chance to not write anything
@@ -149,12 +158,28 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
                             int ran = rand();
                             double rnd = (double)ran / RAND_MAX;
                             if (rnd < chance) {
+                                fftStart += FFT_FRAME_SPACING;
+                                currentFrame++;
                                 continue;
                             }
                             exampleIndex = ran % examples;
                         }
 
                         ClassifierHelper::instance().writeInput<MAT_TYPE>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
+#ifdef DO_NAN_CHECK
+                        bool hasNan = false;
+                        for (size_t i = 0; i < inputSize; i++) {
+                            if (std::isnan(exampleData[currentPhone](i, exampleIndex))) {
+                                hasNan = true;
+                                break;
+                            }
+                        }
+                        if (!hasNan) {
+                            exampleCount[currentPhone]++;
+                        }
+#else
+                        exampleCount[currentPhone]++;
+#endif
                     }
 
                     fftStart += FFT_FRAME_SPACING;

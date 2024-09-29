@@ -234,6 +234,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     }, 2));
 
             ModelSerializer::save(&network, loops);
+            json.save();
             });
         
         // Wait to finish copying data into new mat

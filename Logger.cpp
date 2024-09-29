@@ -8,9 +8,9 @@
 void Logger::Stream::init() {
 	if (fstreamPath != "") {
 		stream = new std::ofstream(fstreamPath, std::ios::out | std::ios::trunc);
-	}
-	if (!((std::ofstream*)stream)->is_open()) {
-		std::printf("Failed to open file for %s\n", fstreamPath.c_str());
+		if (!((std::ofstream*)stream)->is_open()) {
+			std::printf("Failed to open file for %s\n", fstreamPath.c_str());
+		}
 	}
 	outputVerbose = std::vector<bool>(Logger::verbosityLevels, false);
 	for (int i : outputVerboseIndex) {
