@@ -100,8 +100,6 @@ void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size
 
     // DCT of mel spectrum
     for (size_t i = 0; i < MEL_BINS; i++) {
-        //frame.delta[i] = melAmplitude - prevFrame.real[i];
-        //frame.real[i] = melAmplitude;
         dctIn[i] = log10f(melFrequencies[i]);
     }
     fftwf_execute(dctPlan);
@@ -110,8 +108,8 @@ void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size
     float dctScale = 10.0f / (MEL_BINS * 2);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         float value = dctOut[i] * dctScale;
-        //frame.real[i] = melFrequencies[i];
         frame.real[i] = value;
+        frame.delta[i] = value - prevFrame.real[i];
     }
 
     delete[] melFrequencies;

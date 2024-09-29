@@ -23,8 +23,8 @@ public:
             const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
             size_t offset = f * FRAME_SIZE;
             for (size_t i = 0; i < FRAME_SIZE; i++) {
-                data(offset + i, col) = readFrame.real[i];
-                //data(offset + i * 2 + 1, col) = readFrame.delta[i];
+                data(offset + i * 2, col) = readFrame.real[i];
+                data(offset + i * 2 + 1, col) = readFrame.delta[i];
             }
         }
     };

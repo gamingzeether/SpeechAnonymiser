@@ -36,7 +36,7 @@ private:
 
 	mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE> network;
 	ens::Adam optimizer;
-    size_t inputSize = FRAME_SIZE * FFT_FRAMES;
+    size_t inputSize = FRAME_SIZE * FFT_FRAMES * 2;
     size_t outputSize = 0;
     size_t SAMPLE_RATE;
 

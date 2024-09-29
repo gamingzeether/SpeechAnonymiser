@@ -68,7 +68,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         true);
 
     bool loaded = false;
-    std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
+    std::vector<size_t> inputDimensions = { FRAME_SIZE * 2, FFT_FRAMES, 1 };
     int savedInputSize = json["input_features"].get_int();
     int savedOutputSize = json["output_features"].get_int();
     bool metaMatch = (
@@ -85,14 +85,12 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
 
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>> (512, L2Regularizer(0.001));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(0.001));
         network.Add<LogSoftMaxType<MAT_TYPE>>();
     }

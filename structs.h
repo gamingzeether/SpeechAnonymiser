@@ -41,7 +41,7 @@ struct Phone {
 struct Frame {
     std::vector<float> real;
     //std::vector<float> imaginary;
-    //std::vector<float> delta;
+    std::vector<float> delta;
     float volume;
     size_t phone;
 
@@ -58,7 +58,7 @@ struct Frame {
     Frame() {
         real = std::vector<float>(FRAME_SIZE);
         //imaginary = std::vector<float>(FRAME_SIZE);
-        //delta = std::vector<float>(FRAME_SIZE);
+        delta = std::vector<float>(FRAME_SIZE);
         volume = 0;
         phone = 0;
     }
