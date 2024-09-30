@@ -45,15 +45,17 @@ public:
     std::string path() const { return filePath; };
 
     // Drop line at index (messes up order)
-    void dropIdx(size_t index);
+    void dropIdx(size_t index, bool decrement = true);
 
     static TSVLine convert(const CompactTSVLine& compact);
     static CompactTSVLine convert(const TSVLine& compact);
 
+    void shuffle();
+    void resetLine() { readLine = 0; };
+
     void open(const std::string& filepath, bool readSentence = false);
     CompactTSVLine* read_line();
     CompactTSVLine* read_line(OUT size_t& index);
-    CompactTSVLine* read_line_ordered();
 private:
     std::ifstream reader;
     std::vector<std::string> columns;

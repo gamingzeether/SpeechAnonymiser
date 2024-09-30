@@ -23,39 +23,47 @@
 void Dataset::get(OUT MAT_TYPE& data, OUT MAT_TYPE& labels, bool destroy) {
     size_t outputSize = exampleData.size();
     size_t inputSize = exampleData[0].n_rows;
-    size_t examples = exampleData[0].n_cols;
 
-    data = MAT_TYPE(inputSize, 0);
-    labels = MAT_TYPE(1, 0);
-    for (size_t i = 0; i < outputSize; i++) {
-        const MAT_TYPE& dataMat = exampleData.back();
-        const MAT_TYPE& labelMat = exampleLabel.back();
-        data.resize(inputSize, data.n_cols + examples);
-        labels.resize(1, labels.n_cols + examples);
-
-        size_t offset = examples * i;
-        for (size_t c = 0; c < examples; c++ /* <-- he said the name of the movie! */) {
-            for (size_t r = 0; r < inputSize; r++) {
-                data(r, offset + c) = dataMat(r, c);
+    if (cached) {
+        data = cachedData;
+        labels = cachedLabels;
+    } else {
+        data = MAT_TYPE(inputSize, 0);
+        labels = MAT_TYPE(1, 0);
+        for (size_t i = 0; i < outputSize; i++) {
+            size_t offset = examples * i;
+            const MAT_TYPE& dataMat = exampleData.back();
+            const MAT_TYPE& labelMat = exampleLabel.back();
+            data.resize(inputSize, data.n_cols + examples);
+            labels.resize(1, labels.n_cols + examples);
+            for (size_t c = 0; c < examples; c++ /* <-- he said the name of the movie! */) {
+                for (size_t r = 0; r < inputSize; r++) {
+                    data(r, offset + c) = dataMat(r, c);
+                }
+                labels(0, offset + c) = labelMat(0, c);
             }
-            labels(0, offset + c) = labelMat(0, c);
-        }
-
-        if (destroy) {
-            exampleData.pop_back();
-            exampleLabel.pop_back();
+            if (destroy) {
+                exampleData.pop_back();
+                exampleLabel.pop_back();
+            }
         }
     }
 }
 
-void Dataset::start(size_t inputSize, size_t outputSize, size_t examples, bool print) {
+void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
+    if (cached) {
+        return;
+    }
     endFlag = false;
-    loaderThread = std::thread([this, inputSize, outputSize, examples, print] {
-        _start(inputSize, outputSize, examples, print);
+    loaderThread = std::thread([this, inputSize, outputSize, ex, print] {
+        _start(inputSize, outputSize, ex, print);
     });
 }
 
 bool Dataset::join() {
+    if (cached) {
+        return true;
+    }
     if (!loaderThread.joinable()) {
         return false;
     }
@@ -64,7 +72,10 @@ bool Dataset::join() {
     return true;
 }
 
-void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool print) {
+void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
+    reader.shuffle();
+    reader.resetLine();
+
 	std::vector<size_t> exampleCount(outputSize);
 	exampleData = std::vector<MAT_TYPE>(outputSize);
 	exampleLabel = std::vector<MAT_TYPE>(outputSize);
@@ -72,6 +83,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     const std::string clipPath = path + "/clips/";
     const std::string transcriptsPath = path + "/transcript/";
 
+    examples = ex;
     for (size_t i = 0; i < outputSize; i++) {
         exampleData[i] = MAT_TYPE(inputSize, examples);
         exampleLabel[i] = MAT_TYPE(1, examples);
@@ -89,6 +101,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     bool loaderFinished = true;
     size_t totalClips = 0;
     size_t lineIndex;
+    size_t realEx = examples;
 
     // Load and process clip in seperate thread
     // Allow searching for next clip while current clip is being loaded
@@ -96,7 +109,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     //  \-> Load clip -\-> Load clip
 #pragma region MP3 Loader thread
     std::thread loaderThread = std::thread(
-        [this, &minExamples, &inputSize, &outputSize, &print, &examples, &exampleCount,
+        [this, &minExamples, &inputSize, &outputSize, &print, &exampleCount,
         &loaderMutex, &loaderWaiter, &loaderReady, 
         &clip, &loaderFinished, &phones, &totalClips, &lineIndex] {
         std::vector<Frame> frames;
@@ -148,7 +161,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
                     frame.phone = maxIdx;
 #pragma endregion
                     if (currentFrame >= FFT_FRAMES) {
-                        const size_t& currentPhone = frames[currentFrame - CONTEXT_SIZE].phone;
+                        const size_t& currentPhone = frames[currentFrame - CONTEXT_FORWARD].phone;
                         size_t exampleIndex = exampleCount[currentPhone];
 
                         if (exampleIndex >= examples) {
@@ -214,7 +227,12 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
     size_t testedClips = 0;
     TSVReader::TSVLine nextClip;
     while (keepLoading(minExamples, examples)) {
-        nextClip = TSVReader::convert(*reader.read_line(lineIndex));
+        TSVReader::CompactTSVLine* line = reader.read_line(lineIndex);
+        if (!line) {
+            examples = minExamples;
+            break;
+        }
+        nextClip = TSVReader::convert(*line);
         // Get transcription
         const std::string& nextClipPath = nextClip.PATH;
         const std::string transcriptionPath = transcriptsPath + nextClip.CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
@@ -255,14 +273,18 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t examples, bool 
         }
     }
 
+    endFlag = true;
     {
         std::lock_guard<std::mutex> lock(loaderMutex);
         loaderReady = true;
         loaderWaiter.notify_one();
     }
     loaderThread.join();
+    if (examples < realEx) {
+        saveCache();
+    }
 
-    std::printf("Finished loading clips from %s with minimum factor of %f\n", reader.path().c_str(), (double)minExamples / examples);
+    std::printf("Finished loading clips from %s with %zd examples (%zd max)\n", reader.path().c_str(), minExamples, realEx);
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
 
@@ -422,7 +444,7 @@ void Dataset::preprocessDataset(const std::string& path) {
     TSVReader dictReader;
     dictReader.open(path + "/english_us_mfa.dict");
     std::vector<std::string> phonemeList = std::vector<std::string>();
-    TSVReader::TSVLine tabSeperated = TSVReader::convert(*dictReader.read_line_ordered());
+    TSVReader::TSVLine tabSeperated = TSVReader::convert(*dictReader.read_line());
     while (tabSeperated.CLIENT_ID != "") {
         std::string& phonemes = tabSeperated.PATH; // TSV is not dataset, get index 1
         int start = 0;
@@ -476,7 +498,7 @@ void Dataset::preprocessDataset(const std::string& path) {
             int counter = 0;
             Clip clip = Clip();
             clip.initSampleRate(sampleRate);
-            TSVReader::TSVLine tabSeperated = TSVReader::convert(*tsv.read_line_ordered());
+            TSVReader::TSVLine tabSeperated = TSVReader::convert(*tsv.read_line());
             while (tabSeperated.CLIENT_ID != "" && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
                 std::cout << globalCounter << "\n";
 
@@ -602,4 +624,9 @@ std::wstring Dataset::utf8_to_utf16(const std::string& utf8) {
         }
     }
     return utf16;
+}
+
+void Dataset::saveCache() {
+    get(cachedData, cachedLabels);
+    cached = true;
 }

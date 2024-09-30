@@ -56,11 +56,17 @@ private:
 	std::vector<MAT_TYPE> exampleData;
 	std::vector<MAT_TYPE> exampleLabel;
 
+    size_t examples;
+    bool cached = false;
+    MAT_TYPE cachedData;
+    MAT_TYPE cachedLabels;
+
     void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
 	std::vector<Phone> parseTextgrid(const std::string& path);
     void loadNextClip(const std::string& clipPath, TSVReader::TSVLine tabSeperated, OUT Clip& clip, int sampleRate);
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
 	// https://stackoverflow.com/a/7154226
 	static std::wstring utf8_to_utf16(const std::string& utf8);
-    inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && minExamples < examples * MMAX_EXAMPLE_F; };
+    inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && (minExamples < examples * MMAX_EXAMPLE_F); };
+    void saveCache();
 };

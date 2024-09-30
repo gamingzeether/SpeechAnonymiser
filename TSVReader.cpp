@@ -4,11 +4,16 @@
 #include <sstream>
 #include <format>
 #include <string>
+#include <algorithm>
+#include <random>
+#include <chrono>
 #include "structs.h"
 
-void TSVReader::dropIdx(size_t index) {
+void TSVReader::dropIdx(size_t index, bool decrement) {
 	lines[index] = lines.back();
 	lines.pop_back();
+	if (decrement)
+		readLine--;
 }
 
 TSVReader::TSVLine TSVReader::convert(const TSVReader::CompactTSVLine& compact) {
@@ -109,19 +114,21 @@ void TSVReader::open(const std::string& filepath, bool readSentence) {
 	reader.close();
 }
 
+void TSVReader::shuffle() {
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine random(seed);
+	std::shuffle(lines.begin(), lines.end(), random);
+}
+
 TSVReader::CompactTSVLine* TSVReader::read_line() {
-	size_t index;
-	return read_line(index);
+	size_t dummy;
+	return read_line(dummy);
 }
 
 TSVReader::CompactTSVLine* TSVReader::read_line(OUT size_t& index) {
-	index = rand() % lines.size();
-	return &(lines[index]);
-}
-
-TSVReader::CompactTSVLine* TSVReader::read_line_ordered() {
 	if (readLine <= lines.size()) {
-		return &(lines[readLine]);
+		index = readLine++;
+		return &(lines[index]);
 	}
 	return NULL;
 }

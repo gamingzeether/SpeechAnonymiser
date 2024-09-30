@@ -21,7 +21,7 @@ public:
 
     inline size_t getInputSize() { return inputSize; };
     inline size_t getOutputSize() { return outputSize; };
-    inline size_t getSampleRate() { return SAMPLE_RATE; };
+    inline size_t getSampleRate() { return sampleRate; };
 
     void destroy() {
         if (!initalized) {
@@ -38,7 +38,7 @@ private:
 	ens::Adam optimizer;
     size_t inputSize = FRAME_SIZE * FFT_FRAMES * 2;
     size_t outputSize = 0;
-    size_t SAMPLE_RATE;
+    size_t sampleRate;
 
     bool initalized = false;
 };

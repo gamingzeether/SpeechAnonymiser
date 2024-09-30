@@ -25,7 +25,7 @@ using namespace arma;
 using namespace mlpack;
 
 auto programStart = std::chrono::system_clock::now();
-int SAMPLE_RATE = 16000;
+int sampleRate = 16000;
 
 PhonemeClassifier classifier;
 
@@ -171,7 +171,7 @@ void startFFT(InputData& inputData) {
         size_t currentFrame = 0;
         size_t lastSampleStart = 0;
 
-        //std::printf("Maximum time per frame: %fms", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
+        //std::printf("Maximum time per frame: %fms\n", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
 
         ClassifierHelper& helper = ClassifierHelper::instance();
 
@@ -236,7 +236,7 @@ int commandTrain(const std::string& path) {
         throw("Out of range");
     }
 
-    int epochs = 50;
+    int epochs = 100;
     requestInput("Set number of epochs", epochs);
     logger.log(std::format("Set epochs: {}", epochs), Logger::VERBOSE);
     if (epochs <= 0) {
@@ -332,17 +332,17 @@ int commandDefault() {
 
     inputParameters.deviceId = inDevice;
     inputParameters.nChannels = inputInfo.inputChannels;
-    unsigned int sampleRate = SAMPLE_RATE;
+    unsigned int inputSampleRate = sampleRate;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
     logger.log(std::format("Using input: {}", inputInfo.name), Logger::INFO);
-    logger.log(std::format("Sample rate: {}", sampleRate), Logger::INFO);
+    logger.log(std::format("Sample rate: {}", inputSampleRate), Logger::INFO);
     logger.log(std::format("Channels: {}", inputInfo.inputChannels), Logger::INFO);
 
-    InputData inputData = InputData(inputParameters.nChannels, sampleRate * INPUT_BUFFER_TIME);
+    InputData inputData = InputData(inputParameters.nChannels, inputSampleRate * INPUT_BUFFER_TIME);
 
     if (inputAudio.openStream(NULL, &inputParameters, INPUT_FORMAT,
-        sampleRate, &bufferFrames, &processInput, (void*)&inputData, &inputFlags)) {
+        inputSampleRate, &bufferFrames, &processInput, (void*)&inputData, &inputFlags)) {
         std::cout << inputAudio.getErrorText() << '\n';
         return 0; // problem with device settings
     }
@@ -366,7 +366,7 @@ int commandDefault() {
 
     outputParameters.deviceId = outDevice;
     outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = SAMPLE_RATE;
+    unsigned int outputSampleRate = sampleRate;
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
@@ -417,9 +417,17 @@ int main(int argc, char** argv) {
 
     srand(static_cast <unsigned> (time(0)));
 
-    requestInput("Select sample rate", SAMPLE_RATE);
-    classifier.initalize(SAMPLE_RATE);
-    logger.log(std::format("Set sample rate: {}", SAMPLE_RATE), Logger::VERBOSE);
+    requestInput("Select sample rate", sampleRate);
+    classifier.initalize(sampleRate);
+    logger.log(std::format("Set sample rate: {}", sampleRate), Logger::VERBOSE);
+
+    {
+        double forwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_FORWARD * FFT_FRAME_SPACING);
+        double backwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_BACKWARD * FFT_FRAME_SPACING);
+        double forwardMsec = 1000.0 * (forwardSamples / sampleRate);
+        double backwardMsec = 1000.0 * (backwardSamples / sampleRate);
+        logger.log(std::format("Forward context: {}ms; Backward context: {}ms", forwardMsec, backwardMsec), Logger::INFO);
+    }
 
     float gain = 1;
     requestInput("Set gain", gain);

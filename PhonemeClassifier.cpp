@@ -9,9 +9,9 @@
 #endif
 
 // Update this when adding/remove json things
-#define CURRENT_VERSION 2
+#define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 5
+#define CLASSIFIER_VERSION 6
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -41,7 +41,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
     initalized = true;
 
-    SAMPLE_RATE = sr;
+    sampleRate = sr;
 
     ClassifierHelper::instance().initalize(sr);
 
@@ -53,6 +53,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["classifier_version"] = CLASSIFIER_VERSION;
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
+        json["sample_rate"] = (int)sampleRate;
         json.save();
     }
     int classifierVersion = json["classifier_version"].get_int();
@@ -71,10 +72,12 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     std::vector<size_t> inputDimensions = { FRAME_SIZE * 2, FFT_FRAMES, 1 };
     int savedInputSize = json["input_features"].get_int();
     int savedOutputSize = json["output_features"].get_int();
+    int savedSampleRate = json["sample_rate"].get_int();
     bool metaMatch = (
         classifierVersion == CLASSIFIER_VERSION &&
         savedInputSize == inputSize &&
-        savedOutputSize == outputSize);
+        savedOutputSize == outputSize &&
+        savedSampleRate == sampleRate);
     if (metaMatch && ModelSerializer::load(&network)) {
         logger.log("Loaded model", Logger::INFO);
         loaded = true;
@@ -84,8 +87,12 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["classifier_version"] = CLASSIFIER_VERSION;
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
+        json["sample_rate"] = (int)sampleRate;
 
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(0.001));
+        network.Add<LeakyReLUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
@@ -117,9 +124,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     std::thread trainThread;
     bool isTraining = false;
-    Dataset train(path + "/train.tsv", SAMPLE_RATE, path);
-    Dataset validate(path + "/dev.tsv", SAMPLE_RATE, path);
-    Dataset test(path + "/test.tsv", SAMPLE_RATE, path);
+    Dataset train(path + "/train.tsv", sampleRate, path);
+    Dataset validate(path + "/dev.tsv", sampleRate, path);
+    Dataset test(path + "/test.tsv", sampleRate, path);
     size_t loops = 0;
     while (true) {
         logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
@@ -144,7 +151,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 size_t testCount = testLabel.n_cols;
                 size_t correctCount = 0;
                 size_t* correctPhonemes = new size_t[outputSize];
-                size_t** confusionMatrix = new size_t * [outputSize];
+                size_t** confusionMatrix = new size_t*[outputSize];
                 size_t* totalPhonemes = new size_t[outputSize];
                 for (size_t i = 0; i < outputSize; i++) {
                     totalPhonemes[i] = 0;
