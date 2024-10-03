@@ -114,6 +114,8 @@ set(Headers
     "Dataset.h"
     "ClassifierHelper.h"
     "Logger.h"
+    "SpeechEngine.h"
+    "Animator.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -127,6 +129,8 @@ set(Sources
     "Dataset.cpp"
     "ClassifierHelper.cpp"
     "Logger.cpp"
+    "SpeechEngine.cpp"
+    "Animator.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
@@ -252,11 +256,6 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             ${DEFAULT_CXX_EXCEPTION_HANDLING};
         )
-        add_custom_command(
-            TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/shaders"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders")
     elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
         target_compile_options(${PROJECT_NAME} PRIVATE
             $<$<CONFIG:Release>:
@@ -270,11 +269,6 @@ if(MSVC)
             ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
             ${DEFAULT_CXX_EXCEPTION_HANDLING}
         )
-        add_custom_command(
-            TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/shaders"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders")
     endif()
     if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         target_link_options(${PROJECT_NAME} PRIVATE
@@ -305,10 +299,10 @@ else()
         ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/shaders"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders")
 endif()
 
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/configs" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/configs"
+)

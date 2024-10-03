@@ -11,7 +11,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 6
+#define CLASSIFIER_VERSION 8
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -92,7 +92,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LeakyReLUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
@@ -128,6 +131,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     Dataset validate(path + "/dev.tsv", sampleRate, path);
     Dataset test(path + "/test.tsv", sampleRate, path);
     size_t loops = 0;
+    double bestLoss = 9e+99;
     while (true) {
         logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
 
@@ -232,9 +236,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     [&](const MAT_TYPE& /* param */)
                     {
                         double validationLoss = network.Evaluate(validateData, validateLabel);
-                        cout << "Validation loss: " << validationLoss
-                            << "." << endl;
-                        ModelSerializer::save(&network);
+                        logger.log(std::format("Validation loss: {}\n", validationLoss), Logger::INFO);
+                        if (validationLoss < bestLoss) {
+                            bestLoss = validationLoss;
+                            ModelSerializer::save(&network, 999);
+                        }
                         return validationLoss;
                     }, 2));
 

@@ -1,0 +1,7 @@
+{
+  "_version": 0,
+  "proportional": 1.0,
+  "integral": 1.0,
+  "derivative": 1.0,
+  "random": 0.05
+}

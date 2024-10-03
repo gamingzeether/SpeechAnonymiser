@@ -15,13 +15,13 @@ JSONHelper::JSONObj JSONHelper::JSONObj::operator[](const char* key) {
     return JSONObj(_doc, obj);
 }
 
-bool JSONHelper::open(const char* openPath, int version) {
-	path = openPath;
+bool JSONHelper::open(std::string openPath, int version) {
+	path = "configs/" + openPath;
 
     yyjson_doc* iDoc;
     int jsonVersion = -1;
 
-    iDoc = yyjson_read_file(path, YYJSON_READ_NOFLAG, NULL, NULL);
+    iDoc = yyjson_read_file(path.c_str(), YYJSON_READ_NOFLAG, NULL, NULL);
     if (iDoc != NULL) {
         yyjson_val* root = yyjson_doc_get_root(iDoc);
         yyjson_val* version = yyjson_obj_get(root, "_version");
@@ -48,7 +48,7 @@ void JSONHelper::close() {
 }
 
 void JSONHelper::save() {
-    yyjson_mut_write_file(path, doc, YYJSON_WRITE_NOFLAG, NULL, NULL);
+    yyjson_mut_write_file(path.c_str(), doc, YYJSON_WRITE_PRETTY_TWO_SPACES, NULL, NULL);
 }
 
 JSONHelper::JSONObj JSONHelper::operator[](const char* key) {

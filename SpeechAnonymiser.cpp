@@ -10,6 +10,7 @@
 #include <random>
 #include <unordered_set>
 #include <format>
+#include <optional>
 #include <rtaudio/RtAudio.h>
 #include <cargs.h>
 #include "Visualizer.h"
@@ -20,6 +21,9 @@
 #include "ClassifierHelper.h"
 #include "Dataset.h"
 #include "Logger.h"
+#include "SpeechEngine.h"
+
+bool outputPassthrough = false;
 
 using namespace arma;
 using namespace mlpack;
@@ -28,6 +32,8 @@ auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
 
 PhonemeClassifier classifier;
+
+std::optional<SpeechEngine> speechEngine;
 
 Logger logger;
 
@@ -87,10 +93,12 @@ int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBuffer
 
     InputData* iData = (InputData*)data;
 
-    if ((iData->lastProcessed - iData->writeOffset) % iData->totalFrames < nBufferFrames) {
-        auto sinceStart = std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - programStart);
-        std::cout << sinceStart.count() << ": Stream overflow detected!\n";
-        iData->writeOffset = (iData->lastProcessed + nBufferFrames + 128) % iData->totalFrames;
+    if (outputPassthrough) {
+        if ((iData->lastProcessed - iData->writeOffset) % iData->totalFrames < nBufferFrames) {
+            auto sinceStart = std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - programStart);
+            std::cout << sinceStart.count() << ": Stream overflow detected!\n";
+            iData->writeOffset = (iData->lastProcessed + nBufferFrames + 128) % iData->totalFrames;
+        }
     }
 
     for (size_t i = 0; i < nBufferFrames; i++) {
@@ -114,17 +122,28 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
         std::cout << "Stream underflow detected!\n";
     }
 
-    InputData* iData = oData->input;
-    size_t startSample = oData->lastSample;
-    for (size_t i = 0; i < nBufferFrames; i++) {
-        size_t readPosition = (startSample + i) % iData->totalFrames;
-        for (size_t j = 0; j < oData->channels; j++) {
-            INPUT_TYPE input = iData->buffer[j][readPosition];
-            *buffer++ = (OUTPUT_TYPE)((input * OUTPUT_SCALE) / INPUT_SCALE);
+    if (!outputPassthrough) {
+        speechEngine.value().writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
+    } else {
+        InputData* iData = oData->input;
+        size_t startSample = oData->lastSample;
+        double scale = oData->scale;
+        int totalFrames = iData->totalFrames * scale;
+        for (size_t i = 0; i < nBufferFrames; i++) {
+            size_t readPosition = (startSample + i) % totalFrames;
+            for (size_t j = 0; j < oData->channels; j++) {
+                INPUT_TYPE input;
+                double realRead = (double)readPosition / scale;
+                double floor = std::floor(realRead);
+                OUTPUT_TYPE p1 = iData->buffer[j][(int)floor];
+                OUTPUT_TYPE p2 = iData->buffer[j][(int)(std::ceil(realRead) + 0.1)];
+                input = std::lerp(p1, p2, realRead - floor);
+                *buffer++ = (OUTPUT_TYPE)((input * OUTPUT_SCALE) / INPUT_SCALE);
+            }
         }
+        oData->lastSample = (startSample + nBufferFrames) % totalFrames;
+        iData->lastProcessed = (int)(oData->lastSample / scale);
     }
-    oData->lastSample = (startSample + nBufferFrames) % iData->totalFrames;
-    iData->lastProcessed = oData->lastSample;
 
     return 0;
 }
@@ -174,6 +193,7 @@ void startFFT(InputData& inputData) {
         //std::printf("Maximum time per frame: %fms\n", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
 
         ClassifierHelper& helper = ClassifierHelper::instance();
+        SpeechFrame speechFrame;
 
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
@@ -194,11 +214,14 @@ void startFFT(InputData& inputData) {
             memcpy(app.fftData.frequencies[currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
 
             // Pass data to neural network
-            if (frame.volume > activationThreshold) {
+            Frame& classifyFrame = frames[(currentFrame + FFT_FRAMES - CONTEXT_FORWARD) % FFT_FRAMES];
+            if (classifyFrame.volume > activationThreshold) {
                 helper.writeInput<MAT_TYPE>(frames, currentFrame, data, 0);
 
                 //auto classifyStart = std::chrono::high_resolution_clock::now();
                 size_t phoneme = classifier.classify(data);
+                speechFrame.phoneme = phoneme;
+                speechEngine.value().pushFrame(speechFrame);
                 //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
 
                 std::cout << classifier.getPhonemeString(phoneme) << std::endl;
@@ -322,7 +345,6 @@ int commandDefault() {
     // Create and start input device
 #pragma region Input
     RtAudio::StreamOptions inputFlags;
-    inputFlags.flags |= RTAUDIO_NONINTERLEAVED;
 
     RtAudio inputAudio;
 
@@ -358,7 +380,6 @@ int commandDefault() {
     // Create and start output device
 #pragma region Output
     RtAudio::StreamOptions outputFlags;
-    outputFlags.flags |= RTAUDIO_NONINTERLEAVED;
     RtAudio outputAudio;
 
     RtAudio::StreamParameters outputParameters;
@@ -366,32 +387,35 @@ int commandDefault() {
 
     outputParameters.deviceId = outDevice;
     outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = sampleRate;
+    unsigned int outputSampleRate = 48000;
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
     logger.log(std::format("Using output: {}", outputInfo.name), Logger::INFO);
     logger.log(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
-    logger.log(std::format("Channels: {}", outputInfo.inputChannels), Logger::INFO);
+    logger.log(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
     outputData.channels = outputParameters.nChannels;
     outputData.input = &inputData;
-
+    outputData.scale = (double)outputSampleRate / inputSampleRate;
 
     if (outputAudio.openStream(&outputParameters, NULL, OUTPUT_FORMAT,
         outputSampleRate, &outputBufferFrames, &processOutput, (void*)&outputData, &outputFlags)) {
         std::cout << outputAudio.getErrorText() << '\n';
         return 0; // problem with device settings
     }
+#pragma endregion
+
+    // Initalize speech engine
+    speechEngine = SpeechEngine(outputSampleRate, outputInfo.outputChannels);
 
     if (outputAudio.startStream()) {
         std::cout << outputAudio.getErrorText() << '\n';
         cleanupRtAudio(outputAudio);
         return 0;
     }
-#pragma endregion
 
     std::cout << std::endl;
 
@@ -401,7 +425,24 @@ int commandDefault() {
     return 0;
 }
 
-int main(int argc, char** argv) {
+bool tryMakeDir(std::string path, bool fatal = true) {
+    if (!std::filesystem::create_directories(path)) {
+        if (std::filesystem::exists(path)) {
+            return true;
+        }
+        if (fatal) {
+            throw("Failed to make directory");
+        }
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, char* argv[]) {
+    tryMakeDir("logs");
+    tryMakeDir("configs/articulators");
+    tryMakeDir("configs/animations/phonemes");
+
     logger = Logger();
     logger.addStream(Logger::Stream("main.log").
         outputTo(Logger::VERBOSE).
@@ -414,6 +455,15 @@ int main(int argc, char** argv) {
         outputTo(Logger::WARNING).
         outputTo(Logger::ERR).
         outputTo(Logger::FATAL));
+
+    std::string launchString = "";
+    for (int i = 0; i < argc; i++) {
+        if (i > 0) {
+            launchString += " ";
+        }
+        launchString += argv[i];
+    }
+    logger.log(std::format("Launch args: {}", launchString), Logger::INFO);
 
     srand(static_cast <unsigned> (time(0)));
 

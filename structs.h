@@ -2,6 +2,9 @@
 
 #include "define.h"
 
+#include <algorithm>
+#include <vector>
+
 struct InputData {
     INPUT_TYPE** buffer;
     size_t bufferBytes;
@@ -28,6 +31,7 @@ struct OutputData {
     unsigned int channels;
     unsigned long lastSample;
     InputData* input;
+    double scale;
 };
 
 struct Phone {
@@ -62,4 +66,8 @@ struct Frame {
         volume = 0;
         phone = 0;
     }
+};
+
+struct SpeechFrame {
+    size_t phoneme;
 };
