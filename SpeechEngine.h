@@ -49,6 +49,47 @@ private:
 		static const int _jsonVersion = 0;
 		void _init(float proportional, float integral, float derivative, float rand, int index);
 	};
+	class TractSegment {
+	public:
+		float step(float input);
+		void setLossFactor(float l) { loss = 1.0 - l; };
+		inline float pressure(int index);
+		void setRadius(int index, float rad);
+
+		TractSegment() : TractSegment(2) {};
+		TractSegment(int l) : length(l) {
+			assert(l >= 2);
+			forward1 = new float[l];
+			backward1 = new float[l];
+			forward2 = new float[l];
+			backward2 = new float[l];
+			radius = new float[l];
+			scattering = new float[l - 1];
+			loss = 1;
+
+			for (int i = 0; i < l; i++) {
+				setRadius(i, 1);
+			}
+		};
+	private:
+		const int length;
+		bool currentBuffer1 = true;
+		float* forward1;
+		float* backward1;
+		float* forward2;
+		float* backward2;
+		float* radius;
+		float* scattering;
+		float loss;
+
+		void stepBuffer(float* buf);
+	};
+	class VocalTract {
+	public:
+
+	private:
+
+	};
 
 	Logger logger;
 

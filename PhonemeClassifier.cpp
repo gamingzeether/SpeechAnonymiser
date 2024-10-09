@@ -11,7 +11,7 @@
 // Update this when adding/remove json things
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 8
+#define CLASSIFIER_VERSION 9
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -92,13 +92,16 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
+        network.Add<LeakyReLUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(256, L2Regularizer(0.001));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(0.001));
@@ -117,6 +120,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     optimizer.BatchSize() = 128;
     optimizer.StepSize() = stepSize;
     optimizer.MaxIterations() = epochs * examples * outputSize;
+    optimizer.ResetPolicy() = false;
 
     std::vector<Phone> phones;
     
@@ -231,18 +235,18 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 std::move(trainLabel),
                 optimizer,
                 ens::PrintLoss(),
-                ens::ProgressBar(),
+                ens::ProgressBar(50),
                 ens::EarlyStopAtMinLossType<MAT_TYPE>(
                     [&](const MAT_TYPE& /* param */)
                     {
                         double validationLoss = network.Evaluate(validateData, validateLabel);
-                        logger.log(std::format("Validation loss: {}\n", validationLoss), Logger::INFO);
+                        logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss) {
                             bestLoss = validationLoss;
                             ModelSerializer::save(&network, 999);
                         }
                         return validationLoss;
-                    }, 2));
+                    }));
 
             ModelSerializer::save(&network, loops);
             json.save();

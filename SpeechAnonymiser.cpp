@@ -194,7 +194,7 @@ void startFFT(InputData& inputData) {
 
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
-
+        const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"")];
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
@@ -221,12 +221,14 @@ void startFFT(InputData& inputData) {
                 //auto classifyStart = std::chrono::high_resolution_clock::now();
                 size_t phoneme = classifier.classify(data);
                 speechFrame.phoneme = phoneme;
-                speechEngine.value().pushFrame(speechFrame);
                 //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
 
                 std::cout << classifier.getPhonemeString(phoneme) << std::endl;
                 //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
+            } else {
+                speechFrame.phoneme = silencePhoneme;
             }
+            speechEngine.value().pushFrame(speechFrame);
             currentFrame = (currentFrame + 1) % FFT_FRAMES;
         }
         });

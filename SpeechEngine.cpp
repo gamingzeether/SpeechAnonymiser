@@ -28,6 +28,7 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 	int offset = 0;
 	double phaseOffset = 0;
 	double gain = 0.02;
+
 	for (int t = 0; t < nFrames; t += ENGINE_STEP_FRAMES) {
 		articAnim.stepTime(ENGINE_TIMESTEP);
 		for (int i = 0; i < std::extent<decltype(articulators)>::value; i++) {
@@ -134,6 +135,7 @@ SpeechEngine::SpeechEngine(int sr, int ch) {
 	_init();
 }
 
+#pragma region Articulator
 SpeechEngine::SpeechArticulator::SpeechArticulator(float proportional, float integra, float derivative, float rand, int index) {
 	_init(proportional, integra, derivative, rand, index);
 }
@@ -188,6 +190,72 @@ void SpeechEngine::SpeechArticulator::_init(float proportional, float integra, f
 
 	animIndex = index;
 }
+#pragma endregion
+
+#pragma region Tract segments
+float SpeechEngine::TractSegment::pressure(int index) {
+	float *forwardRd, *backwardRd;
+	if (currentBuffer1) {
+		forwardRd = forward1;
+		backwardRd = backward1;
+	} else {
+		forwardRd = forward2;
+		backwardRd = backward2;
+	}
+	return (forwardRd[index] + backwardRd[index]) * 0.5;
+};
+
+void SpeechEngine::TractSegment::setRadius(int index, float rad) {
+	radius[index] = rad;
+	float rsqri = radius[index] * radius[index];
+
+	if (index > 1) {
+		float rsqrb = radius[index - 1] * radius[index - 1];
+		scattering[index - 1] = (rsqrb - rsqri) / (rsqrb + rsqri);
+	}
+	if (index < length - 1) {
+		float rsqrf = radius[index + 1] * radius[index + 1];
+		scattering[index] = (rsqri - rsqrf) / (rsqri + rsqrf);
+	}
+}
+
+float SpeechEngine::TractSegment::step(float input) {
+	float *forwardRd, *forwardWr, *backwardRd, *backwardWr;
+	if (currentBuffer1) {
+		forwardRd = forward1;
+		forwardWr = forward2;
+		backwardRd = backward1;
+		backwardWr = backward2;
+	} else {
+		forwardRd = forward2;
+		forwardWr = forward1;
+		backwardRd = backward2;
+		backwardWr = backward1;
+	}
+	currentBuffer1 = !currentBuffer1;
+
+	float forwardBack = forwardRd[length - 1];
+	float backwardBack = backwardRd[0];
+	for (int i = 1; i < length; i++) {
+		int j = i - 1;
+		const float& forwardIn = forwardRd[j];
+		const float& backwardIn = backwardRd[i];
+		float& forwardOut = forwardWr[i];
+		float& backwardOut = backwardWr[j];
+
+		float k = scattering[j];
+
+		forwardOut = ((1 + k) * forwardIn - k * backwardIn) * loss;
+		backwardOut = ((1 - k) * backwardIn + k * forwardIn) * loss;
+	}
+	forwardWr[0] = (backwardBack + input) * loss;
+	backwardWr[length - 1] = (forwardBack * -1) * loss;
+	return forwardBack;
+}
+
+void SpeechEngine::TractSegment::stepBuffer(float* buf) {
+}
+#pragma endregion
 
 void SpeechEngine::_init() {
 #pragma region Logger
@@ -225,7 +293,7 @@ void SpeechEngine::_init() {
 	systemPressure().animIndex = -1;
 
 	// Set default anim to silence
-	size_t initPhoneme = ClassifierHelper::instance().phonemeSet[ClassifierHelper::instance().customHasher(L"")];
+	size_t initPhoneme = ClassifierHelper::instance().phonemeSet[ClassifierHelper::instance().customHasher(L"æ")];
 	articAnim.startAnimation(initPhoneme);
 #pragma endregion
 
