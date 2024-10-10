@@ -12,7 +12,6 @@
 #define ENGINE_STEP_FRAMES 256
 #define ENGINE_TIMESTEP ((double)ENGINE_STEP_FRAMES / sampleRate)
 #define PHASE_STEP_AMOUNT(t) (-4.0 * std::numbers::pi * t)
-#define FADE_SAMPLES 256
 
 void SpeechEngine::pushFrame(const SpeechFrame& frame) {
 	int frameAnim = phonToAnim[frame.phoneme];
@@ -62,58 +61,32 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 				prevPressure = sysPressure;
 				effectiveFlowRate = std::fmaxf(flowRate, pressureDelta);
 			}
-			int baseFreqBin = freqToBin(frequency);
-			baseFreqBin = std::min(std::max(1, baseFreqBin), fftBins - 1);
-			assert(baseFreqBin < fftBins);
 
-			amplitude[baseFreqBin] = effectiveFlowRate * gain;
+			frequencies[0] = 600;
+			frequencies[1] = 1714.2857;
+			//amplitude = effectiveFlowRate * gain;
 		}
-		
-		// Step fft phase
-		phaseOffset += PHASE_STEP_AMOUNT(ENGINE_TIMESTEP);
-		// Write amplitude and phase as complex numbers
-		{
-			for (int i = 0; i < fftBins; i++) {
-				if (amplitude[i] > 0.00001) {
-					double binPhase = (phase + phaseOffset) * i;
-					fftwIn[i][0] = amplitude[i] * std::sin(binPhase);
-					fftwIn[i][1] = amplitude[i] * std::cos(binPhase);
-				} else {
-					fftwIn[i][0] = 0;
-					fftwIn[i][1] = 0;
-				}
-			}
-		}
-
-		// Reset amplitude
-		for (int i = 0; i < fftBins; i++) {
-			amplitude[i] *= 0.5;
-		}
-
-		// Might not be ideal since this is using only 256 frames per iteration
-		// Use sum of sines instead?
-		// Compute inverse fft
-		fftwf_execute(fftwPlan);
 
 		// Copy audio to buffer
 		{
+			auto oBufStart = outputBuffer;
 			for (int i = 0; i < ENGINE_STEP_FRAMES; i++) {
-				float value = fftwOut[i];
-
-				if (i <= FADE_SAMPLES) {
-					float fade = (float)i / FADE_SAMPLES;
-					value = std::lerp(fadeSamples[i], value, fade);
+				float value = 0;
+				phase++;
+				for (int j = 0; j < std::extent<decltype(frequencies)>::value; j++) {
+					int wtIdx = phase * frequencies[j] + 0.5;
+					value += wavetable[wtIdx % sampleRate];
+					//std::printf("%f\n", frequencies[j]);
 				}
 
 				for (int c = 0; c < channels; c++) {
-					*outputBuffer++ = value;
+					*outputBuffer++ = value * 0.02;
 				}
 			}
-			memcpy(fadeSamples, fftwOut + ENGINE_STEP_FRAMES, FADE_SAMPLES * sizeof(float));
 			offset += ENGINE_STEP_FRAMES;
 		}
 	}
-	phase = std::fmod(phase + PHASE_STEP_AMOUNT(bufferDuration), 2 * std::numbers::pi);
+	phase = phase % sampleRate;
 }
 
 float SpeechEngine::_random() {
@@ -297,25 +270,37 @@ void SpeechEngine::_init() {
 	articAnim.startAnimation(initPhoneme);
 #pragma endregion
 
-#pragma region FFT
-	fftBins = sampleRate / 2;
-	fftwIn = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * fftBins);
-	fftwOut = (float*)fftw_malloc(sizeof(float) * fftBins * 2);
-	fftwPlan = fftwf_plan_dft_c2r_1d(fftBins, fftwIn, fftwOut, FFTW_MEASURE);
-
-	for (int i = 0; i < fftBins; i++) {
-		fftwf_complex& cplx = fftwIn[i];
-		cplx[0] = 0;
-		cplx[1] = 0;
+	// Kind of looks like a glottal pulse
+	wavetable = new float[sampleRate];
+	{
+		double a = 0.1;
+		float* tmpWavetable = new float[sampleRate];
+		for (int i = 0; i < sampleRate; i++) {
+			double x = (double)i / (sampleRate - 1);
+			double fx = 5 * (x + 0.28);
+			double sigma = 0;
+			for (int k = 1; k < 50; k++) {
+				sigma += (std::sin(k * fx)) / (k * k);
+			}
+			sigma = std::max(0.0, -sigma);
+			tmpWavetable[i] = sigma;
+		}
+		// Smoothing
+		int r = 15;
+		for (int i = 0; i < sampleRate; i++) {
+			float sum = 0;
+			int count = 0;
+			for (int w = 0; w < 1 + 2 * r; w++) {
+				int index = i - r + w;
+				if (0 <= index && index < sampleRate) {
+					sum += tmpWavetable[index];
+					count++;
+				}
+			}
+			wavetable[i] = sum / count;
+		}
+		delete[] tmpWavetable;
 	}
-
-	amplitude = new float[fftBins];
-	for (int i = 0; i < fftBins; i++) {
-		amplitude[i] = 0;
-	}
-#pragma endregion
-
-	fadeSamples = new float[FADE_SAMPLES];
 	
 	logger.log("Initalized", Logger::VERBOSE);
 }

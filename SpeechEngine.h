@@ -5,7 +5,6 @@
 #include <chrono>
 #include <random>
 #include <unordered_map>
-#include <fftw3.h>
 #include "structs.h"
 #include "define.h"
 #include "Logger.h"
@@ -95,19 +94,14 @@ private:
 
 	int sampleRate;
 	int channels;
-	int fftBins;
 
 	inline static std::default_random_engine randomEngine = std::default_random_engine((unsigned int)std::chrono::system_clock::now().time_since_epoch().count());
 
 	std::unordered_map<size_t, int> phonToAnim;
 
-	float* amplitude;
-	double phase;
-	float* fadeSamples;
-
-	fftwf_complex* fftwIn;
-	float* fftwOut;
-	fftwf_plan fftwPlan;
+	float frequencies[2];
+	int phase = 0;
+	float* wavetable;
 
 #pragma region Articulators
 	Animator articAnim;
@@ -125,5 +119,4 @@ private:
 
 	void _init();
 	void _initArticulators();
-	int freqToBin(float frequency) { return (int)((frequency * 0.5f) + 0.5f); };
 };
