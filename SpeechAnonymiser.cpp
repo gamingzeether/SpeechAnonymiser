@@ -23,7 +23,7 @@
 #include "Logger.h"
 #include "SpeechEngine.h"
 
-bool outputPassthrough = false;
+const bool outputPassthrough = true;
 
 using namespace arma;
 using namespace mlpack;
@@ -195,6 +195,7 @@ void startFFT(InputData& inputData) {
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
         const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"")];
+        int count = 0;
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
@@ -214,17 +215,28 @@ void startFFT(InputData& inputData) {
             memcpy(app.fftData.frequencies[currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
 
             // Pass data to neural network
-            Frame& classifyFrame = frames[(currentFrame + FFT_FRAMES - CONTEXT_FORWARD) % FFT_FRAMES];
-            if (classifyFrame.volume > activationThreshold) {
-                helper.writeInput<MAT_TYPE>(frames, currentFrame, data, 0);
+            bool activity = false;
+            for (int i = 0; i < ACTIVITY_WIDTH; i++) {
+                Frame& activityFrame = frames[(currentFrame + FFT_FRAMES - i) % FFT_FRAMES];
+                if (activityFrame.volume >= activationThreshold) {
+                    activity = true;
+                    break;
+                }
+            }
+            if (activity) {
+                count++;
+                if (count > INFERENCE_FRAMES) {
+                    count = 0;
+                    helper.writeInput<MAT_TYPE>(frames, currentFrame, data, 0);
 
-                //auto classifyStart = std::chrono::high_resolution_clock::now();
-                size_t phoneme = classifier.classify(data);
-                speechFrame.phoneme = phoneme;
-                //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
+                    //auto classifyStart = std::chrono::high_resolution_clock::now();
+                    size_t phoneme = classifier.classify(data);
+                    speechFrame.phoneme = phoneme;
+                    //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
 
-                std::cout << classifier.getPhonemeString(phoneme) << std::endl;
-                //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
+                    std::cout << classifier.getPhonemeString(phoneme) << std::endl;
+                    //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
+                }
             } else {
                 speechFrame.phoneme = silencePhoneme;
             }

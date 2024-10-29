@@ -17,8 +17,8 @@ public:
 	void writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames);
 	static float _random();
 
-	SpeechEngine();
 	SpeechEngine(int sr, int ch);
+	SpeechEngine() : SpeechEngine(16000, 1) {};
 private:
 	class SpeechArticulator {
 	public:
@@ -58,20 +58,25 @@ private:
 		TractSegment() : TractSegment(2) {};
 		TractSegment(int l) : length(l) {
 			assert(l >= 2);
-			forward1 = new float[l];
-			backward1 = new float[l];
-			forward2 = new float[l];
-			backward2 = new float[l];
-			radius = new float[l];
-			scattering = new float[l - 1];
+			forward1 = new float[length];
+			backward1 = new float[length];
+			forward2 = new float[length];
+			backward2 = new float[length];
+			radius = new float[length];
+			scattering = new float[length - 1];
 			loss = 1;
 
-			for (int i = 0; i < l; i++) {
-				setRadius(i, 1);
+			for (int i = 0; i < length; i++) {
+				float rand = SpeechEngine::_random();
+				setRadius(i, 1 + rand * 0.1);
+				forward1[i] = 0;
+				backward1[i] = 0;
+				forward2[i] = 0;
+				backward2[i] = 0;
 			}
 		};
 	private:
-		const int length;
+		int length;
 		bool currentBuffer1 = true;
 		float* forward1;
 		float* backward1;
@@ -85,23 +90,29 @@ private:
 	};
 	class VocalTract {
 	public:
+		float step(float input);
 
+		VocalTract() : VocalTract(16000) {};
+		VocalTract(int ln) {
+			ts1 = TractSegment(ln);
+			ts1.setLossFactor(0.3 / ln);
+		}
 	private:
-
+		TractSegment ts1;
 	};
 
 	Logger logger;
 
-	int sampleRate;
-	int channels;
+	int sampleRate = 16000;
+	int channels = 1;
 
 	inline static std::default_random_engine randomEngine = std::default_random_engine((unsigned int)std::chrono::system_clock::now().time_since_epoch().count());
 
 	std::unordered_map<size_t, int> phonToAnim;
 
-	float frequencies[2];
-	int phase = 0;
+	float phase = 0;
 	float* wavetable;
+	VocalTract vocalTract;
 
 #pragma region Articulators
 	Animator articAnim;

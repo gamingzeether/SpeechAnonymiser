@@ -125,14 +125,24 @@ size_t ClassifierHelper::customHasher(const std::wstring& str) {
 
 void ClassifierHelper::initalizePhonemeSet() {
     int _phonemeCounter = -1;
+    phonemeSet.clear();
 #define REGISTER_PHONEME(t, p) \
-    if (phonemeSet.find(ClassifierHelper::customHasher(L##p)) != phonemeSet.end()) { \
-        throw("Hash collision"); \
-    } \
-    phonemeSet[ClassifierHelper::customHasher(L##p)] = (size_t)(++_phonemeCounter); \
-    inversePhonemeSet.push_back(t);
+    { \
+        size_t hash = ClassifierHelper::customHasher(L##p); \
+        /*std::printf("%s hash: %zd\n", t, hash);*/ \
+        auto i = phonemeSet.find(hash); \
+        if (i != phonemeSet.end()) { \
+            /*std::printf("Collision with %zd, %zd, (%s)\n", i->first, i->second, inversePhonemeSet[i->second].c_str());*/ \
+            throw("Hash collision"); \
+        } \
+        phonemeSet[ClassifierHelper::customHasher(L##p)] = (size_t)(++_phonemeCounter); \
+        inversePhonemeSet.push_back(t); \
+    }
+
 #define REGISTER_ALIAS(p) \
-    phonemeSet[ClassifierHelper::customHasher(L##p)] = (size_t)_phonemeCounter;
+    { \
+        phonemeSet[ClassifierHelper::customHasher(L##p)] = (size_t)_phonemeCounter; \
+    }
 
     using namespace std::string_literals;
     REGISTER_PHONEME("p", "p")

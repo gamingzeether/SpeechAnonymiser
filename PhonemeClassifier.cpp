@@ -8,10 +8,10 @@
 #define TYPE2 size_t 
 #endif
 
-// Update this when adding/remove json things
+// Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 9
+#define CLASSIFIER_VERSION 10
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -89,19 +89,19 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["output_features"] = (int)outputSize;
         json["sample_rate"] = (int)sampleRate;
 
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(0.001));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
+        network.Add<LeakyReLUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(0.5);
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(0.5);
         network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(0.001));

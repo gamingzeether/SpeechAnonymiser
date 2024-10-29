@@ -24,8 +24,6 @@ void SpeechEngine::pushFrame(const SpeechFrame& frame) {
 void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) {
 	assert(nFrames > 0);
 	double bufferDuration = (double)nFrames / sampleRate;
-	int offset = 0;
-	double phaseOffset = 0;
 	double gain = 0.02;
 
 	for (int t = 0; t < nFrames; t += ENGINE_STEP_FRAMES) {
@@ -40,7 +38,8 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 			artic.step(ENGINE_TIMESTEP);
 		}
 
-		// Get fft input from position of articulators
+		// Get input from position of articulators
+		float glotFreq, effectiveFlowRate;
 		{
 			float flowRate = pressure().getPosition();
 			float sysPressure = systemPressure().getPosition();
@@ -51,7 +50,6 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 			float jawPos = jaw().getPosition();
 			float lipPos = lip().getPosition();
 			// Move physically animated articulators
-			float effectiveFlowRate;
 			{
 				float flowOpening = std::fminf(tongue1, std::fminf(tongue2, std::fminf(tongue3, std::fminf(jawPos + lipPos, 0.1))));
 				flowOpening = std::fminf(1.0f, flowOpening);
@@ -62,42 +60,34 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 				effectiveFlowRate = std::fmaxf(flowRate, pressureDelta);
 			}
 
-			frequencies[0] = 600;
-			frequencies[1] = 1714.2857;
-			//amplitude = effectiveFlowRate * gain;
+			glotFreq = std::max(0.0f, frequency);
 		}
 
-		// Copy audio to buffer
+		// Generate audio
 		{
 			auto oBufStart = outputBuffer;
 			for (int i = 0; i < ENGINE_STEP_FRAMES; i++) {
-				float value = 0;
-				phase++;
-				for (int j = 0; j < std::extent<decltype(frequencies)>::value; j++) {
-					int wtIdx = phase * frequencies[j] + 0.5;
-					value += wavetable[wtIdx % sampleRate];
-					//std::printf("%f\n", frequencies[j]);
-				}
+				phase += glotFreq;
+				float value = wavetable[(int)phase % sampleRate] * effectiveFlowRate;
+				float out = vocalTract.step(value) * gain;
+				//std::printf("%f\n", out);
+				//if (std::abs(out) > 0.75) {
+				//	std::cout << out;
+				//	throw;
+				//}
 
 				for (int c = 0; c < channels; c++) {
-					*outputBuffer++ = value * 0.02;
+					*outputBuffer++ = out;
 				}
 			}
-			offset += ENGINE_STEP_FRAMES;
+			phase = fmod(phase, sampleRate);
 		}
 	}
-	phase = phase % sampleRate;
 }
 
 float SpeechEngine::_random() {
 	std::uniform_real_distribution<float> randomDist = std::uniform_real_distribution<float>(-1, 1);
 	return randomDist(randomEngine);
-}
-
-SpeechEngine::SpeechEngine() {
-	sampleRate = 16000;
-	channels = 1;
-	_init();
 }
 
 SpeechEngine::SpeechEngine(int sr, int ch) {
@@ -182,7 +172,7 @@ void SpeechEngine::TractSegment::setRadius(int index, float rad) {
 	radius[index] = rad;
 	float rsqri = radius[index] * radius[index];
 
-	if (index > 1) {
+	if (index > 0) {
 		float rsqrb = radius[index - 1] * radius[index - 1];
 		scattering[index - 1] = (rsqrb - rsqri) / (rsqrb + rsqri);
 	}
@@ -230,6 +220,12 @@ void SpeechEngine::TractSegment::stepBuffer(float* buf) {
 }
 #pragma endregion
 
+#pragma region Tract
+float SpeechEngine::VocalTract::step(float input) {
+	return ts1.step(input);
+}
+#pragma endregion
+
 void SpeechEngine::_init() {
 #pragma region Logger
 	logger = Logger();
@@ -266,11 +262,11 @@ void SpeechEngine::_init() {
 	systemPressure().animIndex = -1;
 
 	// Set default anim to silence
-	size_t initPhoneme = ClassifierHelper::instance().phonemeSet[ClassifierHelper::instance().customHasher(L"æ")];
+	size_t initPhoneme = ClassifierHelper::instance().phonemeSet[ClassifierHelper::instance().customHasher(L"")];
 	articAnim.startAnimation(initPhoneme);
 #pragma endregion
 
-	// Kind of looks like a glottal pulse
+	// Wavetable for a glottal pulse shape
 	wavetable = new float[sampleRate];
 	{
 		double a = 0.1;
@@ -279,23 +275,21 @@ void SpeechEngine::_init() {
 			double x = (double)i / (sampleRate - 1);
 			double fx = 5 * (x + 0.28);
 			double sigma = 0;
-			for (int k = 1; k < 50; k++) {
+			for (int k = 1; k < 100; k++) {
 				sigma += (std::sin(k * fx)) / (k * k);
 			}
 			sigma = std::max(0.0, -sigma);
 			tmpWavetable[i] = sigma;
 		}
 		// Smoothing
-		int r = 15;
+		int r = 300;
 		for (int i = 0; i < sampleRate; i++) {
 			float sum = 0;
 			int count = 0;
 			for (int w = 0; w < 1 + 2 * r; w++) {
-				int index = i - r + w;
-				if (0 <= index && index < sampleRate) {
-					sum += tmpWavetable[index];
-					count++;
-				}
+				int index = sampleRate + i - r + w;
+				sum += tmpWavetable[index % sampleRate];
+				count++;
 			}
 			wavetable[i] = sum / count;
 		}
@@ -303,6 +297,8 @@ void SpeechEngine::_init() {
 	}
 	
 	logger.log("Initalized", Logger::VERBOSE);
+
+	vocalTract = VocalTract(1011);
 }
 
 void SpeechEngine::_initArticulators() {
