@@ -56,7 +56,31 @@ static struct cag_option options[] = {
     .identifier = 'h',
     .access_letters = "h",
     .access_name = "help",
-    .description = "Shows the command help"}
+    .description = "Shows the command help"},
+
+  {
+    .identifier = 'w',
+    .access_letters = "w",
+    .value_name = "PATH",
+    .description = "Work directory"},
+
+  {
+    .identifier = 'd',
+    .access_letters = "d",
+    .value_name = "PATH",
+    .description = "MFA dictionary path"},
+
+  {
+    .identifier = 'a',
+    .access_letters = "a",
+    .value_name = "PATH",
+    .description = "MFA acoustic model path"},
+
+  {
+    .identifier = 'o',
+    .access_letters = "o",
+    .value_name = "PATH",
+    .description = "Output directory"}
 };
 
 template <typename T>
@@ -292,9 +316,9 @@ int commandTrain(const std::string& path) {
     return 0;
 }
 
-int commandPreprocess(const std::string& path) {
-    Dataset ds(path, 16000, path);
-    ds.preprocessDataset(path);
+int commandPreprocess(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir) {
+    Dataset ds = Dataset();
+    ds.preprocessDataset(path, workDir, dictPath, acousticPath, outputDir);
 
     return 0;
 }
@@ -452,24 +476,7 @@ bool tryMakeDir(std::string path, bool fatal = true) {
     return true;
 }
 
-int main(int argc, char* argv[]) {
-    tryMakeDir("logs");
-    tryMakeDir("configs/articulators");
-    tryMakeDir("configs/animations/phonemes");
-
-    logger = Logger();
-    logger.addStream(Logger::Stream("main.log").
-        outputTo(Logger::VERBOSE).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
-    logger.addStream(Logger::Stream(std::cout).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
-
+void initClassifier(int argc, char* argv[]) {
     std::string launchString = "";
     for (int i = 0; i < argc; i++) {
         if (i > 0) {
@@ -497,26 +504,69 @@ int main(int argc, char* argv[]) {
     requestInput("Set gain", gain);
     logger.log(std::format("Set gain: {}", gain), Logger::VERBOSE);
     ClassifierHelper::instance().setGain(gain);
+}
+
+int main(int argc, char* argv[]) {
+    tryMakeDir("logs");
+    tryMakeDir("configs/articulators");
+    tryMakeDir("configs/animations/phonemes");
+
+    logger = Logger();
+    logger.addStream(Logger::Stream("main.log").
+        outputTo(Logger::VERBOSE).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream(std::cout).
+        outputTo(Logger::INFO).
+        outputTo(Logger::WARNING).
+        outputTo(Logger::ERR).
+        outputTo(Logger::FATAL));
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-    int error = 0;
-    bool doDefault = true;
+    bool trainMode = false, preprocessMode = false, helpMode = false;
+    std::string tVal, pVal, wVal, dVal, aVal, oVal;
     while (cag_option_fetch(&context)) {
-        doDefault = false;
         switch (cag_option_get_identifier(&context)) {
-        case 't':
-            error = commandTrain(cag_option_get_value(&context));
+        case 't': // Train mode
+            trainMode = true;
+            tVal = cag_option_get_value(&context);
             break;
-        case 'p':
-            error = commandPreprocess(cag_option_get_value(&context));
+        case 'p': // Preprocess mode
+            preprocessMode = true;
+            pVal = cag_option_get_value(&context);
             break;
-        case 'h':
-            error = commandHelp();
+        case 'h': // Help mode
+            helpMode = true;
+            break;
+        case 'w': // Temporary work folder
+            wVal = cag_option_get_value(&context);
+            break;
+        case 'd': // MFA Dictionary path
+            dVal = cag_option_get_value(&context);
+            break;
+        case 'a': // Acoustic model path
+            aVal = cag_option_get_value(&context);
+            break;
+        case 'o': // Output location
+            oVal = cag_option_get_value(&context);
             break;
         }
     }
-    if (doDefault) {
+
+    int error = 0;
+    if (trainMode || preprocessMode) {
+        initClassifier(argc, argv);
+        if (trainMode) {
+            error = commandTrain(tVal);
+        } else {
+            error = commandPreprocess(pVal, wVal, dVal, aVal, oVal);
+        }
+    } else if (helpMode) {
+        error = commandHelp();
+    } else {
         error = commandDefault();
     }
 

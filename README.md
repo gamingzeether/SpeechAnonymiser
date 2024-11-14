@@ -60,10 +60,16 @@ Run the executable
 # Training
 
 1. Download Mozilla Common Voice datasaet
-1. Install MFA forced aligner
-1. Preprocess with `-p [path to uncompressed dataset]`
-    1. TODO: fix hardcoded paths
-1. Train with `-t [path to uncompressed dataset]`
+1. Install Montreal Forced Aligner
+1. Extract dataset
+1. Preprocess with `-p [path to dataset] -w [work directory] -d [MFA dictionary path] -a [MFA acoustic model path] -o [transcript output]`
+1. Move the transcipt folder to same folder as clips ex:
+    - [Dataset]
+        - clips
+        - transcript
+        - train.tsv
+        - ...
+1. Train with `-t [path to dataset]`
 
 # Want to contribute? / Have questions? / Something doesn't work?
 

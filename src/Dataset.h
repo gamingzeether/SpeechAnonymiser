@@ -13,7 +13,7 @@ public:
 
 	bool join();
 
-    void preprocessDataset(const std::string& path);
+    void preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir);
 
     Dataset() : reader(TSVReader()), sampleRate(16000), path("") {};
     Dataset(const std::string tsv, int sr, std::string pth) : reader(TSVReader()), sampleRate(sr), path(pth) { reader.open(tsv); };

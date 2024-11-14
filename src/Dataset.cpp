@@ -439,8 +439,9 @@ void Dataset::Clip::loadMP3(int targetSampleRate) {
     loaded = true;
 }
 
-void Dataset::preprocessDataset(const std::string& path) {
+void Dataset::preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir) {
     // Generate phoneme list
+    /*
     TSVReader dictReader;
     dictReader.open(path + "/english_us_mfa.dict");
     std::vector<std::string> phonemeList = std::vector<std::string>();
@@ -477,6 +478,7 @@ void Dataset::preprocessDataset(const std::string& path) {
         out.write(newLine, 1);
     }
     out.close();
+    */
 
     // Generate phoneme alignments
     const std::vector<std::string> tables = {
@@ -485,10 +487,9 @@ void Dataset::preprocessDataset(const std::string& path) {
         "/test.tsv"
     };
     const std::string clipPath = path + "/clips/";
-    const std::string corpusPath = "G:/corpus/";
     for (int i = 0; i < tables.size(); i++) {
         TSVReader tsv;
-        tsv.open(path + tables[i].c_str());
+        tsv.open((path + tables[i]).c_str());
 
         unsigned long globalCounter = 0;
         bool tsvGood = true;
@@ -505,14 +506,14 @@ void Dataset::preprocessDataset(const std::string& path) {
                 loadNextClip(clipPath, tabSeperated, clip, -1);
 
                 globalCounter++;
-                std::string transcriptPath = std::string(path) + "/transcript/" + clip.tsvElements.CLIENT_ID + "/" + clip.tsvElements.PATH;
+                std::string transcriptPath = path + "/transcript/" + clip.tsvElements.CLIENT_ID + "/" + clip.tsvElements.PATH;
                 transcriptPath = transcriptPath.substr(0, transcriptPath.length() - 4) + ".TextGrid";
                 if (std::filesystem::exists(transcriptPath)) {
                     continue;
                 }
                 clip.loadMP3(16000);
 
-                std::string speakerPath = corpusPath + clip.tsvElements.CLIENT_ID + "/";
+                std::string speakerPath = workDir + clip.tsvElements.CLIENT_ID + "/";
                 if (!std::filesystem::is_directory(speakerPath)) {
                     std::filesystem::create_directory(speakerPath);
                 }
@@ -542,14 +543,10 @@ void Dataset::preprocessDataset(const std::string& path) {
             }
             // Run alignment
             // TODO: Change hardcoded paths
-            system("conda activate aligner && \
-              mfa align --clean \
-                G:/corpus/ \
-                F:/Data/cv-corpus-18.0-2024-06-14-en/en/english_us_mfa.dict \
-                F:/Data/cv-corpus-18.0-2024-06-14-en/en/english_mfa.zip \
-                F:/Data/cv-corpus-18.0-2024-06-14-en/en/transcript/");
+            const std::string mfaLine = std::format("conda activate aligner && mfa align --clean {} {} {} {}", workDir, dictPath, acousticPath, outputDir);
+            system(mfaLine.c_str());
             // Cleanup
-            std::filesystem::directory_iterator iterator(corpusPath);
+            std::filesystem::directory_iterator iterator(workDir);
             for (const auto& directory : iterator) {
                 std::filesystem::remove_all(directory);
             }
