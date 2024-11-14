@@ -102,35 +102,37 @@ set(PROJECT_NAME SpeechAnonymiser)
 ################################################################################
 # Source groups
 ################################################################################
+set (PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+
 set(Headers
-    "common_inc.h"
-    "define.h"
-    "structs.h"
-    "TSVReader.h"
-    "Visualizer.h"
-    "ModelSerializer.h"
-    "PhonemeClassifier.h"
-    "JSONHelper.h"
-    "Dataset.h"
-    "ClassifierHelper.h"
-    "Logger.h"
-    "SpeechEngine.h"
-    "Animator.h"
+    "${PROJECT_SOURCE_DIR}/common_inc.h"
+    "${PROJECT_SOURCE_DIR}/define.h"
+    "${PROJECT_SOURCE_DIR}/structs.h"
+    "${PROJECT_SOURCE_DIR}/TSVReader.h"
+    "${PROJECT_SOURCE_DIR}/Visualizer.h"
+    "${PROJECT_SOURCE_DIR}/ModelSerializer.h"
+    "${PROJECT_SOURCE_DIR}/PhonemeClassifier.h"
+    "${PROJECT_SOURCE_DIR}/JSONHelper.h"
+    "${PROJECT_SOURCE_DIR}/Dataset.h"
+    "${PROJECT_SOURCE_DIR}/ClassifierHelper.h"
+    "${PROJECT_SOURCE_DIR}/Logger.h"
+    "${PROJECT_SOURCE_DIR}/SpeechEngine.h"
+    "${PROJECT_SOURCE_DIR}/Animator.h"
 )
 source_group("Headers" FILES ${Headers})
 
 set(Sources
-    "SpeechAnonymiser.cpp"
-    "TSVReader.cpp"
-    "Visualizer.cpp"
-    "ModelSerializer.cpp"
-    "PhonemeClassifier.cpp"
-    "JSONHelper.cpp"
-    "Dataset.cpp"
-    "ClassifierHelper.cpp"
-    "Logger.cpp"
-    "SpeechEngine.cpp"
-    "Animator.cpp"
+    "${PROJECT_SOURCE_DIR}/SpeechAnonymiser.cpp"
+    "${PROJECT_SOURCE_DIR}/TSVReader.cpp"
+    "${PROJECT_SOURCE_DIR}/Visualizer.cpp"
+    "${PROJECT_SOURCE_DIR}/ModelSerializer.cpp"
+    "${PROJECT_SOURCE_DIR}/PhonemeClassifier.cpp"
+    "${PROJECT_SOURCE_DIR}/JSONHelper.cpp"
+    "${PROJECT_SOURCE_DIR}/Dataset.cpp"
+    "${PROJECT_SOURCE_DIR}/ClassifierHelper.cpp"
+    "${PROJECT_SOURCE_DIR}/Logger.cpp"
+    "${PROJECT_SOURCE_DIR}/SpeechEngine.cpp"
+    "${PROJECT_SOURCE_DIR}/Animator.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
