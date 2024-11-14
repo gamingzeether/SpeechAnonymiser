@@ -27,20 +27,23 @@ This project aims to provide as much anonymity as STT-TTS voice changers while h
 # Features
 
 - [ ] Speech to phoneme
-- [ ] ?
-- [ ] Phoneme to synthesised speech
+- [x] <img src="https://media1.tenor.com/m/-QWKmyICTLcAAAAd/cuh-guh.gif" height="100">
+- [ ] Accent replacement
+- [ ] Adjustable tempo
+- [ ] Change word stress
+- [ ] Phoneme to speech
 
 # Usage
 
 Run the executable
 ### Flags
-`-t` or `--train` Start in training mode
-`-p` or `--preprocess` Process dataset before training
-`-h` or `--help` Shows help
+- `-t` or `--train` Start in training mode
+- `-p` or `--preprocess` Process dataset before training
+- `-h` or `--help` Shows help
 
 # Releases
 
-![buh??](https://media1.tenor.com/m/-QWKmyICTLcAAAAd/cuh-guh.gif)
+None
 
 # Building
 ### Windows
