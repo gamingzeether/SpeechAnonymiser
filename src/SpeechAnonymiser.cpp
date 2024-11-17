@@ -557,17 +557,18 @@ int main(int argc, char* argv[]) {
     }
 
     int error = 0;
-    if (trainMode || preprocessMode) {
+
+    if (helpMode) {
+        error = commandHelp();
+    } else if (preprocessMode) {
+        error = commandPreprocess(pVal, wVal, dVal, aVal, oVal);
+    } else {
         initClassifier(argc, argv);
         if (trainMode) {
             error = commandTrain(tVal);
         } else {
-            error = commandPreprocess(pVal, wVal, dVal, aVal, oVal);
+            error = commandDefault();
         }
-    } else if (helpMode) {
-        error = commandHelp();
-    } else {
-        error = commandDefault();
     }
 
     classifier.destroy();

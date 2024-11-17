@@ -284,7 +284,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
         saveCache();
     }
 
-    std::printf("Finished loading clips from %s with %zd examples (%zd max)\n", reader.path().c_str(), minExamples, realEx);
+    std::printf("Finished loading clips from %s with %zd examples (target: %zd)\n", reader.path().c_str(), minExamples, realEx);
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
 

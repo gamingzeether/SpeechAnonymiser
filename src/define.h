@@ -22,9 +22,9 @@ typedef float OUTPUT_TYPE;
 #define OUTPUT_BUFFER_SIZE 1024
 
 #define FFT_FRAME_SAMPLES 1024
-#define FFT_FRAME_SPACING (FFT_FRAME_SAMPLES / 8)
+#define FFT_FRAME_SPACING 160
 #define CONTEXT_FORWARD 4
-#define CONTEXT_BACKWARD 12
+#define CONTEXT_BACKWARD 15
 #define FFT_FRAMES (CONTEXT_FORWARD + 1 + CONTEXT_BACKWARD)
 #define FFT_REAL_SAMPLES (FFT_FRAME_SAMPLES / 2)
 #define MEL_BINS 128
@@ -32,9 +32,9 @@ typedef float OUTPUT_TYPE;
 #define VEC4_COUNT (FRAME_SIZE / 4)
 #define MMAX_EXAMPLE_F 5
 #define ACTIVITY_WIDTH 5
-#define INFERENCE_FRAMES 4 // Classify once every x frames
+#define INFERENCE_FRAMES 1 // Classify once every x frames
 
 #define PREPROCESS_BATCH_SIZE 1500
 #define CLIP_LENGTH 15
 
-#define STEP_SIZE 0.0001
+#define STEP_SIZE 0.0005

@@ -18,6 +18,7 @@ public:
     void train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize);
     size_t classify(const MAT_TYPE& data);
     std::string getPhonemeString(const size_t& in);
+    void printConfusionMatrix(const MAT_TYPE& testData, const MAT_TYPE& testLabel);
 
     inline size_t getInputSize() { return inputSize; };
     inline size_t getOutputSize() { return outputSize; };

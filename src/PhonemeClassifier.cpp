@@ -11,7 +11,7 @@
 // Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION 10
+#define CLASSIFIER_VERSION -1
 
 #include <filesystem>
 #include <mlpack/mlpack.hpp>
@@ -49,14 +49,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
     // Load JSON
     bool openedJson = json.open("classifier.json", CURRENT_VERSION);
-    if (!openedJson) {
-        json["classifier_version"] = CLASSIFIER_VERSION;
-        json["input_features"] = (int)inputSize;
-        json["output_features"] = (int)outputSize;
-        json["sample_rate"] = (int)sampleRate;
-        json.save();
-    }
-    int classifierVersion = json["classifier_version"].get_int();
 
     optimizer = ens::Adam(
         STEP_SIZE,  // Step size of the optimizer.
@@ -70,41 +62,48 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
     bool loaded = false;
     std::vector<size_t> inputDimensions = { FRAME_SIZE * 2, FFT_FRAMES, 1 };
-    int savedInputSize = json["input_features"].get_int();
-    int savedOutputSize = json["output_features"].get_int();
-    int savedSampleRate = json["sample_rate"].get_int();
     bool metaMatch = (
-        classifierVersion == CLASSIFIER_VERSION &&
-        savedInputSize == inputSize &&
-        savedOutputSize == outputSize &&
-        savedSampleRate == sampleRate);
+        openedJson &&
+        json["classifier_version"].get_int() == CLASSIFIER_VERSION &&
+        json["input_features"].get_int() == inputSize &&
+        json["output_features"].get_int() == outputSize &&
+        json["sample_rate"].get_int() == sampleRate);
+
     if (metaMatch && ModelSerializer::load(&network)) {
         logger.log("Loaded model", Logger::INFO);
         loaded = true;
     }
+
     if (!loaded) {
         logger.log("Model not loaded", Logger::WARNING);
         json["classifier_version"] = CLASSIFIER_VERSION;
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
         json["sample_rate"] = (int)sampleRate;
+        float dropoutRate = 0.01;
+        float l2regulatization = 0.0001;
 
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(2048, L2Regularizer(l2regulatization));
+        network.Add<GELUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
+
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(2048, L2Regularizer(l2regulatization));
+        network.Add<GELUType<MAT_TYPE>>();
+        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
+
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
+        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
+
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(0.001));
+        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
+
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
         network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(512, L2Regularizer(0.001));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(0.5);
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(0.001));
+        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
+
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(l2regulatization));
         network.Add<LogSoftMaxType<MAT_TYPE>>();
     }
     network.InputDimensions() = inputDimensions;
@@ -117,7 +116,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize) {
-    optimizer.BatchSize() = 128;
+    optimizer.BatchSize() = 512;
     optimizer.StepSize() = stepSize;
     optimizer.MaxIterations() = epochs * examples * outputSize;
     optimizer.ResetPolicy() = false;
@@ -146,90 +145,23 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         }
 
         test.start(inputSize, outputSize, examples / 5);
+        validate.start(inputSize, outputSize, examples / 4);
 
         // Start training thread
         bool copyDone = false;
         trainThread = std::thread([&]{
-            test.join();
-            // Calculate accuracy
-            {
-                MAT_TYPE testData, testLabel;
-                test.get(testData, testLabel);
-#pragma region Calculate accuracy
-                size_t testCount = testLabel.n_cols;
-                size_t correctCount = 0;
-                size_t* correctPhonemes = new size_t[outputSize];
-                size_t** confusionMatrix = new size_t*[outputSize];
-                size_t* totalPhonemes = new size_t[outputSize];
-                for (size_t i = 0; i < outputSize; i++) {
-                    totalPhonemes[i] = 0;
-                }
-                for (size_t i = 0; i < outputSize; i++) {
-                    correctPhonemes[i] = 0;
-                    totalPhonemes[i] = 0;
-                    confusionMatrix[i] = new size_t[outputSize];
-                    for (size_t j = 0; j < outputSize; j++) {
-                        confusionMatrix[i][j] = 0;
-                    }
-                }
-                size_t testedExamples = 0;
-                for (size_t i = 0; i < testCount; i++) {
-                    size_t result = classify(testData.submat(span(0, inputSize - 1), span(i, i)));
-                    size_t label = testLabel(0, i);
-                    if (result == label) {
-                        correctPhonemes[label]++;
-                        correctCount++;
-                    }
-                    confusionMatrix[label][result]++;
-                    totalPhonemes[label]++;
-                    testedExamples++;
-                }
-                logger.log(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
-                std::cout << "Confusion Matrix:\n";
-                std::cout << "   ";
-                for (size_t i = 0; i < outputSize; i++) {
-                    std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
-                }
-                std::cout << std::endl;
-                for (size_t i = 0; i < outputSize; i++) {
-                    std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
-                    size_t total = 0;
-                    for (size_t j = 0; j < outputSize; j++) {
-                        total += confusionMatrix[i][j];
-                    }
-                    for (size_t j = 0; j < outputSize; j++) {
-                        double fraction = (double)confusionMatrix[i][j] / total;
-                        int percent = fraction * 100;
-
-                        const char* format = (i == j) ? (
-                            (percent == 100) ? "\033[32m%2d\033[0m " /* 100% accuracy: green */ :
-                            "\033[36m%2d\033[0m ") /* diagonal: cyan */ :
-                            (percent > 0) ? "\033[31m%2d\033[0m " /* >= 1% misclassify: red */ :
-                            "%2d " /* everything else: white */;
-
-                        std::printf(format, (percent % 100));
-                    }
-                    std::cout << "\n";
-                }
-
-                delete[] totalPhonemes;
-                delete[] correctPhonemes;
-                for (size_t i = 0; i < outputSize; i++) {
-                    delete[] confusionMatrix[i];
-                }
-                delete[] confusionMatrix;
-#pragma endregion
-            }
-
-            validate.start(inputSize, outputSize, examples / 4);
             train.join();
+            test.join();
             validate.join();
 
+            MAT_TYPE testData, testLabel;
+            test.get(testData, testLabel);
             MAT_TYPE trainData, trainLabel;
             train.get(trainData, trainLabel);
             MAT_TYPE validateData, validateLabel;
             validate.get(validateData, validateLabel);
             copyDone = true;
+            int epoch = 0;
 
             network.Train(std::move(trainData),
                 std::move(trainLabel),
@@ -244,6 +176,10 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         if (validationLoss < bestLoss) {
                             bestLoss = validationLoss;
                             ModelSerializer::save(&network, 999);
+                        }
+                        if (epoch++ % 5 == 0) {
+                            printConfusionMatrix(testData, testLabel);
+                            network.SetNetworkMode(true);
                         }
                         return validationLoss;
                     }));
@@ -277,3 +213,69 @@ size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
 std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
     return ClassifierHelper::instance().inversePhonemeSet[in];
 };
+
+void PhonemeClassifier::printConfusionMatrix(const MAT_TYPE& testData, const MAT_TYPE& testLabel) {
+    network.SetNetworkMode(false);
+    size_t testCount = testLabel.n_cols;
+    size_t correctCount = 0;
+    size_t* correctPhonemes = new size_t[outputSize];
+    size_t** confusionMatrix = new size_t * [outputSize];
+    size_t* totalPhonemes = new size_t[outputSize];
+    for (size_t i = 0; i < outputSize; i++) {
+        totalPhonemes[i] = 0;
+    }
+    for (size_t i = 0; i < outputSize; i++) {
+        correctPhonemes[i] = 0;
+        totalPhonemes[i] = 0;
+        confusionMatrix[i] = new size_t[outputSize];
+        for (size_t j = 0; j < outputSize; j++) {
+            confusionMatrix[i][j] = 0;
+        }
+    }
+    size_t testedExamples = 0;
+    for (size_t i = 0; i < testCount; i++) {
+        size_t result = classify(testData.submat(span(0, inputSize - 1), span(i, i)));
+        size_t label = testLabel(0, i);
+        if (result == label) {
+            correctPhonemes[label]++;
+            correctCount++;
+        }
+        confusionMatrix[label][result]++;
+        totalPhonemes[label]++;
+        testedExamples++;
+    }
+    logger.log(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
+    std::cout << "Confusion Matrix:\n";
+    std::cout << "   ";
+    for (size_t i = 0; i < outputSize; i++) {
+        std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
+    }
+    std::cout << std::endl;
+    for (size_t i = 0; i < outputSize; i++) {
+        std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
+        size_t total = 0;
+        for (size_t j = 0; j < outputSize; j++) {
+            total += confusionMatrix[i][j];
+        }
+        for (size_t j = 0; j < outputSize; j++) {
+            double fraction = (double)confusionMatrix[i][j] / total;
+            int percent = fraction * 100;
+
+            const char* format = (i == j) ? (
+                (percent == 100) ? "\033[32m%2d\033[0m " /* 100% accuracy: green */ :
+                "\033[36m%2d\033[0m ") /* diagonal: cyan */ :
+                (percent > 0) ? "\033[31m%2d\033[0m " /* >= 1% misclassify: red */ :
+                "%2d " /* everything else: white */;
+
+            std::printf(format, (percent % 100));
+        }
+        std::cout << "\n";
+    }
+
+    delete[] totalPhonemes;
+    delete[] correctPhonemes;
+    for (size_t i = 0; i < outputSize; i++) {
+        delete[] confusionMatrix[i];
+    }
+    delete[] confusionMatrix;
+}
