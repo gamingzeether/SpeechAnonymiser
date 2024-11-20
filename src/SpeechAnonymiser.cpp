@@ -25,9 +25,6 @@
 
 const bool outputPassthrough = true;
 
-using namespace arma;
-using namespace mlpack;
-
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
 
@@ -202,8 +199,8 @@ void startFFT(InputData& inputData) {
     }
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
-        MAT_TYPE data(classifier.getInputSize(), 1);
-        MAT_TYPE out(1, 1);
+        CPU_MAT_TYPE data(classifier.getInputSize(), 1);
+        CPU_MAT_TYPE out(1, 1);
 
         // Wait for visualization to open
         while (!app.isOpen) {
@@ -251,7 +248,7 @@ void startFFT(InputData& inputData) {
                 count++;
                 if (count > INFERENCE_FRAMES) {
                     count = 0;
-                    helper.writeInput<MAT_TYPE>(frames, currentFrame, data, 0);
+                    helper.writeInput<CPU_MAT_TYPE>(frames, currentFrame, data, 0);
 
                     //auto classifyStart = std::chrono::high_resolution_clock::now();
                     size_t phoneme = classifier.classify(data);

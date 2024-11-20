@@ -9,4 +9,11 @@
 #define _DISABLE_STRING_ANNOTATION
 #endif
 
-#define MAT_TYPE arma::fmat
+//#define USE_GPU
+
+#define CPU_MAT_TYPE arma::fmat
+#ifdef USE_GPU
+#define MAT_TYPE coot::fmat
+#else
+#define MAT_TYPE CPU_MAT_TYPE
+#endif

@@ -14,6 +14,8 @@ endif()
 
 project(SpeechAnonymiser CXX)
 
+set(VCPKG_POLICY_SKIP_ABSOLUTE_PATHS_CHECK enabled)
+
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
@@ -152,8 +154,9 @@ find_package(FFTW3f CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(SampleRate CONFIG REQUIRED)
+find_package(Bandicoot CONFIG REQUIRED)
 find_package(Armadillo CONFIG REQUIRED)
-find_path(MLPACK_INCLUDE_DIRS "mlpack/mlpack.hpp")
+find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
 find_package(RtAudio CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(yyjson CONFIG REQUIRED)
@@ -170,6 +173,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3f)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 target_link_libraries(${PROJECT_NAME} PRIVATE SampleRate::samplerate)
+target_link_libraries(${PROJECT_NAME} PRIVATE bandicoot)
 target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
 target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)

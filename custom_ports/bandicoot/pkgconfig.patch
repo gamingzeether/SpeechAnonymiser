@@ -1,0 +1,9 @@
+diff --git a/misc/bandicoot.pc.in b/misc/bandicoot.pc.in
+index 27d35bb..1f079a5 100644
+--- a/misc/bandicoot.pc.in
++++ b/misc/bandicoot.pc.in
+@@ -7,3 +7,4 @@ URL: http://coot.sourceforge.net
+ Version: @COOT_VERSION_MAJOR@.@COOT_VERSION_MINOR@.@COOT_VERSION_PATCH@
+ Cflags: -I${includedir}
+ Libs: -L${libdir} -lbandicoot
++Requires.private: @REQUIRES_PRIVATE@

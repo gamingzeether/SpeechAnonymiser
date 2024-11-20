@@ -20,7 +20,7 @@
 #include <samplerate.h>
 #include "ClassifierHelper.h"
 
-void Dataset::get(OUT MAT_TYPE& data, OUT MAT_TYPE& labels, bool destroy) {
+void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy) {
     size_t outputSize = exampleData.size();
     size_t inputSize = exampleData[0].n_rows;
 
@@ -28,12 +28,12 @@ void Dataset::get(OUT MAT_TYPE& data, OUT MAT_TYPE& labels, bool destroy) {
         data = cachedData;
         labels = cachedLabels;
     } else {
-        data = MAT_TYPE(inputSize, 0);
-        labels = MAT_TYPE(1, 0);
+        data = CPU_MAT_TYPE(inputSize, 0);
+        labels = CPU_MAT_TYPE(1, 0);
         for (size_t i = 0; i < outputSize; i++) {
             size_t offset = examples * i;
-            const MAT_TYPE& dataMat = exampleData.back();
-            const MAT_TYPE& labelMat = exampleLabel.back();
+            const CPU_MAT_TYPE& dataMat = exampleData.back();
+            const CPU_MAT_TYPE& labelMat = exampleLabel.back();
             data.resize(inputSize, data.n_cols + examples);
             labels.resize(1, labels.n_cols + examples);
             for (size_t c = 0; c < examples; c++ /* <-- he said the name of the movie! */) {
@@ -77,16 +77,16 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     reader.resetLine();
 
 	std::vector<size_t> exampleCount(outputSize);
-	exampleData = std::vector<MAT_TYPE>(outputSize);
-	exampleLabel = std::vector<MAT_TYPE>(outputSize);
+	exampleData = std::vector<CPU_MAT_TYPE>(outputSize);
+    exampleLabel = std::vector<CPU_MAT_TYPE>(outputSize);
 
     const std::string clipPath = path + "/clips/";
     const std::string transcriptsPath = path + "/transcript/";
 
     examples = ex;
     for (size_t i = 0; i < outputSize; i++) {
-        exampleData[i] = MAT_TYPE(inputSize, examples);
-        exampleLabel[i] = MAT_TYPE(1, examples);
+        exampleData[i] = CPU_MAT_TYPE(inputSize, examples);
+        exampleLabel[i] = CPU_MAT_TYPE(1, examples);
         exampleLabel[i].fill(i);
         exampleCount[i] = 0;
     }
@@ -178,7 +178,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                             exampleIndex = ran % examples;
                         }
 
-                        ClassifierHelper::instance().writeInput<MAT_TYPE>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
+                        ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
 #ifdef DO_NAN_CHECK
                         bool hasNan = false;
                         for (size_t i = 0; i < inputSize; i++) {

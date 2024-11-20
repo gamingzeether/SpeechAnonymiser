@@ -1,0 +1,10 @@
+bandicoot provides CMake targets:
+
+    find_package(Bandicoot CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE bandicoot)
+
+bandicoot is compatible with built-in CMake variables:
+
+    find_package(Bandicoot REQUIRED)
+    target_include_directories(main PRIVATE ${BANDICOOT_LIBRARIES_INCLUDE_DIRS})
+    target_link_libraries(main PRIVATE ${BANDICOOT_LIBRARIES})

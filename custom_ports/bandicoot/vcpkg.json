@@ -1,0 +1,21 @@
+{
+  "name": "bandicoot",
+  "version": "1.16.1",
+  "port-version": 1,
+  "description": "Bandicoot is a high quality GPU linear algebra library (matrix maths) for the C++ language, aiming towards a good balance between speed and ease of use",
+  "homepage": "https://coot.sourceforge.net/",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "blas",
+    "lapack",
+    "clblas",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

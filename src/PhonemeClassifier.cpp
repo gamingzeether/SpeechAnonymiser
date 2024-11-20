@@ -8,19 +8,24 @@
 #define TYPE2 size_t 
 #endif
 
+#ifdef USE_GPU
+#define CNAME(mat) gpu##mat
+#define CONVERT(mat) MAT_TYPE CNAME(mat) = coot::conv_to<MAT_TYPE>::from(mat);
+#else
+#define CNAME(mat) mat
+#endif
+
 // Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
 #define CLASSIFIER_VERSION -1
 
 #include <filesystem>
-#include <mlpack/mlpack.hpp>
 #include "ModelSerializer.h"
 #include "Dataset.h"
 #include "ClassifierHelper.h"
 
 using namespace mlpack;
-using namespace arma;
 
 void PhonemeClassifier::initalize(const size_t& sr) {
     logger = Logger();
@@ -154,24 +159,31 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             test.join();
             validate.join();
 
-            MAT_TYPE testData, testLabel;
+            CPU_MAT_TYPE testData, testLabel;
             test.get(testData, testLabel);
-            MAT_TYPE trainData, trainLabel;
+            CPU_MAT_TYPE trainData, trainLabel;
             train.get(trainData, trainLabel);
-            MAT_TYPE validateData, validateLabel;
+            CPU_MAT_TYPE validateData, validateLabel;
             validate.get(validateData, validateLabel);
             copyDone = true;
             int epoch = 0;
 
-            network.Train(std::move(trainData),
-                std::move(trainLabel),
+#ifdef USE_GPU
+            CONVERT(trainData);
+            CONVERT(trainLabel);
+            CONVERT(validateData);
+            CONVERT(validateLabel);
+#endif
+
+            network.Train(std::move(CNAME(trainData)),
+                std::move(CNAME(trainLabel)),
                 optimizer,
                 ens::PrintLoss(),
                 ens::ProgressBar(50),
                 ens::EarlyStopAtMinLossType<MAT_TYPE>(
                     [&](const MAT_TYPE& /* param */)
                     {
-                        double validationLoss = network.Evaluate(validateData, validateLabel);
+                        double validationLoss = network.Evaluate(CNAME(validateData), CNAME(validateLabel));
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss) {
                             bestLoss = validationLoss;
@@ -214,7 +226,7 @@ std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
     return ClassifierHelper::instance().inversePhonemeSet[in];
 };
 
-void PhonemeClassifier::printConfusionMatrix(const MAT_TYPE& testData, const MAT_TYPE& testLabel) {
+void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel) {
     network.SetNetworkMode(false);
     size_t testCount = testLabel.n_cols;
     size_t correctCount = 0;
@@ -233,16 +245,25 @@ void PhonemeClassifier::printConfusionMatrix(const MAT_TYPE& testData, const MAT
         }
     }
     size_t testedExamples = 0;
-    for (size_t i = 0; i < testCount; i++) {
-        size_t result = classify(testData.submat(span(0, inputSize - 1), span(i, i)));
-        size_t label = testLabel(0, i);
-        if (result == label) {
-            correctPhonemes[label]++;
-            correctCount++;
+
+    {
+        for (size_t i = 0; i < testCount; i++) {
+            MAT_TYPE input;
+#ifdef USE_GPU
+            input = coot::conv_to<MAT_TYPE>::from(testData.submat(arma::span(0, inputSize - 1), arma::span(i, i)));
+#else
+            input = testData.submat(arma::span(0, inputSize - 1), arma::span(i, i));
+#endif
+            size_t result = classify(input);
+            size_t label = testLabel(0, i);
+            if (result == label) {
+                correctPhonemes[label]++;
+                correctCount++;
+            }
+            confusionMatrix[label][result]++;
+            totalPhonemes[label]++;
+            testedExamples++;
         }
-        confusionMatrix[label][result]++;
-        totalPhonemes[label]++;
-        testedExamples++;
     }
     logger.log(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
     std::cout << "Confusion Matrix:\n";

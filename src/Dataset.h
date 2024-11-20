@@ -1,13 +1,13 @@
 #include "common_inc.h"
 
 #include <thread>
-#include <mlpack/base.hpp>
+#include <armadillo>
 #include "TSVReader.h"
 #include "structs.h"
 
 class Dataset {
 public:
-	void get(OUT MAT_TYPE& data, OUT MAT_TYPE& labels, bool destroy = true);
+	void get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy = true);
 
     void start(size_t inputSize, size_t outputSize, size_t examples, bool print = false);
 
@@ -53,13 +53,13 @@ private:
     std::thread loaderThread;
     bool endFlag; // Set to true when training is done to end loading after minExamples > examples instead of examples * MMAX_EXAMPLE_F
 
-	std::vector<MAT_TYPE> exampleData;
-	std::vector<MAT_TYPE> exampleLabel;
+	std::vector<CPU_MAT_TYPE> exampleData;
+    std::vector<CPU_MAT_TYPE> exampleLabel;
 
     size_t examples;
     bool cached = false;
-    MAT_TYPE cachedData;
-    MAT_TYPE cachedLabels;
+    CPU_MAT_TYPE cachedData;
+    CPU_MAT_TYPE cachedLabels;
 
     void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
 	std::vector<Phone> parseTextgrid(const std::string& path);
