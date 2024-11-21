@@ -18,7 +18,7 @@
 // Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION -1
+#define CLASSIFIER_VERSION -2
 
 #include <filesystem>
 #include "ModelSerializer.h"
@@ -85,14 +85,14 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
         json["sample_rate"] = (int)sampleRate;
-        float dropoutRate = 0.01;
-        float l2regulatization = 0.0001;
+        float dropoutRate = 0.3;
+        float l2regulatization = 0.01;
 
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(2048, L2Regularizer(l2regulatization));
+        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
         network.Add<GELUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
 
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(2048, L2Regularizer(l2regulatization));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
         network.Add<GELUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
 
@@ -100,11 +100,11 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
 
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(l2regulatization));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
 
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
+        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(l2regulatization));
         network.Add<LeakyReLUType<MAT_TYPE>>();
         network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
 
@@ -175,8 +175,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 #endif
 
-            network.Train(std::move(CNAME(trainData)),
-                std::move(CNAME(trainLabel)),
+            network.Train(CNAME(trainData),
+                CNAME(trainLabel),
                 optimizer,
                 ens::PrintLoss(),
                 ens::ProgressBar(50),
@@ -185,11 +185,12 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     {
                         double validationLoss = network.Evaluate(CNAME(validateData), CNAME(validateLabel));
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
-                        if (validationLoss < bestLoss) {
+                        if (validationLoss < bestLoss && epoch > 0) {
                             bestLoss = validationLoss;
                             ModelSerializer::save(&network, 999);
                         }
                         if (epoch++ % 5 == 0) {
+                            printConfusionMatrix(CNAME(trainData), CNAME(trainLabel));
                             printConfusionMatrix(testData, testLabel);
                             network.SetNetworkMode(true);
                         }

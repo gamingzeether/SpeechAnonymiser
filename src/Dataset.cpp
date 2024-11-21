@@ -132,7 +132,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         frames.push_back(Frame());
                     }
                     Frame& frame = frames[currentFrame];
-                    Frame& prevFrame = (currentFrame > 0) ? frames[currentFrame - 1] : frame;
+                    Frame& prevFrame = (currentFrame >= DELTA_DISTANCE) ? frames[currentFrame - DELTA_DISTANCE] : frames[0];
                     frame.reset();
 
                     ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);

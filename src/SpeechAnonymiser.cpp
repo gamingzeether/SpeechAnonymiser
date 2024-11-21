@@ -219,7 +219,7 @@ void startFFT(InputData& inputData) {
         int count = 0;
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
-            Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - 1) % FFT_FRAMES];
+            Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - DELTA_DISTANCE) % FFT_FRAMES];
             // Wait for enough samples to be recorded to pass to FFT
             while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
                 //auto start = std::chrono::high_resolution_clock::now();
