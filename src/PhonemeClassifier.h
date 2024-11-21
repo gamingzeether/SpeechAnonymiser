@@ -6,6 +6,7 @@
 #include "TSVReader.h"
 #include "JSONHelper.h"
 #include "Logger.h"
+#include "PhonemeModel.h"
 #include "structs.h"
 #include "define.h"
 
@@ -15,10 +16,11 @@ public:
     bool ready;
 
     void initalize(const size_t& sr);
-    void train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize);
+    void train(const std::string& path, const size_t& examples, const size_t& epochs);
     size_t classify(const MAT_TYPE& data);
     std::string getPhonemeString(const size_t& in);
     void printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel);
+    void tuneHyperparam(const std::string& path, int iterations);
 
     inline size_t getInputSize() { return inputSize; };
     inline size_t getOutputSize() { return outputSize; };
@@ -35,8 +37,7 @@ private:
 
     Logger logger;
 
-	mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE> network;
-	ens::Adam optimizer;
+	PhonemeModel model;
     size_t inputSize = FRAME_SIZE * FFT_FRAMES * 2;
     size_t outputSize = 0;
     size_t sampleRate;

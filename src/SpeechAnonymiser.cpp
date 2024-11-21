@@ -301,14 +301,14 @@ int commandTrain(const std::string& path) {
         throw("Out of range");
     }
 
-    double stepSize = STEP_SIZE;
-    requestInput("Set training rate", stepSize);
-    logger.log(std::format("Set training rate: {}", stepSize), Logger::VERBOSE);
-    if (stepSize <= 0) {
-        throw("Out of range");
-    }
+    //double stepSize = STEP_SIZE;
+    //requestInput("Set training rate", stepSize);
+    //logger.log(std::format("Set training rate: {}", stepSize), Logger::VERBOSE);
+    //if (stepSize <= 0) {
+    //    throw("Out of range");
+    //}
 
-    classifier.train(path, examples, epochs, stepSize);
+    classifier.train(path, examples, epochs);
 
     return 0;
 }

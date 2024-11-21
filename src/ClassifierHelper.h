@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common_inc.h"
 
 #include <vector>

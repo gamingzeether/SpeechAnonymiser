@@ -55,16 +55,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     // Load JSON
     bool openedJson = json.open("classifier.json", CURRENT_VERSION);
 
-    optimizer = ens::Adam(
-        STEP_SIZE,  // Step size of the optimizer.
-        0, // Batch size. Number of data points that are used in each iteration.
-        0.9,        // Exponential decay rate for the first moment estimates.
-        0.999, // Exponential decay rate for the weighted infinity norm estimates.
-        1e-8,  // Value used to initialise the mean squared gradient parameter.
-        0, // Max number of iterations.
-        1e-8,           // Tolerance.
-        true);
-
     bool loaded = false;
     std::vector<size_t> inputDimensions = { FRAME_SIZE * 2, FFT_FRAMES, 1 };
     bool metaMatch = (
@@ -74,7 +64,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["output_features"].get_int() == outputSize &&
         json["sample_rate"].get_int() == sampleRate);
 
-    if (metaMatch && ModelSerializer::load(&network)) {
+    if (metaMatch && ModelSerializer::load(&model.network())) {
         logger.log("Loaded model", Logger::INFO);
         loaded = true;
     }
@@ -85,34 +75,15 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
         json["sample_rate"] = (int)sampleRate;
-        float dropoutRate = 0.3;
-        float l2regulatization = 0.01;
+        PhonemeModel::Hyperparameters hp;
+        hp.dropout() = 0.3;
+        hp.l2() = 0.01;
+        hp.batchSize() = 512;
+        hp.stepSize() = 0.0005;
 
-        network.Add<LinearNoBiasType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
-        network.Add<GELUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
-
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
-        network.Add<GELUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
-
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(1024, L2Regularizer(l2regulatization));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
-
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(l2regulatization));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
-
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(768, L2Regularizer(l2regulatization));
-        network.Add<LeakyReLUType<MAT_TYPE>>();
-        network.Add<DropoutType<MAT_TYPE>>(dropoutRate);
-
-        network.Add<LinearType<MAT_TYPE, L2Regularizer>>(outputSize, L2Regularizer(l2regulatization));
-        network.Add<LogSoftMaxType<MAT_TYPE>>();
+        model.initModel(hp);
     }
-    network.InputDimensions() = inputDimensions;
-    optimizer.ResetPolicy() = false;
+    model.network().InputDimensions() = inputDimensions;
 
     logger.log(std::format("Model initalized with {} input features and {} output features", inputSize, outputSize), Logger::INFO);
 
@@ -120,11 +91,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     logger.log("Classifier ready", Logger::INFO);
 }
 
-void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs, const double& stepSize) {
-    optimizer.BatchSize() = 512;
-    optimizer.StepSize() = stepSize;
-    optimizer.MaxIterations() = epochs * examples * outputSize;
-    optimizer.ResetPolicy() = false;
+void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
+    //tuneHyperparam(path, 100);
+
+    model.optimizer().MaxIterations() = epochs * examples * outputSize;
 
     std::vector<Phone> phones;
     
@@ -140,6 +110,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     Dataset test(path + "/test.tsv", sampleRate, path);
     size_t loops = 0;
     double bestLoss = 9e+99;
+
     while (true) {
         logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
 
@@ -175,32 +146,32 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 #endif
 
-            network.Train(CNAME(trainData),
+            model.network().Train(CNAME(trainData),
                 CNAME(trainLabel),
-                optimizer,
+                model.optimizer(),
                 ens::PrintLoss(),
                 ens::ProgressBar(50),
                 ens::EarlyStopAtMinLossType<MAT_TYPE>(
                     [&](const MAT_TYPE& /* param */)
                     {
-                        double validationLoss = network.Evaluate(CNAME(validateData), CNAME(validateLabel));
+                        double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss && epoch > 0) {
                             bestLoss = validationLoss;
                             logger.log("Saving new best model", Logger::INFO);
-                            ModelSerializer::save(&network, 999);
+                            ModelSerializer::save(&model.network(), 999);
                             json.save();
                         }
-                        if (epoch++ % 5 == 0) {
-                            printConfusionMatrix(CNAME(trainData), CNAME(trainLabel));
+                        if (epoch++ % 10 == 0) {
+                            printConfusionMatrix(trainData, trainLabel);
                             printConfusionMatrix(testData, testLabel);
-                            network.SetNetworkMode(true);
+                            model.network().SetNetworkMode(true);
                         }
                         return validationLoss;
                     }));
 
-            optimizer.StepSize() *= 0.5;
-            ModelSerializer::save(&network, loops);
+            model.optimizer().StepSize() *= 0.5;
+            ModelSerializer::save(&model.network(), loops);
             json.save();
             logger.log(std::format("Ended with best loss {}", bestLoss), Logger::INFO);
             });
@@ -214,7 +185,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
 size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
     MAT_TYPE results = MAT_TYPE();
-    network.Predict(data, results);
+    model.network().Predict(data, results);
     float max = results(0);
     size_t maxIdx = 0;
     for (size_t i = 0; i < outputSize; i++) {
@@ -232,7 +203,7 @@ std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
 };
 
 void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel) {
-    network.SetNetworkMode(false);
+    model.network().SetNetworkMode(false);
     size_t testCount = testLabel.n_cols;
     size_t correctCount = 0;
     size_t* correctPhonemes = new size_t[outputSize];
@@ -304,4 +275,129 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
         delete[] confusionMatrix[i];
     }
     delete[] confusionMatrix;
+}
+
+void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) {
+    // Get data
+    Dataset train(path + "/train.tsv", 16000, path);
+    Dataset validate(path + "/dev.tsv", 16000, path);
+    size_t tuneSize = 250;
+    train.start(inputSize, outputSize, tuneSize * 0.8, true);
+    validate.start(inputSize, outputSize, tuneSize * 0.2, true);
+    train.join();
+    validate.join();
+    CPU_MAT_TYPE tuneTrainData, tuneTrainLabel;
+    train.get(tuneTrainData, tuneTrainLabel);
+    CPU_MAT_TYPE tuneValidData, tuneValidLabel;
+    validate.get(tuneValidData, tuneValidLabel);
+#ifdef USE_GPU
+    CONVERT(tuneTrainData);
+    CONVERT(tuneTrainLabel);
+    CONVERT(tuneValidData);
+    CONVERT(tuneValidLabel);
+#endif
+
+    // Prepare models
+    std::vector<PhonemeModel> models;
+    std::vector<float> bestLosses;
+    int mr = 2;
+    for (int i = 0; i < 2 * mr + 1; i++) {
+        PhonemeModel mdl;
+        models.push_back(mdl);
+        bestLosses.push_back(9e99);
+    }
+    std::vector<std::thread> trainThreads(models.size());
+
+    // Initalize parameters
+    PhonemeModel::Hyperparameters base;
+    base.dropout() = 0.3;
+    base.l2() = 0.001;
+    base.batchSize() = 512;
+    base.stepSize() = 0.005;
+
+    PhonemeModel::Hyperparameters stepSize;
+    stepSize.dropout() = 0.05;
+    stepSize.l2() = 0.0001;
+    stepSize.batchSize() = 256;
+    stepSize.stepSize() = 0.0001;
+
+    int paramSize = PhonemeModel::Hyperparameters::size;
+
+    int optimEpochs = 500;
+    int optimIterations = optimEpochs * (tuneSize * 0.8) * outputSize;
+
+    // Do iterations
+    // Each iteration adjusts one parameter up or down various amounts per model
+    // Then continues with the best out of them
+    for (int i = 0; i < iterations * paramSize; i++) {
+        int targetParam = i % paramSize;
+        float delta = stepSize.e[targetParam];
+
+        logger.log(std::format("Starting iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
+        for (int j = 0; j < models.size(); j++) {
+            // Reset stuff
+            bestLosses[j] = 9e99;
+
+            // Initalize models with parameters
+            PhonemeModel::Hyperparameters tempParams = base;
+            tempParams.e[targetParam] += delta * (j - mr);
+
+            PhonemeModel& mdl = models[j];
+            mdl.initModel(tempParams);
+            // Copy first model's inital weights
+            if (j > 0) {
+                mdl.network().Parameters() = models[0].network().Parameters();
+            }
+
+            // Start training models
+            logger.log(std::format("Starting model {}", j), Logger::INFO);
+            std::thread& trainThread = trainThreads[j];
+            trainThread = std::thread([this, &mdl, &CNAME(tuneTrainData), &CNAME(tuneTrainLabel), &CNAME(tuneValidData), &CNAME(tuneValidLabel), &bestLosses, j, optimIterations] {
+                mdl.optimizer().MaxIterations() = optimIterations;
+
+                mdl.network().Train(
+                    CNAME(tuneTrainData),
+                    CNAME(tuneTrainLabel),
+                    mdl.optimizer(),
+                    ens::EarlyStopAtMinLossType<MAT_TYPE>(
+                        [&](const MAT_TYPE& /* param */)
+                        {
+                            double validationLoss = mdl.network().Evaluate(CNAME(tuneValidData), CNAME(tuneValidLabel));
+                            if (validationLoss < bestLosses[j]) {
+                                bestLosses[j] = validationLoss;
+                                logger.log(std::format("Model {} with new best {}", j, validationLoss), Logger::INFO);
+                            }
+                            return validationLoss;
+                        })
+                );
+                logger.log(std::format("Model {} done", j), Logger::INFO);
+                });
+        }
+
+        // Wait for training to complete
+        for (int j = 0; j < models.size(); j++) {
+            if (trainThreads[j].joinable()) {
+                trainThreads[j].join();
+            }
+        }
+
+        // Evaluate best
+        int bestIndex = -1;
+        float bestLoss = 9e99;
+        for (int j = 0; j < models.size(); j++) {
+            float mLoss = bestLosses[j];
+            if (mLoss < bestLoss) {
+                bestLoss = mLoss;
+                bestIndex = j;
+            }
+        }
+        float bestDelta = delta * (bestIndex - mr);
+        base.e[targetParam] += bestDelta;
+
+        // Print new best
+        logger.log(std::format("Best hyperparameters after iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
+        for (int j = 0; j < paramSize; j++) {
+            logger.log(std::format("{}", base.e[j]), Logger::INFO);
+        }
+    }
 }

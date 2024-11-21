@@ -120,6 +120,8 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/Logger.h"
     "${PROJECT_SOURCE_DIR}/SpeechEngine.h"
     "${PROJECT_SOURCE_DIR}/Animator.h"
+    "${PROJECT_SOURCE_DIR}/include_mlpack.h"
+    "${PROJECT_SOURCE_DIR}/PhonemeModel.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -135,6 +137,7 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/Logger.cpp"
     "${PROJECT_SOURCE_DIR}/SpeechEngine.cpp"
     "${PROJECT_SOURCE_DIR}/Animator.cpp"
+    "${PROJECT_SOURCE_DIR}/PhonemeModel.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
