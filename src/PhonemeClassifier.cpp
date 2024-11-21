@@ -188,6 +188,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         if (validationLoss < bestLoss && epoch > 0) {
                             bestLoss = validationLoss;
                             ModelSerializer::save(&network, 999);
+                            json.save();
                         }
                         if (epoch++ % 5 == 0) {
                             printConfusionMatrix(CNAME(trainData), CNAME(trainLabel));
@@ -197,6 +198,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         return validationLoss;
                     }));
 
+            optimizer.StepSize() *= 0.5;
             ModelSerializer::save(&network, loops);
             json.save();
             });
