@@ -187,6 +187,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss && epoch > 0) {
                             bestLoss = validationLoss;
+                            logger.log("Saving new best model", Logger::INFO);
                             ModelSerializer::save(&network, 999);
                             json.save();
                         }
@@ -201,6 +202,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             optimizer.StepSize() *= 0.5;
             ModelSerializer::save(&network, loops);
             json.save();
+            logger.log(std::format("Ended with best loss {}", bestLoss), Logger::INFO);
             });
         
         // Wait to finish copying data into new mat
