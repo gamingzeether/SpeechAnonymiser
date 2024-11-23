@@ -509,17 +509,18 @@ int main(int argc, char* argv[]) {
     tryMakeDir("configs/animations/phonemes");
 
     logger = Logger();
-    logger.addStream(Logger::Stream("main.log").
-        outputTo(Logger::VERBOSE).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
-    logger.addStream(Logger::Stream(std::cout).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream("main.log")
+        .outputTo(Logger::VERBOSE)
+        .outputTo(Logger::INFO)
+        .outputTo(Logger::WARNING)
+        .outputTo(Logger::ERR)
+        .outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream(std::cout)
+        .outputTo(Logger::INFO)
+        .outputTo(Logger::WARNING)
+        .outputTo(Logger::ERR)
+        .outputTo(Logger::FATAL)
+        .enableColor(true));
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

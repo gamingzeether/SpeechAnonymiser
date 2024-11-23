@@ -29,17 +29,18 @@ using namespace mlpack;
 
 void PhonemeClassifier::initalize(const size_t& sr) {
     logger = Logger();
-    logger.addStream(Logger::Stream("classifier.log").
-        outputTo(Logger::VERBOSE).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
-    logger.addStream(Logger::Stream(std::cout).
-        outputTo(Logger::INFO).
-        outputTo(Logger::WARNING).
-        outputTo(Logger::ERR).
-        outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream("classifier.log")
+        .outputTo(Logger::VERBOSE)
+        .outputTo(Logger::INFO)
+        .outputTo(Logger::WARNING)
+        .outputTo(Logger::ERR)
+        .outputTo(Logger::FATAL));
+    logger.addStream(Logger::Stream(std::cout)
+        .outputTo(Logger::INFO)
+        .outputTo(Logger::WARNING)
+        .outputTo(Logger::ERR)
+        .outputTo(Logger::FATAL)
+        .enableColor(true));
 
     // Check if already initalized
     assert(!initalized);
@@ -146,6 +147,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 #endif
 
+            logger.log(std::format("Starting training with learning rate {}", model.optimizer().StepSize()), Logger::INFO);
             model.network().Train(CNAME(trainData),
                 CNAME(trainLabel),
                 model.optimizer(),
