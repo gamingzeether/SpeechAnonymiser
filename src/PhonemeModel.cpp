@@ -5,24 +5,24 @@ void PhonemeModel::initModel(Hyperparameters hp) {
 
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::GELUType<MAT_TYPE>>();
+    net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(2048, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
+    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::GELUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
-
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::LeakyReLUType<MAT_TYPE>>();
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::LeakyReLUType<MAT_TYPE>>();
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::LeakyReLUType<MAT_TYPE>>();
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(outputSize, mlpack::L2Regularizer(hp.l2()));

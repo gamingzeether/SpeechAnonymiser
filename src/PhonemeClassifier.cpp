@@ -18,7 +18,7 @@
 // Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION -2
+#define CLASSIFIER_VERSION -3
 
 #include <filesystem>
 #include "ModelSerializer.h"
@@ -165,12 +165,13 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                             json.save();
                         }
                         if (epoch++ % 10 == 0) {
+                            // Compare training and test accuracy to check for overfitting
                             printConfusionMatrix(trainData, trainLabel);
                             printConfusionMatrix(testData, testLabel);
                             model.network().SetNetworkMode(true);
                         }
                         return validationLoss;
-                    }));
+                    }, 20));
 
             model.optimizer().StepSize() *= 0.5;
             ModelSerializer::save(&model.network(), loops);

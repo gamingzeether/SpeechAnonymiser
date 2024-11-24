@@ -217,16 +217,20 @@ void startFFT(InputData& inputData) {
         SpeechFrame speechFrame;
         const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"")];
         int count = 0;
+        // Wait for enough samples to be recorded to pass to FFT
+        while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_REAL_SAMPLES) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - DELTA_DISTANCE) % FFT_FRAMES];
-            // Wait for enough samples to be recorded to pass to FFT
-            while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SAMPLES) {
-                //auto start = std::chrono::high_resolution_clock::now();
+            // Wait for FFT_FRAME_SPACING new samples
+            //auto start = std::chrono::high_resolution_clock::now();
+            while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SPACING) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                //auto actual = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-                //std::cout << actual.count() << '\n';
             }
+            //auto actual = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
+            //std::cout << actual.count() << '\n';
             lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             // Do FFT stuff
             helper.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
