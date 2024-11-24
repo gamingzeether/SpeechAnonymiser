@@ -119,6 +119,8 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/ClassifierHelper.h"
     "${PROJECT_SOURCE_DIR}/Logger.h"
     "${PROJECT_SOURCE_DIR}/SpeechEngine.h"
+    "${PROJECT_SOURCE_DIR}/SpeechEngineArticulator.h"
+    "${PROJECT_SOURCE_DIR}/SpeechEngineConcatenator.h"
     "${PROJECT_SOURCE_DIR}/Animator.h"
     "${PROJECT_SOURCE_DIR}/include_mlpack.h"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.h"
@@ -135,7 +137,8 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/Dataset.cpp"
     "${PROJECT_SOURCE_DIR}/ClassifierHelper.cpp"
     "${PROJECT_SOURCE_DIR}/Logger.cpp"
-    "${PROJECT_SOURCE_DIR}/SpeechEngine.cpp"
+    "${PROJECT_SOURCE_DIR}/SpeechEngineArticulator.cpp"
+    "${PROJECT_SOURCE_DIR}/SpeechEngineConcatenator.cpp"
     "${PROJECT_SOURCE_DIR}/Animator.cpp"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.cpp"
 )

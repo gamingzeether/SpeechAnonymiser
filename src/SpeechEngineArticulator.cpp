@@ -1,4 +1,4 @@
-#include "SpeechEngine.h"
+#include "SpeechEngineArticulator.h"
 
 #include <type_traits>
 #include <assert.h>
@@ -6,14 +6,18 @@
 #include <numbers>
 #include <iostream>
 #include <thread>
-#include <string>
 #include "ClassifierHelper.h"
 
 #define ENGINE_STEP_FRAMES 256
 #define ENGINE_TIMESTEP ((double)ENGINE_STEP_FRAMES / sampleRate)
 #define PHASE_STEP_AMOUNT(t) (-4.0 * std::numbers::pi * t)
 
-void SpeechEngine::pushFrame(const SpeechFrame& frame) {
+SpeechEngineArticulator& SpeechEngineArticulator::configure(std::string file) {
+	_init();
+	return *this;
+}
+
+void SpeechEngineArticulator::pushFrame(const SpeechFrame& frame) {
 	int frameAnim = phonToAnim[frame.phoneme];
 	int currentAnim = articAnim.currentAnim();
 	if (frameAnim != currentAnim) {
@@ -21,7 +25,7 @@ void SpeechEngine::pushFrame(const SpeechFrame& frame) {
 	}
 }
 
-void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) {
+void SpeechEngineArticulator::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) {
 	assert(nFrames > 0);
 	double bufferDuration = (double)nFrames / sampleRate;
 	double gain = 0.02;
@@ -85,25 +89,12 @@ void SpeechEngine::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) 
 	}
 }
 
-float SpeechEngine::_random() {
-	std::uniform_real_distribution<float> randomDist = std::uniform_real_distribution<float>(-1, 1);
-	return randomDist(randomEngine);
-}
-
-SpeechEngine::SpeechEngine(int sr, int ch) {
-	assert(sr > 0);
-	assert(ch > 0);
-	sampleRate = sr;
-	channels = ch;
-	_init();
-}
-
 #pragma region Articulator
-SpeechEngine::SpeechArticulator::SpeechArticulator(float proportional, float integra, float derivative, float rand, int index) {
+SpeechEngineArticulator::SpeechArticulator::SpeechArticulator(float proportional, float integra, float derivative, float rand, int index) {
 	_init(proportional, integra, derivative, rand, index);
 }
 
-SpeechEngine::SpeechArticulator::SpeechArticulator(std::string path, int index) {
+SpeechEngineArticulator::SpeechArticulator::SpeechArticulator(std::string path, int index) {
 	JSONHelper json;
 	// Open or initalize with default
 	{
@@ -126,7 +117,7 @@ SpeechEngine::SpeechArticulator::SpeechArticulator(std::string path, int index) 
 	_init(proportional, integral, derivative, random, index);
 }
 
-void SpeechEngine::SpeechArticulator::step(float dTime) {
+void SpeechEngineArticulator::SpeechArticulator::step(float dTime) {
 	float error = target - position;
 	error += _random() * random;
 	integral += error * dTime;
@@ -139,7 +130,7 @@ void SpeechEngine::SpeechArticulator::step(float dTime) {
 	position += velocity * dTime;
 }
 
-void SpeechEngine::SpeechArticulator::_init(float proportional, float integra, float derivative, float rand, int index) {
+void SpeechEngineArticulator::SpeechArticulator::_init(float proportional, float integra, float derivative, float rand, int index) {
 	target = 0;
 	position = 0;
 	velocity = 0;
@@ -156,8 +147,8 @@ void SpeechEngine::SpeechArticulator::_init(float proportional, float integra, f
 #pragma endregion
 
 #pragma region Tract segments
-float SpeechEngine::TractSegment::pressure(int index) {
-	float *forwardRd, *backwardRd;
+float SpeechEngineArticulator::TractSegment::pressure(int index) {
+	float* forwardRd, * backwardRd;
 	if (currentBuffer1) {
 		forwardRd = forward1;
 		backwardRd = backward1;
@@ -168,7 +159,7 @@ float SpeechEngine::TractSegment::pressure(int index) {
 	return (forwardRd[index] + backwardRd[index]) * 0.5;
 };
 
-void SpeechEngine::TractSegment::setRadius(int index, float rad) {
+void SpeechEngineArticulator::TractSegment::setRadius(int index, float rad) {
 	radius[index] = rad;
 	float rsqri = radius[index] * radius[index];
 
@@ -182,8 +173,8 @@ void SpeechEngine::TractSegment::setRadius(int index, float rad) {
 	}
 }
 
-float SpeechEngine::TractSegment::step(float input) {
-	float *forwardRd, *forwardWr, *backwardRd, *backwardWr;
+float SpeechEngineArticulator::TractSegment::step(float input) {
+	float* forwardRd, * forwardWr, * backwardRd, * backwardWr;
 	if (currentBuffer1) {
 		forwardRd = forward1;
 		forwardWr = forward2;
@@ -216,17 +207,17 @@ float SpeechEngine::TractSegment::step(float input) {
 	return forwardBack;
 }
 
-void SpeechEngine::TractSegment::stepBuffer(float* buf) {
+void SpeechEngineArticulator::TractSegment::stepBuffer(float* buf) {
 }
 #pragma endregion
 
 #pragma region Tract
-float SpeechEngine::VocalTract::step(float input) {
+float SpeechEngineArticulator::VocalTract::step(float input) {
 	return ts1.step(input);
 }
 #pragma endregion
 
-void SpeechEngine::_init() {
+void SpeechEngineArticulator::_init() {
 #pragma region Logger
 	logger = Logger();
 	logger.addStream(Logger::Stream("speech_engine.log").
@@ -295,13 +286,13 @@ void SpeechEngine::_init() {
 		}
 		delete[] tmpWavetable;
 	}
-	
+
 	logger.log("Initalized", Logger::VERBOSE);
 
 	vocalTract = VocalTract(1011);
 }
 
-void SpeechEngine::_initArticulators() {
+void SpeechEngineArticulator::_initArticulators() {
 	pressure() = SpeechArticulator("articulators/pressure.json", Animator::PRESSURE);
 	systemPressure() = SpeechArticulator("articulators/system_pressure.json", Animator::SYSTEM_PRESSURE);
 	baseFrequency() = SpeechArticulator("articulators/base_frequency.json", Animator::BASE_FREQUENCY);

@@ -21,16 +21,16 @@
 #include "ClassifierHelper.h"
 #include "Dataset.h"
 #include "Logger.h"
-#include "SpeechEngine.h"
+#include "SpeechEngineArticulator.h"
 
-const bool outputPassthrough = true;
+const bool outputPassthrough = false;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
 
 PhonemeClassifier classifier;
 
-std::optional<SpeechEngine> speechEngine;
+std::unique_ptr<SpeechEngine> speechEngine;
 
 Logger logger;
 
@@ -144,7 +144,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
     }
 
     if (!outputPassthrough) {
-        speechEngine.value().writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
+        speechEngine->writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
     } else {
         InputData* iData = oData->input;
         size_t startSample = oData->lastSample;
@@ -215,7 +215,7 @@ void startFFT(InputData& inputData) {
 
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
-        const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"")];
+        const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"æ")];
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
         while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_REAL_SAMPLES) {
@@ -265,7 +265,7 @@ void startFFT(InputData& inputData) {
             } else {
                 speechFrame.phoneme = silencePhoneme;
             }
-            speechEngine.value().pushFrame(speechFrame);
+            speechEngine->pushFrame(speechFrame);
             currentFrame = (currentFrame + 1) % FFT_FRAMES;
         }
         });
@@ -448,7 +448,11 @@ int commandDefault() {
 #pragma endregion
 
     // Initalize speech engine
-    speechEngine = SpeechEngine(outputSampleRate, outputInfo.outputChannels);
+    auto tmp = SpeechEngineArticulator();
+    tmp.setSampleRate(48000)
+        .setChannels(2)
+        .configure("");
+    speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
 
     if (outputAudio.startStream()) {
         std::cout << outputAudio.getErrorText() << '\n';
