@@ -21,9 +21,9 @@
 #include "ClassifierHelper.h"
 #include "Dataset.h"
 #include "Logger.h"
-#include "SpeechEngineArticulator.h"
+#include "SpeechEngineConcatenator.h"
 
-const bool outputPassthrough = false;
+const bool outputPassthrough = true;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
@@ -407,12 +407,6 @@ int commandDefault() {
         std::cout << inputAudio.getErrorText() << '\n';
         return 0; // problem with device settings
     }
-
-    if (inputAudio.startStream()) {
-        std::cout << inputAudio.getErrorText() << '\n';
-        cleanupRtAudio(inputAudio);
-        return 0;
-    }
 #pragma endregion
 
 
@@ -426,7 +420,7 @@ int commandDefault() {
 
     outputParameters.deviceId = outDevice;
     outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = 48000;
+    unsigned int outputSampleRate = 44100;
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
@@ -448,11 +442,17 @@ int commandDefault() {
 #pragma endregion
 
     // Initalize speech engine
-    auto tmp = SpeechEngineArticulator();
-    tmp.setSampleRate(48000)
+    auto tmp = SpeechEngineConcatenator();
+    tmp.setSampleRate(outputSampleRate)
         .setChannels(2)
-        .configure("");
+        .configure("C:/Users/AK/Downloads/AERIS CV-VC ENG Kire 2.0/");
     speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
+
+    if (inputAudio.startStream()) {
+        std::cout << inputAudio.getErrorText() << '\n';
+        cleanupRtAudio(inputAudio);
+        return 0;
+    }
 
     if (outputAudio.startStream()) {
         std::cout << outputAudio.getErrorText() << '\n';

@@ -1,8 +1,11 @@
+#pragma once
+
 #include "SpeechEngine.h"
 
 #include "Animator.h"
 
 // Articulator based speech synthesiser
+// Still work in progress
 
 class SpeechEngineArticulator : public SpeechEngine {
 public:

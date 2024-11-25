@@ -16,7 +16,7 @@ JSONHelper::JSONObj JSONHelper::JSONObj::operator[](const char* key) {
 }
 
 bool JSONHelper::open(std::string openPath, int version) {
-	path = "configs/" + openPath;
+	path = openPath;
 
     yyjson_doc* iDoc;
     int jsonVersion = -1;
