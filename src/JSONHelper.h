@@ -20,11 +20,13 @@ public:
 		double get_real() const { return yyjson_mut_get_real(val); };
 		std::string get_string() const { return yyjson_mut_get_str(val); };
 		int get_array_size() const { return yyjson_mut_arr_size(val); };
+		bool get_bool() const { return yyjson_mut_get_bool(val); };
 
 		// Setters
 		void operator=(int value) { yyjson_mut_set_int(val, value); };
 		void operator=(double value) { yyjson_mut_set_real(val, value); };
 		void operator=(const std::string& value) { yyjson_mut_set_str(val, value.c_str()); };
+		void operator=(bool value) { yyjson_mut_set_bool(val, value); };
 		JSONObj add_arr(const char* key) {
 			yyjson_mut_val* item = yyjson_mut_obj_add_arr(_doc, val, key);
 			return JSONObj(_doc, item);

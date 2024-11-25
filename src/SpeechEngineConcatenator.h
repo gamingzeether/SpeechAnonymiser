@@ -1,4 +1,7 @@
+#pragma once
+
 #include "SpeechEngine.h"
+#include "Voicebank.h"
 
 // Concatenator based speech synthesiser
 
@@ -12,4 +15,7 @@ public:
 	virtual SpeechEngineConcatenator& configure(std::string file);
 protected:
 	virtual void _init();
+
+	size_t pointer;
+	std::vector<Voicebank> voicebanks;
 };

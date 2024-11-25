@@ -124,6 +124,7 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/Animator.h"
     "${PROJECT_SOURCE_DIR}/include_mlpack.h"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.h"
+    "${PROJECT_SOURCE_DIR}/Voicebank.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -141,6 +142,7 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/SpeechEngineConcatenator.cpp"
     "${PROJECT_SOURCE_DIR}/Animator.cpp"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.cpp"
+    "${PROJECT_SOURCE_DIR}/Voicebank.cpp"
 )
 source_group("Sources" FILES ${Sources})
 

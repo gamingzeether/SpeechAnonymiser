@@ -242,7 +242,7 @@ void SpeechEngineArticulator::_init() {
 	auto& ips = ClassifierHelper::instance().inversePhonemeSet;
 	for (int i = 0; i < ips.size(); i++) {
 		const std::string& name = ips[i];
-		articAnim.loadGroup(std::format("animations/phonemes/{}_anim.json", name), name);
+		articAnim.loadGroup(std::format("configs/animations/phonemes/{}_anim.json", name), name);
 	}
 	articAnim.finalize();
 	for (int i = 0; i < ips.size(); i++) {
@@ -293,12 +293,12 @@ void SpeechEngineArticulator::_init() {
 }
 
 void SpeechEngineArticulator::_initArticulators() {
-	pressure() = SpeechArticulator("articulators/pressure.json", Animator::PRESSURE);
-	systemPressure() = SpeechArticulator("articulators/system_pressure.json", Animator::SYSTEM_PRESSURE);
-	baseFrequency() = SpeechArticulator("articulators/base_frequency.json", Animator::BASE_FREQUENCY);
-	tongueBase() = SpeechArticulator("articulators/tongue_base.json", Animator::TONGUE_BASE);
-	tongueMid() = SpeechArticulator("articulators/tongue_mid.json", Animator::TONGUE_MID);
-	tongueTip() = SpeechArticulator("articulators/tongue_tip.json", Animator::TONGUE_TIP);
-	jaw() = SpeechArticulator("articulators/jaw.json", Animator::JAW);
-	lip() = SpeechArticulator("articulators/lip.json", Animator::LIP);
+	pressure() = SpeechArticulator("configs/articulators/pressure.json", Animator::PRESSURE);
+	systemPressure() = SpeechArticulator("configs/articulators/system_pressure.json", Animator::SYSTEM_PRESSURE);
+	baseFrequency() = SpeechArticulator("configs/articulators/base_frequency.json", Animator::BASE_FREQUENCY);
+	tongueBase() = SpeechArticulator("configs/articulators/tongue_base.json", Animator::TONGUE_BASE);
+	tongueMid() = SpeechArticulator("configs/articulators/tongue_mid.json", Animator::TONGUE_MID);
+	tongueTip() = SpeechArticulator("configs/articulators/tongue_tip.json", Animator::TONGUE_TIP);
+	jaw() = SpeechArticulator("configs/articulators/jaw.json", Animator::JAW);
+	lip() = SpeechArticulator("configs/articulators/lip.json", Animator::LIP);
 }

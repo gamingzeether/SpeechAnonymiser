@@ -54,7 +54,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     outputSize = ClassifierHelper::instance().inversePhonemeSet.size();
 
     // Load JSON
-    bool openedJson = json.open("classifier.json", CURRENT_VERSION);
+    bool openedJson = json.open("configs/classifier.json", CURRENT_VERSION);
 
     bool loaded = false;
     std::vector<size_t> inputDimensions = { FRAME_SIZE * 2, FFT_FRAMES, 1 };
@@ -198,6 +198,7 @@ size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
             maxIdx = i;
         }
     }
+    std::printf("%.4f ", max);
     return maxIdx;
 }
 
