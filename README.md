@@ -16,6 +16,10 @@ This project aims to provide as much anonymity as STT-TTS voice changers while h
 - Losing too many features: Removing features is mostly done through modifying the transcribed phonemes rather than losing them through the STT-TTS process. This approach allows for more control over what is changed.
 - Computing resources: Because it transcribes frames to phonemes instead of the whole utterance to words, the model for transcription can be much smaller.
 
+Also see: 
+- [Speaker de-identification using diphone recognition and speech synthesis](https://lmi.fe.uni-lj.si/wp-content/uploads/2023/05/Speakerde-identificationusingdiphonerecognitionandspeechsynthesis.pdf)
+  - Proposes DROPSY, a similar method of speaker de-identification that uses diphone recognition
+
 # How does it work?
 
 1. Convert speech to frames
