@@ -221,6 +221,8 @@ void startFFT(InputData& inputData) {
         while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_REAL_SAMPLES) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+        std::vector<float> cepstralMean = std::vector<float>(FRAME_SIZE);
+        size_t meanCount = 1;
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - DELTA_DISTANCE) % FFT_FRAMES];
@@ -248,6 +250,20 @@ void startFFT(InputData& inputData) {
                     break;
                 }
             }
+
+            // Cepstrum normalization
+            if (activity) {
+                for (int i = 0; i < FRAME_SIZE; i++) {
+                    cepstralMean[i] += (frame.real[i] - cepstralMean[i]) / meanCount;
+                }
+                meanCount++;
+            }
+            for (int i = 0; i < FRAME_SIZE; i++) {
+                cepstralMean[i] += (frame.real[i] - cepstralMean[i]) / meanCount;
+                frame.real[i] -= cepstralMean[i];
+            }
+
+            // Classify
             if (activity) {
                 count++;
                 if (count > INFERENCE_FRAMES) {

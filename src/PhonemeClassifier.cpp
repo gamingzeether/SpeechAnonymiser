@@ -198,7 +198,7 @@ size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
             maxIdx = i;
         }
     }
-    std::printf("%.4f ", max);
+    //std::printf("%.4f ", max);
     return maxIdx;
 }
 

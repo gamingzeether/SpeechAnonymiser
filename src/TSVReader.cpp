@@ -107,7 +107,6 @@ void TSVReader::open(const std::string& filepath, bool readSentence) {
 		}
 		if (lineParseCheck) {
 			lines.push_back(TSVReader::convert(parsedLine));
-			TSVReader::convert(lines.back());
 		}
 	}
 	printf("Loaded %zu lines\n", lines.size());
