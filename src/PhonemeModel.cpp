@@ -1,15 +1,15 @@
 #include "PhonemeModel.h"
 
-void PhonemeModel::initModel(Hyperparameters hp) {
+void PhonemeModel::setHyperparameters(Hyperparameters hp) {
+    this->hp = hp;
+}
+
+void PhonemeModel::initModel() {
     int outputSize = ClassifierHelper::instance().inversePhonemeSet.size();
 
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(2048, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
-
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
@@ -27,7 +27,9 @@ void PhonemeModel::initModel(Hyperparameters hp) {
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(outputSize, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
+}
 
+void PhonemeModel::initOptimizer() {
     optim = ens::Adam(
         STEP_SIZE,  // Step size of the optimizer.
         0, // Batch size. Number of data points that are used in each iteration.

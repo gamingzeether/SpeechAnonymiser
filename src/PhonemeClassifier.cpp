@@ -18,7 +18,7 @@
 // Update this when adding/remove json elements
 #define CURRENT_VERSION 3
 // Update this when modifying classifier parameters
-#define CLASSIFIER_VERSION -3
+#define CLASSIFIER_VERSION -4
 
 #include <filesystem>
 #include "ModelSerializer.h"
@@ -65,6 +65,14 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["output_features"].get_int() == outputSize &&
         json["sample_rate"].get_int() == sampleRate);
 
+    PhonemeModel::Hyperparameters hp;
+    hp.dropout() = 0.5;
+    hp.l2() = 0.01;
+    hp.batchSize() = 512;
+    hp.stepSize() = 0.0005;
+    hp.warmup() = 5;
+    model.setHyperparameters(hp);
+
     if (metaMatch && ModelSerializer::load(&model.network())) {
         logger.log("Loaded model", Logger::INFO);
         loaded = true;
@@ -76,14 +84,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         json["input_features"] = (int)inputSize;
         json["output_features"] = (int)outputSize;
         json["sample_rate"] = (int)sampleRate;
-        PhonemeModel::Hyperparameters hp;
-        hp.dropout() = 0.3;
-        hp.l2() = 0.01;
-        hp.batchSize() = 512;
-        hp.stepSize() = 0.0005;
 
-        model.initModel(hp);
+        model.initModel();
     }
+    model.initOptimizer();
     model.network().InputDimensions() = inputDimensions;
 
     logger.log(std::format("Model initalized with {} input features and {} output features", inputSize, outputSize), Logger::INFO);
@@ -113,8 +117,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     double bestLoss = 9e+99;
 
     while (true) {
-        logger.log(std::format("Starting loop {}", loops++), Logger::VERBOSE);
-
         train.start(inputSize, outputSize, examples, true);
 
         if (trainThread.joinable()) {
@@ -147,7 +149,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 #endif
 
-            logger.log(std::format("Starting training with learning rate {}", model.optimizer().StepSize()), Logger::INFO);
+            model.optimizer().StepSize() = model.rate(1);
+            logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);
             model.network().Train(CNAME(trainData),
                 CNAME(trainLabel),
                 model.optimizer(),
@@ -156,6 +159,12 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                 ens::EarlyStopAtMinLossType<MAT_TYPE>(
                     [&](const MAT_TYPE& /* param */)
                     {
+                        // Warmup
+                        epoch++;
+                        logger.log(std::format("Finished epoch {} with learning rate", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
+                        model.optimizer().StepSize() = model.rate(epoch + 1);
+
+                        // Validation
                         double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss && epoch > 0) {
@@ -164,8 +173,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                             ModelSerializer::save(&model.network(), 999);
                             json.save();
                         }
-                        if (epoch++ % 10 == 0) {
-                            // Compare training and test accuracy to check for overfitting
+
+                        // Compare training and test accuracy to check for overfitting
+                        if (epoch % 10 == 0) {
                             printConfusionMatrix(trainData, trainLabel);
                             printConfusionMatrix(testData, testLabel);
                             model.network().SetNetworkMode(true);
@@ -173,7 +183,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                         return validationLoss;
                     }, 20));
 
-            model.optimizer().StepSize() *= 0.5;
             ModelSerializer::save(&model.network(), loops);
             json.save();
             logger.log(std::format("Ended with best loss {}", bestLoss), Logger::INFO);
@@ -318,12 +327,14 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
     base.l2() = 0.001;
     base.batchSize() = 512;
     base.stepSize() = 0.005;
+    base.warmup() = 10;
 
     PhonemeModel::Hyperparameters stepSize;
     stepSize.dropout() = 0.05;
     stepSize.l2() = 0.0001;
     stepSize.batchSize() = 256;
     stepSize.stepSize() = 0.0001;
+    stepSize.warmup() = 1;
 
     int paramSize = PhonemeModel::Hyperparameters::size;
 
@@ -347,7 +358,9 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
             tempParams.e[targetParam] += delta * (j - mr);
 
             PhonemeModel& mdl = models[j];
-            mdl.initModel(tempParams);
+            mdl.setHyperparameters(tempParams);
+            mdl.initModel();
+            mdl.initOptimizer();
             // Copy first model's inital weights
             if (j > 0) {
                 mdl.network().Parameters() = models[0].network().Parameters();
