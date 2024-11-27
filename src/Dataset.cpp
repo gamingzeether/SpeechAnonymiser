@@ -136,6 +136,38 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                     frame.reset();
 
                     ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
+
+                    fftStart += FFT_FRAME_SPACING;
+                    currentFrame++;
+                }
+                
+                // Cepstrum normalization
+                {
+                    std::vector<float> avg = std::vector<float>(FRAME_SIZE);
+                    for (const Frame& frame : frames) {
+                        for (int i = 0; i < FRAME_SIZE; i++) {
+                            avg[i] += frame.real[i];
+                        }
+                    }
+                    for (int i = 0; i < FRAME_SIZE; i++) {
+                        avg[i] /= frames.size();
+                    }
+                    for (int i = 0; i < frames.size(); i++) {
+                        Frame& frame = frames[i];
+                        for (int j = 0; j < FRAME_SIZE; j++) {
+                            frame.real[j] -= avg[j];
+                            // No need to recalculate deltas since it doesn't change
+                            //if (i >= DELTA_DISTANCE) {
+                            //    frame.delta[j] = frame.real[j] - frames[i - DELTA_DISTANCE].real[j];
+                            //}
+                        }
+                    }
+                }
+
+                // Write data
+                currentFrame = 0;
+                fftStart = 0;
+                for (Frame& frame : frames) {
 #pragma region Phoneme overlap finder
                     size_t maxOverlap = 0;
                     size_t maxIdx = 0;
@@ -194,10 +226,10 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         exampleCount[currentPhone]++;
 #endif
                     }
-
                     fftStart += FFT_FRAME_SPACING;
                     currentFrame++;
                 }
+                
                 size_t minTemp = exampleCount[0];
                 size_t minIdx = 0;
                 for (size_t i = 1; i < outputSize; i++) {
@@ -224,6 +256,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     });
 #pragma endregion
 
+    // Find clip with wanted phonemes
+#pragma region Find clips
     size_t testedClips = 0;
     TSVReader::TSVLine nextClip;
     while (keepLoading(minExamples, examples)) {
@@ -272,6 +306,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
             loaderWaiter.notify_one();
         }
     }
+#pragma endregion
 
     endFlag = true;
     {
