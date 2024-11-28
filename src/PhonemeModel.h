@@ -4,6 +4,7 @@
 
 #include "include_mlpack.h"
 #include "ClassifierHelper.h"
+#include "Config.h"
 
 #define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE>
 #define OPTIMIZER_TYPE ens::Adam
@@ -21,14 +22,28 @@ public:
 		float e[size];
 	};
 
+	int& getInputSize() { return inputSize; };
+	int& getOutputSize() { return outputSize; };
+	int& getSampleRate() { return sampleRate; };
+
 	NETWORK_TYPE& network() { return net; };
 	OPTIMIZER_TYPE& optimizer() { return optim; };
 	float rate(int epoch) { return (epoch < hp.warmup()) ? (epoch / hp.warmup()) * hp.stepSize() : hp.stepSize(); };
 	void setHyperparameters(Hyperparameters hp);
 	void initModel();
 	void initOptimizer();
+
+	void save(int checkpoint = -1);
+	bool load();
 private:
+	void cleanUnpacked();
+
 	NETWORK_TYPE net;
 	OPTIMIZER_TYPE optim;
+	Config config;
 	Hyperparameters hp;
+
+	int inputSize = FRAME_SIZE * FFT_FRAMES * 2;
+	int outputSize = 0;
+	int sampleRate = 0;
 };

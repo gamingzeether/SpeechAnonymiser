@@ -7,9 +7,6 @@
 class ModelSerializer
 {
 public:
-	static void save(const void* network, int checkpoint = -1);
-	static bool load(void* network);
-private:
-	inline static const std::string MODEL_FILE = "phoneme_model";
-	inline static const std::string MODEL_EXT = ".bin";
+	static void saveNetwork(const std::string& filename, const void* network);
+	static bool loadNetwork(const std::string& filename, void* network);
 };

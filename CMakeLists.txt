@@ -125,6 +125,7 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/include_mlpack.h"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.h"
     "${PROJECT_SOURCE_DIR}/Voicebank.h"
+    "${PROJECT_SOURCE_DIR}/Config.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -143,6 +144,7 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/Animator.cpp"
     "${PROJECT_SOURCE_DIR}/PhonemeModel.cpp"
     "${PROJECT_SOURCE_DIR}/Voicebank.cpp"
+    "${PROJECT_SOURCE_DIR}/Config.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
@@ -168,6 +170,7 @@ find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
 find_package(RtAudio CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(yyjson CONFIG REQUIRED)
+find_package(libzip CONFIG REQUIRED)
 if (NOT MSVC)
     find_package(OpenMP REQUIRED)
 endif()
@@ -187,6 +190,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)
+target_link_libraries(${PROJECT_NAME} PRIVATE libzip::zip)
 if (NOT MSVC)
     target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)

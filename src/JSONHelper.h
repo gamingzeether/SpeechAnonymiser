@@ -3,16 +3,25 @@
 #include "common_inc.h"
 
 #include <string>
+#include <vector>
 #include <yyjson.h>
 
 class JSONHelper
 {
 public:
+	enum Type {
+		INVALID,
+		INT,
+		DOUBLE,
+		STRING,
+		BOOL,
+		ARRAY,
+		OBJECT,
+	};
 	// Wrapper for yyjson_mut_val
 	class JSONObj {
 	public:
-		JSONObj operator[](const char* key);
-		JSONObj operator[](const std::string& key) { return operator[](key.c_str()); };
+		JSONObj operator[](const char* key) const;
 		JSONObj operator[](const int index) const { return JSONObj(_doc, yyjson_mut_arr_get(val, index)); };
 
 		// Getters
@@ -21,6 +30,9 @@ public:
 		std::string get_string() const { return yyjson_mut_get_str(val); };
 		int get_array_size() const { return yyjson_mut_arr_size(val); };
 		bool get_bool() const { return yyjson_mut_get_bool(val); };
+
+		Type get_type() const;
+		bool exists(const std::string& key) const { return (NULL != yyjson_mut_obj_get(val, key.c_str())); };
 
 		// Setters
 		void operator=(int value) { yyjson_mut_set_int(val, value); };
@@ -48,10 +60,10 @@ public:
 	bool open(std::string openPath, int version = -1);
 	void close();
 	void save();
-	JSONObj getRoot() { return rootObj; };
+	JSONObj getRoot() const { return rootObj; };
+	std::string& filepath() { return path; };
 
 	JSONObj operator[](const char* key);
-	JSONObj operator[](const std::string& key) { return operator[](key.c_str()); };
 
 	JSONHelper() {};
 private:
