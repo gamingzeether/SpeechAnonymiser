@@ -94,7 +94,7 @@ bool PhonemeModel::load() {
             zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);
             zip_int64_t readBytes = zip_fread(file, buf, bufferSize);
             if (readBytes >= 0) {
-                std::ofstream out = std::ofstream(string, std::ios::beg | std::ios::binary | std::ios::trunc);
+                std::ofstream out = std::ofstream(string, std::ios::binary | std::ios::trunc);
                 out.write(buf, readBytes);
                 out.close();
             }
