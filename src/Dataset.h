@@ -69,4 +69,5 @@ private:
 	static std::wstring utf8_to_utf16(const std::string& utf8);
     inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && (minExamples < examples * MMAX_EXAMPLE_F); };
     void saveCache();
+    inline bool frameHasNull(const Frame& frame);
 };

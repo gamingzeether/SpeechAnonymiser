@@ -259,7 +259,6 @@ void startFFT(InputData& inputData) {
                 meanCount++;
             }
             for (int i = 0; i < FRAME_SIZE; i++) {
-                cepstralMean[i] += (frame.real[i] - cepstralMean[i]) / meanCount;
                 frame.real[i] -= cepstralMean[i];
             }
 

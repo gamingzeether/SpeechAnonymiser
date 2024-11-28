@@ -49,7 +49,7 @@ void PhonemeModel::initModel() {
 
 void PhonemeModel::initOptimizer() {
     optim = ens::Adam(
-        STEP_SIZE,  // Step size of the optimizer.
+        0,  // Step size of the optimizer.
         0, // Batch size. Number of data points that are used in each iteration.
         0.9,        // Exponential decay rate for the first moment estimates.
         0.999, // Exponential decay rate for the weighted infinity norm estimates.
@@ -88,7 +88,7 @@ bool PhonemeModel::load() {
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
-        size_t bufferSize = 128 * 1024 * 1024; // Allocate 128 MB
+        size_t bufferSize = 32 * 1024 * 1024; // Allocate 32 MB
         char* buf = new char[bufferSize];
         for (const char* string : ZIP_FILES) {
             zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);

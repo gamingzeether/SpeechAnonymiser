@@ -52,7 +52,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     hp.l2() = 0.01;
     hp.batchSize() = 512;
     hp.stepSize() = 0.0005;
-    hp.warmup() = 5;
+    hp.warmup() = 2;
     model.setHyperparameters(hp);
 
     model.getSampleRate() = sampleRate;
@@ -94,13 +94,12 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     while (true) {
         train.start(inputSize, outputSize, examples, true);
+        test.start(inputSize, outputSize, examples / 5);
+        validate.start(inputSize, outputSize, examples / 4);
 
         if (trainThread.joinable()) {
             trainThread.join();
         }
-
-        test.start(inputSize, outputSize, examples / 5);
-        validate.start(inputSize, outputSize, examples / 4);
 
         // Start training thread
         bool copyDone = false;
