@@ -6,7 +6,7 @@
 #include <vector>
 #include <armadillo>
 #include "structs.h"
-#include "JSONHelper.h"
+#include "Config.h"
 
 class Voicebank {
 public:
@@ -54,7 +54,7 @@ private:
 	bool loadCache();
 	static float cost(const Features& f1, const Features& f2);
 
-	JSONHelper json;
+	Config config;
 	std::string directory;
 	std::string cacheDirectory;
 	int samplerate;

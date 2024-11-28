@@ -24,6 +24,8 @@ Voicebank& Voicebank::open(const std::string& dir) {
     directory = dir;
     cacheDirectory = cacheDir();
 
+    config = Config(cacheDirectory + "/bank.json", CACHE_VERSION);
+
     if (!loadCache()) {
         // Open and read oto.ini into lines
         if (!std::filesystem::is_directory(directory)) {
@@ -199,17 +201,17 @@ std::string Voicebank::cacheDir() {
 }
 
 bool Voicebank::isCached() {
-    return std::filesystem::exists(cacheDir() + "/bank.json");
+    config.setDefault("sample_rate", samplerate);
+    config.load();
+    return config.matchesDefault();
 }
 
 void Voicebank::saveCache() {
     if (!std::filesystem::exists(cacheDirectory + "/data")) {
         std::filesystem::create_directories(cacheDirectory + "/data");
     }
-    json.open(cacheDirectory + "/bank.json", CACHE_VERSION);
-    json["sample_rate"] = samplerate;
 
-    JSONHelper::JSONObj jsonUnits = json.getRoot().add_arr("units");
+    JSONHelper::JSONObj jsonUnits = config.object().getRoot().add_arr("units");
     for (Unit& unit : units) {
         //unit.save(samplerate, cacheDirectory);
         JSONHelper::JSONObj jsonUnit = jsonUnits.append();
@@ -217,21 +219,16 @@ void Voicebank::saveCache() {
         jsonUnit["index"] = (int)unit.index;
         unit.unload();
     }
-    json.save();
+    config.save();
 }
 
 bool Voicebank::loadCache() {
     if (!isCached()) {
+        config.useDefault();
         return false;
     }
 
-    bool result = json.open(cacheDirectory + "/bank.json", CACHE_VERSION);
-    if (!result || 
-        json["sample_rate"].get_int() != samplerate) {
-        return false;
-    }
-
-    JSONHelper::JSONObj jsonUnits = json["units"];
+    JSONHelper::JSONObj jsonUnits = config.object()["units"];
     size_t unitCount = jsonUnits.get_array_size();
     units.resize(unitCount);
     for (int i = 0; i < unitCount; i++) {

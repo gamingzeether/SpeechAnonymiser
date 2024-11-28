@@ -113,7 +113,7 @@ bool Animator::loadGroup(const std::string& path, const std::string& name) {
 	if (!json.open(path, _jsonVersion)) {
 		json["name"] = name;
 		for (const std::string& articulator : articulatorsList) {
-			JSONHelper::JSONObj animObj = json[articulator];
+			JSONHelper::JSONObj animObj = json[articulator.c_str()];
 			JSONHelper::JSONObj animArr = animObj.add_arr("animation");
 			for (int i = 0; i < 1; i++) {
 				JSONHelper::JSONObj subCurve = animArr.append();
@@ -134,7 +134,7 @@ bool Animator::loadGroup(const std::string& path, const std::string& name) {
 	animNames.push_back(name);
 	animationGroups.push_back(std::vector<Curve>(articulatorsList.size()));
 	for (const std::string& articulator : articulatorsList) {
-		JSONHelper::JSONObj animObj = json[articulator];
+		JSONHelper::JSONObj animObj = json[articulator.c_str()];
 		JSONHelper::JSONObj animArr = animObj["animation"];
 		animationGroups[group][getArticulator(articulator)] = Curve(animArr);
 	}

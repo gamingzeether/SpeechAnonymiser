@@ -4,11 +4,11 @@
 
 #include "include_mlpack.h"
 #include "TSVReader.h"
-#include "JSONHelper.h"
 #include "Logger.h"
 #include "PhonemeModel.h"
 #include "structs.h"
 #include "define.h"
+#include "Config.h"
 
 class PhonemeClassifier
 {
@@ -22,24 +22,22 @@ public:
     void printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel);
     void tuneHyperparam(const std::string& path, int iterations);
 
-    inline size_t getInputSize() { return inputSize; };
-    inline size_t getOutputSize() { return outputSize; };
-    inline size_t getSampleRate() { return sampleRate; };
+    inline size_t getInputSize() { return model.getInputSize(); };
+    inline size_t getOutputSize() { return model.getOutputSize(); };
+    inline size_t getSampleRate() { return model.getSampleRate(); };
 
     void destroy() {
         if (!initalized) {
             return;
         }
-        json.close();
+        config.close();
     };
 private:
-    JSONHelper json;
+    Config config;
 
     Logger logger;
 
 	PhonemeModel model;
-    size_t inputSize = FRAME_SIZE * FFT_FRAMES * 2;
-    size_t outputSize = 0;
     size_t sampleRate;
 
     bool initalized = false;
