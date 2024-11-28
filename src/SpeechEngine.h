@@ -18,9 +18,9 @@
 class SpeechEngine {
 public:
 	// Pass frame containing phoneme to engine
-	virtual void pushFrame(const SpeechFrame& frame) abstract;
+	virtual void pushFrame(const SpeechFrame& frame) = 0;
 	// Write audio into specified buffer
-	virtual void writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) abstract;
+	virtual void writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) = 0;
 
 	virtual SpeechEngine& setSampleRate(int sr) { 
 		sampleRate = sr;
@@ -33,13 +33,13 @@ public:
 	}
 
 	// Call this last
-	virtual SpeechEngine& configure(std::string file) abstract;
+	virtual SpeechEngine& configure(std::string file) = 0;
 protected:
 	static float _random() {
 		std::uniform_real_distribution<float> randomDist = std::uniform_real_distribution<float>(-1, 1);
 		return randomDist(randomEngine);
 	};
-	virtual void _init() abstract;
+	virtual void _init() = 0;
 
 	Logger logger;
 
