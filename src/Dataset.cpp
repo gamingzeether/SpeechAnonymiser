@@ -110,150 +110,125 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 #pragma region MP3 Loader thread
     std::thread loaderThread = std::thread(
         [this, &minExamples, &inputSize, &outputSize, &print, &exampleCount,
-        &loaderMutex, &loaderWaiter, &loaderReady, 
+        &loaderMutex, &loaderWaiter, &loaderReady,
         &clip, &loaderFinished, &phones, &totalClips, &lineIndex] {
-        std::vector<Frame> frames;
-        while (keepLoading(minExamples, examples)) {
-            {
-                std::unique_lock<std::mutex> lock(loaderMutex);
-                loaderWaiter.wait(lock, [&loaderReady] { return loaderReady; });
-                loaderReady = false;
-            }
-
-            clip.loadMP3(sampleRate);
-            if (clip.loaded) {
-                totalClips++;
-
-                // Process frames of the whole clip
-                size_t fftStart = 0;
-                size_t currentFrame = 0;
-                while ((size_t)fftStart + FFT_FRAME_SAMPLES < clip.size) {
-                    if (frames.size() <= currentFrame) {
-                        frames.push_back(Frame());
-                    }
-                    Frame& frame = frames[currentFrame];
-                    Frame& prevFrame = (currentFrame >= DELTA_DISTANCE) ? frames[currentFrame - DELTA_DISTANCE] : frames[0];
-                    frame.reset();
-
-                    ClassifierHelper::instance().processFrame(frame, clip.buffer, fftStart, clip.size, prevFrame);
-
-                    fftStart += FFT_FRAME_SPACING;
-                    currentFrame++;
-                }
-                
-                // Cepstrum normalization
+            std::vector<Frame> frames = std::vector <Frame>(FFT_FRAMES);
+            // Unused because it needs cepstrum of whole clip
+            std::vector<float> cepstrumAvg = std::vector <float>(FRAME_SIZE);
+            while (keepLoading(minExamples, examples)) {
                 {
-                    std::vector<float> avg = std::vector<float>(FRAME_SIZE);
-                    for (const Frame& frame : frames) {
-                        for (int i = 0; i < FRAME_SIZE; i++) {
-                            avg[i] += frame.real[i];
-                        }
-                    }
-                    for (int i = 0; i < FRAME_SIZE; i++) {
-                        avg[i] /= frames.size();
-                    }
-                    for (int i = 0; i < frames.size(); i++) {
-                        Frame& frame = frames[i];
-                        for (int j = 0; j < FRAME_SIZE; j++) {
-                            frame.real[j] -= avg[j];
-                            // No need to recalculate deltas since it doesn't change
-                            //if (i >= DELTA_DISTANCE) {
-                            //    frame.delta[j] = frame.real[j] - frames[i - DELTA_DISTANCE].real[j];
-                            //}
-                        }
-                    }
+                    std::unique_lock<std::mutex> lock(loaderMutex);
+                    loaderWaiter.wait(lock, [&loaderReady] { return loaderReady; });
+                    loaderReady = false;
                 }
 
-                // Write data
-                currentFrame = 0;
-                fftStart = 0;
-                for (Frame& frame : frames) {
-#pragma region Phoneme overlap finder
-                    size_t maxOverlap = 0;
-                    size_t maxIdx = 0;
+                clip.loadMP3(sampleRate);
+                if (clip.loaded) {
+                    totalClips++;
+
+                    // Cepstrum normalization
+                    {
+                        // Reset
+                        for (int j = 0; j < FRAME_SIZE; j++) {
+                            cepstrumAvg[j] = 0;
+                        }
+                        size_t fftStart = 0;
+                        size_t frameCounter = 0;
+                        std::vector<Frame> allFrames = std::vector<Frame>();
+                        // Load all frames
+                        while (fftStart + FFT_REAL_SAMPLES < clip.size) {
+                            allFrames.push_back(Frame());
+                            Frame& currentFrame = allFrames[frameCounter];
+                            Frame& prevFrame = (frameCounter >= DELTA_DISTANCE) ? allFrames[frameCounter - DELTA_DISTANCE] : allFrames[0];
+                            currentFrame.reset();
+                            ClassifierHelper::instance().processFrame(currentFrame, clip.buffer, fftStart, clip.size, prevFrame);
+                            fftStart += FFT_FRAME_SPACING;
+                            frameCounter++;
+                        }
+                        // Get average
+                        size_t count = 0;
+                        for (const Frame& frame : allFrames) {
+                            if (frameHasNull(frame))
+                                continue;
+                            for (int i = 0; i < FRAME_SIZE; i++) {
+                                cepstrumAvg[i] += frame.real[i];
+                            }
+                            count++;
+                        }
+                        for (int j = 0; j < FRAME_SIZE; j++) {
+                            cepstrumAvg[j] /= count;
+                        }
+                    }
+
+                    // Look for a phoneme we need
                     for (int i = 0; i < phones.size(); i++) {
                         const Phone& p = phones[i];
+                        const size_t& currentPhone = p.phonetic;
+                        auto& phonemeCounter = exampleCount[currentPhone];
+                        if (phonemeCounter < examples) {
+                            // Check to make sure it doesn't go outside the bounds of the clip
+                            size_t center = (p.minIdx + p.maxIdx) / 2;
+                            size_t startOffset = CONTEXT_BACKWARD * FFT_FRAME_SPACING;
+                            size_t endOffset = (CONTEXT_FORWARD * FFT_FRAME_SPACING) + FFT_REAL_SAMPLES;
+                            if (startOffset <= center && center + endOffset < clip.size) {
+                                // Split and write into frames
+                                size_t frameStart = center - startOffset;
+                                for (int j = 0; j < FFT_FRAMES; j++) {
+                                    Frame& currentFrame = frames[j];
+                                    Frame& prevFrame = (j >= DELTA_DISTANCE) ? frames[j - DELTA_DISTANCE] : frames[0];
+                                    currentFrame.reset();
+                                    ClassifierHelper::instance().processFrame(currentFrame, clip.buffer, frameStart, clip.size, prevFrame);
+                                    frameStart += FFT_FRAME_SPACING;
+                                }
 
-                        if (p.maxIdx <= fftStart)
-                            continue;
-                        size_t fftEnd = fftStart + FFT_FRAME_SPACING;
-                        if (p.minIdx >= fftEnd)
-                            break;
+                                for (int j = 0; j < frames.size(); j++) {
+                                    Frame& frame = frames[j];
+                                    for (int k = 0; k < FRAME_SIZE; k++) {
+                                        frame.real[k] -= cepstrumAvg[k];
+                                    }
+                                }
 
-                        size_t overlapA = p.maxIdx - fftStart;
-                        size_t overlapB = fftEnd - p.minIdx;
-                        size_t overlapC = FFT_FRAME_SPACING; // Window size
-                        size_t overlapSize = std::min(std::min(overlapA, overlapB), overlapC);
-
-                        if (overlapSize > maxOverlap) {
-                            overlapSize = maxOverlap;
-                            maxIdx = p.phonetic;
-                        }
-                    }
-                    frame.phone = maxIdx;
-#pragma endregion
-                    if (currentFrame >= FFT_FRAMES) {
-                        const size_t& currentPhone = frames[currentFrame - CONTEXT_FORWARD].phone;
-                        size_t exampleIndex = exampleCount[currentPhone];
-
-                        if (exampleIndex >= examples) {
-                            // Random chance to not write anything
-                            // Chance decreases as number of examples goes over max
-                            double chance = (double)examples / exampleIndex;
-                            int ran = rand();
-                            double rnd = (double)ran / RAND_MAX;
-                            if (rnd < chance) {
-                                fftStart += FFT_FRAME_SPACING;
-                                currentFrame++;
-                                continue;
-                            }
-                            exampleIndex = ran % examples;
-                        }
-
-                        ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, currentFrame, exampleData[currentPhone], exampleIndex);
-#ifdef DO_NAN_CHECK
-                        bool hasNan = false;
-                        for (size_t i = 0; i < inputSize; i++) {
-                            if (std::isnan(exampleData[currentPhone](i, exampleIndex))) {
-                                hasNan = true;
-                                break;
+                                // NAN check
+                                bool hasNan = false;
+                                for (size_t j = 0; j < FFT_FRAMES; j++) {
+                                    if (frameHasNull(frames[j])) {
+                                        hasNan = true;
+                                        break;
+                                    }
+                                }
+                                if (!hasNan) {
+                                    ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter);
+                                    phonemeCounter++;
+                                }
                             }
                         }
-                        if (!hasNan) {
-                            exampleCount[currentPhone]++;
+                    }
+
+                    // Count how many examples have been collected
+                    size_t minTemp = exampleCount[0];
+                    size_t minIdx = 0;
+                    for (size_t i = 1; i < outputSize; i++) {
+                        if (exampleCount[i] < minTemp) {
+                            minTemp = exampleCount[i];
+                            minIdx = i;
                         }
-#else
-                        exampleCount[currentPhone]++;
-#endif
                     }
-                    fftStart += FFT_FRAME_SPACING;
-                    currentFrame++;
-                }
-                
-                size_t minTemp = exampleCount[0];
-                size_t minIdx = 0;
-                for (size_t i = 1; i < outputSize; i++) {
-                    if (exampleCount[i] < minTemp) {
-                        minTemp = exampleCount[i];
-                        minIdx = i;
+                    minExamples = minTemp;
+                    if (print && endFlag) {
+                        std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
+                        fflush(stdout);
                     }
+                } else { // Could not load
+                    reader.dropIdx(lineIndex);
                 }
-                minExamples = minTemp;
-                if (print && endFlag) {
-                    std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
-                    fflush(stdout);
+
+                {
+                    std::lock_guard<std::mutex> lock(loaderMutex);
+                    loaderFinished = true;
+                    loaderWaiter.notify_one();
                 }
-            } else { // Could not load
-                reader.dropIdx(lineIndex);
             }
-            
-            {
-                std::lock_guard<std::mutex> lock(loaderMutex);
-                loaderFinished = true;
-                loaderWaiter.notify_one();
-            }
-        }
-    });
+        });
 #pragma endregion
 
     // Find clip with wanted phonemes
@@ -661,4 +636,13 @@ std::wstring Dataset::utf8_to_utf16(const std::string& utf8) {
 void Dataset::saveCache() {
     get(cachedData, cachedLabels);
     cached = true;
+}
+
+bool Dataset::frameHasNull(const Frame& frame) {
+#ifdef DO_NAN_CHECK
+    for (int i = 0; i < FRAME_SIZE; i++)
+        if (std::isnan(frame.real[i]))
+            return true;
+#endif
+    return false;
 }
