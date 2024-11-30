@@ -51,8 +51,8 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     hp.dropout() = 0.5;
     hp.l2() = 0.01;
     hp.batchSize() = 512;
-    hp.stepSize() = 0.0005;
-    hp.warmup() = 2;
+    hp.stepSize() = 0.001;
+    hp.warmup() = 0;
     model.setHyperparameters(hp);
 
     model.getSampleRate() = sampleRate;
@@ -141,9 +141,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                             printConfusionMatrix(testData, testLabel);
                             model.network().SetNetworkMode(true);
                         }
-
-                        // Warmup
-                        model.optimizer().StepSize() = model.rate(epoch + 1);
 
                         // Validation
                         double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));

@@ -10,7 +10,7 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION -5
+#define CURRENT_VERSION -6
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
     this->hp = hp;
@@ -19,19 +19,19 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(2048, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(2048, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
+    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
+    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
-
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
-
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
@@ -48,7 +48,7 @@ void PhonemeModel::initModel() {
 }
 
 void PhonemeModel::initOptimizer() {
-    optim = ens::Adam(
+    optim = OPTIMIZER_TYPE(
         0,  // Step size of the optimizer.
         0, // Batch size. Number of data points that are used in each iteration.
         0.9,        // Exponential decay rate for the first moment estimates.
