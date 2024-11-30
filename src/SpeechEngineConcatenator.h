@@ -14,8 +14,14 @@ public:
 
 	virtual SpeechEngineConcatenator& configure(std::string file);
 protected:
-	virtual void _init();
+	struct ActiveUnit {
+		const Voicebank::Unit* unit;
+		size_t pointer;
+	};
 
-	size_t pointer;
+	virtual void _init();
+	virtual void playUnit(const Voicebank::Unit& unit);
+
 	std::vector<Voicebank> voicebanks;
+	std::vector<ActiveUnit> activeUnits;
 };

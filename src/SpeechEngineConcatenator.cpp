@@ -12,13 +12,58 @@ SpeechEngineConcatenator& SpeechEngineConcatenator::configure(std::string file) 
 }
 
 void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
-
+	Voicebank::DesiredFeatures desiredFeatures;
+	if (activeUnits.size() > 0) {
+		const ActiveUnit& lastUnit = activeUnits.back();
+		desiredFeatures.from = lastUnit.unit;
+		return;
+	} else {
+		desiredFeatures.from = NULL;
+	}
+	desiredFeatures.to = frame.phoneme;
+	const Voicebank::Unit& selectUnit = voicebanks[0].selectUnit(desiredFeatures);
+	voicebanks[0].loadUnit(selectUnit.index);
+	playUnit(selectUnit);
 }
 
 void SpeechEngineConcatenator::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) {
-
+	for (int i = 0; i < nFrames * channels; i++) {
+		outputBuffer[i] = 0;
+	}
+	std::unique_lock<std::mutex> lock(stateMutex);
+	for (ActiveUnit& aunit : activeUnits) {
+		const Voicebank::Unit& unit = *aunit.unit;
+		size_t unitSize = unit.audio.size();
+		unsigned int samples = std::min(nFrames, (unsigned int)(unitSize - aunit.pointer));
+		OUTPUT_TYPE* outputTmp = outputBuffer;
+		for (int i = 0; i < samples; i++) {
+			float data = unit.audio[aunit.pointer + i] * volume;
+			for (int j = 0; j < channels; j++) {
+				*(outputTmp++) += data;
+			}
+		}
+		aunit.pointer += samples;
+	}
+	if (activeUnits.size() > 0) {
+		ActiveUnit& front = activeUnits.front();
+		if (front.pointer >= front.unit->audio.size()) {
+			for (int i = 1; i < activeUnits.size(); i++) {
+				activeUnits[i - 1] = std::move(activeUnits[i]);
+			}
+			activeUnits.pop_back();
+		}
+	}
 }
 
 void SpeechEngineConcatenator::_init() {
 
+}
+
+void SpeechEngineConcatenator::playUnit(const Voicebank::Unit& unit) {
+	std::unique_lock<std::mutex> lock(stateMutex);
+
+	activeUnits.push_back(ActiveUnit());
+	ActiveUnit& aunit = activeUnits.back();
+	aunit.unit = &unit;
+	aunit.pointer = 0;
 }

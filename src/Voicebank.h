@@ -27,15 +27,18 @@ public:
 		Features features;
 		std::vector<float> audio;
 		bool loaded;
+		uint32_t consonant;
+		uint32_t preutterance;
+		uint32_t overlap;
 
 		void save(int sr, const std::string& cacheDir) const;
 		void unload();
 		void load(const std::string& cacheDir);
 	};
 	struct DesiredFeatures {
-		Unit& from;
+		const Unit* from;
 		std::vector<Phone> glide;
-		Phone to;
+		size_t to;
 	};
 
 	Voicebank() {};

@@ -6,6 +6,7 @@
 #include <random>
 #include <unordered_map>
 #include <string>
+#include <mutex>
 #include "structs.h"
 #include "define.h"
 #include "Logger.h"
@@ -26,9 +27,12 @@ public:
 		sampleRate = sr;
 		return *this;
 	}
-
 	virtual SpeechEngine& setChannels(int ch) {
 		channels = ch;
+		return *this;
+	}
+	virtual SpeechEngine& setVolume(float v) {
+		volume = v;
 		return *this;
 	}
 
@@ -45,6 +49,8 @@ protected:
 
 	int sampleRate = 16000;
 	int channels = 1;
+	float volume = 1;
+	std::mutex stateMutex;
 
 	inline static std::default_random_engine randomEngine = std::default_random_engine((unsigned int)std::chrono::system_clock::now().time_since_epoch().count());
 };

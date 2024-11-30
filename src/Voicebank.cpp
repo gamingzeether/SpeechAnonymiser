@@ -118,7 +118,7 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
             float* audio;
             audio = drwav_open_file_and_read_pcm_frames_f32(filepath.c_str(), &chOut, &srOut, &samples, NULL);
             if (audio == NULL || chOut <= 0 || srOut <= 0) {
-                wprintf(L"Failed to read voicebank wav: %s\n", filepath.c_str());
+                std::printf("Failed to read voicebank wav: %s\n", filepath.c_str());
                 continue;
             }
 
@@ -184,6 +184,11 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
         u.audio = std::vector<float>(segmentLength);
         memcpy(u.audio.data(), &resampledAudio[startSample], sizeof(float) * segmentLength);
 
+        // Copy timing info to unit
+        u.consonant = (line.consonant / 1000) * samplerate;
+        u.preutterance = (line.preutterance / 1000) * samplerate;
+        u.overlap = (line.overlap / 1000) * samplerate;
+
         units.push_back(std::move(u));
     }
     delete[] resampledAudio;
@@ -213,7 +218,7 @@ void Voicebank::saveCache() {
 
     JSONHelper::JSONObj jsonUnits = config.object().getRoot().add_arr("units");
     for (Unit& unit : units) {
-        //unit.save(samplerate, cacheDirectory);
+        unit.save(samplerate, cacheDirectory);
         JSONHelper::JSONObj jsonUnit = jsonUnits.append();
         // Need something in here so it knows how many units are in a bank
         jsonUnit["index"] = (int)unit.index;
@@ -252,11 +257,22 @@ void Voicebank::Unit::save(int sr, const std::string& cacheDir) const {
     format.sampleRate = sr;
     format.bitsPerSample = 16;
     drwav_init_file_write(&wav, (std::format("{}/data/{}.wav", cacheDir, index)).c_str(), &format, NULL);
-    drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, audio.size(), audio.data());
+    // Convert data to 16 bit signed int
+    int16_t* intData = new int16_t[audio.size()];
+    size_t samples = audio.size();
+    for (int i = 0; i < samples; i++) {
+        intData[i] = std::numeric_limits<int16_t>::max() * audio[i];
+    }
+    // Write data
+    drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, samples, intData);
+    // Cleanup
+    delete[] intData;
     drwav_uninit(&wav);
 }
 
 void Voicebank::Unit::load(const std::string& cacheDir) {
+    if (loaded)
+        return;
     std::string filepath = std::format("{}/data/{}.wav", cacheDir, index);
     unsigned int chOut, srOut;
     drwav_uint64 samples;
