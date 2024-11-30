@@ -108,6 +108,7 @@ void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size
     float dctScale = 10.0f / (MEL_BINS * 2);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         float value = dctOut[i] * dctScale;
+        value = 1.0 / (1.0 + std::pow(2.71828, -value));
         frame.real[i] = value;
         frame.delta[i] = value - prevFrame.real[i];
     }
