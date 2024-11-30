@@ -208,6 +208,9 @@ void startFFT(InputData& inputData) {
         }
         logger.log("Starting FFT thread processing", Logger::VERBOSE);
         std::vector<Frame> frames = std::vector<Frame>(FFT_FRAMES);
+        for (Frame& f : frames) {
+            f.reset();
+        }
         size_t currentFrame = 0;
         size_t lastSampleStart = 0;
 

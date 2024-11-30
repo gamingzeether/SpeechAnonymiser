@@ -21,8 +21,9 @@ void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
 		desiredFeatures.from = NULL;
 	}
 	desiredFeatures.to = frame.phoneme;
-	const Voicebank::Unit& selectUnit = voicebanks[0].selectUnit(desiredFeatures);
-	voicebanks[0].loadUnit(selectUnit.index);
+	Voicebank& vb = voicebanks[2];
+	const Voicebank::Unit& selectUnit = vb.selectUnit(desiredFeatures);
+	vb.loadUnit(selectUnit.index);
 	playUnit(selectUnit);
 }
 

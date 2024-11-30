@@ -6,8 +6,11 @@
 #include <format>
 #include <dr_wav.h>
 #include <samplerate.h>
+#include "ClassifierHelper.h"
+#include "Logger.h"
 
 #define CACHE_VERSION 0
+#define DICT_WIDTH 5
 
 std::string split(std::string& in, char c) {
     std::string left = in.substr(0, in.find_first_of(c));
@@ -80,6 +83,70 @@ Voicebank& Voicebank::open(const std::string& dir) {
         }
 
         loadUnits(lines);
+
+        // Initalize aliases mapping
+        if (std::filesystem::exists(cacheDirectory + "/aliases.json")) {
+            std::filesystem::remove(cacheDirectory + "/aliases.json");
+        }
+        {
+            // If the alias follows a specific format, translate it using a dictionary
+            // Maps a sequence of characters to a phoneme used by ClassifierHelper
+            std::map<std::string, std::string> charMapping;
+            if (std::filesystem::exists("configs/alias_dictionary.json")) {
+                Config dictionaryConfig = Config("configs/alias_dictionary.json", 0);
+                dictionaryConfig.load();
+
+                JSONHelper::JSONObj dictionary = dictionaryConfig.object()["dictionary"];
+                size_t dictSize = dictionary.get_array_size();
+                auto set = ClassifierHelper::instance().phonemeSet;
+                for (size_t i = 0; i < dictSize; i++) {
+                    JSONHelper::JSONObj dictItem = dictionary[i];
+                    std::string phoneme = dictItem["phoneme"].get_string();
+                    // Check to see if it is a valid phoneme
+                    std::wstring wphoneme = ClassifierHelper::instance().utf8_to_utf16(phoneme);
+                    if (set.find(ClassifierHelper::instance().customHasher(wphoneme)) == set.end()) {
+                        std::printf("Invalid phoneme at index %zd\n", i);
+                        continue;
+                    }
+                    charMapping[dictItem["sequence"].get_string()] = phoneme;
+                }
+
+                dictionaryConfig.close();
+            }
+            // Initalize alias file
+            Config aliasConfig = Config(cacheDirectory + "/aliases.json", 0);
+            aliasConfig.load(); // This will initalize a new file
+            JSONHelper::JSONObj root = aliasConfig.object().getRoot();
+            JSONHelper::JSONObj arr = root.add_arr("aliases");
+            // Write entries
+            for (const UTAULine& line : lines) {
+                JSONHelper::JSONObj alias = arr.append();
+                alias["name"] = line.alias;
+                JSONHelper::JSONObj list = alias.add_arr("phonemes");
+                size_t pointer = 0;
+                while (pointer < line.alias.size()) {
+                    for (int i = DICT_WIDTH; i >= 0; i--) {
+                        // Could not match
+                        if (i == 0) {
+                            std::printf("Could not find match: %s, %zd\n", line.alias.c_str(), pointer);
+                            pointer++;
+                            break;
+                        }
+                        std::string chk = line.alias.substr(pointer, i);
+                        auto iter = charMapping.find(chk);
+                        if (iter != charMapping.end()) {
+                            // Found a match
+                            JSONHelper::JSONObj item = list.append();
+                            item = iter->second;
+                            pointer += i;
+                            break;
+                        }
+                    }
+                }
+            }
+            aliasConfig.save();
+        }
+
         saveCache();
     }
 
@@ -180,11 +247,13 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
         }
         size_t startSample = ((line.offset) / 1000) * samplerate;
         size_t endSample = ((line.offset - line.cutoff) / 1000) * samplerate;
+        endSample = std::min(endSample, audioSamples);
         size_t segmentLength = endSample - startSample;
         u.audio = std::vector<float>(segmentLength);
         memcpy(u.audio.data(), &resampledAudio[startSample], sizeof(float) * segmentLength);
 
-        // Copy timing info to unit
+        // Copy info to unit
+        u.alias = line.alias;
         u.consonant = (line.consonant / 1000) * samplerate;
         u.preutterance = (line.preutterance / 1000) * samplerate;
         u.overlap = (line.overlap / 1000) * samplerate;
@@ -222,6 +291,10 @@ void Voicebank::saveCache() {
         JSONHelper::JSONObj jsonUnit = jsonUnits.append();
         // Need something in here so it knows how many units are in a bank
         jsonUnit["index"] = (int)unit.index;
+        jsonUnit["alias"] = unit.alias;
+        jsonUnit["consonant"] = (int)unit.consonant;
+        jsonUnit["preutterance"] = (int)unit.preutterance;
+        jsonUnit["overlap"] = (int)unit.overlap;
         unit.unload();
     }
     config.save();
@@ -236,14 +309,19 @@ bool Voicebank::loadCache() {
     JSONHelper::JSONObj jsonUnits = config.object()["units"];
     size_t unitCount = jsonUnits.get_array_size();
     units.resize(unitCount);
-    for (int i = 0; i < unitCount; i++) {
+    for (size_t i = 0; i < unitCount; i++) {
         JSONHelper::JSONObj jsonUnit = jsonUnits[i];
         int index = jsonUnit["index"].get_int();
         Unit& u = units[index];
         u.index = i;
         u.audio = std::vector<float>();
         u.loaded = false;
+        u.consonant = jsonUnit["consonant"].get_int();
+        u.preutterance = jsonUnit["preutterance"].get_int();
+        u.overlap = jsonUnit["overlap"].get_int();
     }
+
+    loadAliases();
 
     return true;
 }
@@ -288,4 +366,32 @@ void Voicebank::Unit::unload() {
     audio.clear();
     audio.shrink_to_fit();
     loaded = false;
+}
+
+void Voicebank::loadAliases() {
+    Config aliasConfig = Config(cacheDirectory + "/aliases.json", 0);
+    aliasConfig.load();
+    JSONHelper::JSONObj root = aliasConfig.object().getRoot();
+    JSONHelper::JSONObj arr = root["aliases"];
+    int count = root["aliases"].get_array_size();
+    ClassifierHelper& ch = ClassifierHelper::instance();
+    for (int i = 0; i < count; i++) {
+        JSONHelper::JSONObj aliasJson = arr[i];
+        Features aliasFeatures;
+        aliasFeatures.glide = std::vector<size_t>();
+        JSONHelper::JSONObj phonemes = aliasJson["phonemes"];
+        int pcount = phonemes.get_array_size();
+        for (int j = 0; j < pcount; j++) {
+            std::wstring phonws = ch.utf8_to_utf16(phonemes[j].get_string());
+            size_t phonemeId = ch.phonemeSet[ch.customHasher(phonws)];
+            if (j == 0) {
+                aliasFeatures.from = phonemeId;
+            } else if (j == pcount - 1) {
+                aliasFeatures.to = phonemeId;
+            } else {
+                aliasFeatures.glide.push_back(phonemeId);
+            }
+        }
+        aliasMapping[aliasJson["name"].get_string()] = std::move(aliasFeatures);
+    }
 }

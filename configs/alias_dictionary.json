@@ -1,0 +1,201 @@
+{
+    "_version": 0,
+    "dictionary": [
+        {
+            "sequence": "-",
+            "phoneme": ""
+        },
+        {
+            "sequence": "a",
+            "phoneme": "ɐ"
+        },
+        {
+            "sequence": "e",
+            "phoneme": "e"
+        },
+        {
+            "sequence": "i",
+            "phoneme": "i"
+        },
+        {
+            "sequence": "o",
+            "phoneme": "o"
+        },
+        {
+            "sequence": "u",
+            "phoneme": "ʊ"
+        },
+        {
+            "sequence": "E",
+            "phoneme": "ɛ"
+        },
+        {
+            "sequence": "9",
+            "phoneme": "ow"
+        },
+        {
+            "sequence": "3",
+            "phoneme": "ɝ"
+        },
+        {
+            "sequence": "@",
+            "phoneme": "ə"
+        },
+        {
+            "sequence": "A",
+            "phoneme": "ɑ"
+        },
+        {
+            "sequence": "I",
+            "phoneme": "ɪ"
+        },
+        {
+            "sequence": "O",
+            "phoneme": "ɔ"
+        },
+        {
+            "sequence": "8",
+            "phoneme": "ow"
+        },
+        {
+            "sequence": "Q",
+            "phoneme": "ɒ"
+        },
+        {
+            "sequence": "6",
+            "phoneme": "ɐ"
+        },
+        {
+            "sequence": "x",
+            "phoneme": ""
+        },
+        {
+            "sequence": "0",
+            "phoneme": "θ"
+        },
+        {
+            "sequence": "1",
+            "phoneme": ""
+        },
+        {
+            "sequence": "ng",
+            "phoneme": "ŋ"
+        },
+        {
+            "sequence": "&",
+            "phoneme": "ow"
+        },
+        {
+            "sequence": "ll",
+            "phoneme": "l"
+        },
+        {
+            "sequence": "mm",
+            "phoneme": "m"
+        },
+        {
+            "sequence": "nn",
+            "phoneme": "n"
+        },
+        {
+            "sequence": "n",
+            "phoneme": "n"
+        },
+        {
+            "sequence": "b",
+            "phoneme": "b"
+        },
+        {
+            "sequence": "d",
+            "phoneme": "d"
+        },
+        {
+            "sequence": "f",
+            "phoneme": "f"
+        },
+        {
+            "sequence": "g",
+            "phoneme": "g"
+        },
+        {
+            "sequence": "j",
+            "phoneme": "j"
+        },
+        {
+            "sequence": "k",
+            "phoneme": "k"
+        },
+        {
+            "sequence": "p",
+            "phoneme": "p"
+        },
+        {
+            "sequence": "s",
+            "phoneme": "s"
+        },
+        {
+            "sequence": "t",
+            "phoneme": "t"
+        },
+        {
+            "sequence": "v",
+            "phoneme": "v"
+        },
+        {
+            "sequence": "z",
+            "phoneme": "z"
+        },
+        {
+            "sequence": "ch",
+            "phoneme": "tʃ"
+        },
+        {
+            "sequence": "dh",
+            "phoneme": "ð"
+        },
+        {
+            "sequence": "sh",
+            "phoneme": "ʃ"
+        },
+        {
+            "sequence": "th",
+            "phoneme": "θ"
+        },
+        {
+            "sequence": "zh",
+            "phoneme": "ʒ"
+        },
+        {
+            "sequence": "h",
+            "phoneme": "h"
+        },
+        {
+            "sequence": "l",
+            "phoneme": "l"
+        },
+        {
+            "sequence": "m",
+            "phoneme": "m"
+        },
+        {
+            "sequence": "n",
+            "phoneme": "n"
+        },
+        {
+            "sequence": "r",
+            "phoneme": "ɾ"
+        },
+        {
+            "sequence": "w",
+            "phoneme": "w"
+        },
+        {
+            "sequence": "y",
+            "phoneme": "y"
+        },
+        {
+            "sequence": "dd",
+            "phoneme": "d"
+        }
+    ]
+}

@@ -20,11 +20,14 @@ public:
 		float overlap;
 	};
 	struct Features {
-
+		size_t from;
+		std::vector<size_t> glide;
+		size_t to;
 	};
 	struct Unit {
 		size_t index;
 		Features features;
+		std::string alias;
 		std::vector<float> audio;
 		bool loaded;
 		uint32_t consonant;
@@ -37,7 +40,7 @@ public:
 	};
 	struct DesiredFeatures {
 		const Unit* from;
-		std::vector<Phone> glide;
+		std::vector<size_t> glide;
 		size_t to;
 	};
 
@@ -56,10 +59,12 @@ private:
 	void saveCache();
 	bool loadCache();
 	static float cost(const Features& f1, const Features& f2);
+	void loadAliases();
 
 	Config config;
 	std::string directory;
 	std::string cacheDirectory;
 	int samplerate;
 	std::vector<Unit> units;
+	std::map<std::string, Features> aliasMapping;
 };

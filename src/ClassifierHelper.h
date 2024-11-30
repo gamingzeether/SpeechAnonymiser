@@ -32,6 +32,8 @@ public:
     };
 
     inline void setGain(float g) { gain = g; };
+    // https://stackoverflow.com/a/7154226
+    static std::wstring utf8_to_utf16(const std::string& utf8);
 
     std::unordered_map<size_t, size_t> phonemeSet;
     std::vector<std::string> inversePhonemeSet;

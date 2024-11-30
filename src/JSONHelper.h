@@ -28,7 +28,7 @@ public:
 		int get_int() const { return yyjson_mut_get_int(val); };
 		double get_real() const { return yyjson_mut_get_real(val); };
 		std::string get_string() const { return yyjson_mut_get_str(val); };
-		int get_array_size() const { return yyjson_mut_arr_size(val); };
+		size_t get_array_size() const { return yyjson_mut_arr_size(val); };
 		bool get_bool() const { return yyjson_mut_get_bool(val); };
 
 		Type get_type() const;
