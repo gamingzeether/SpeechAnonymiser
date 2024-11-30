@@ -27,11 +27,15 @@ void PhonemeModel::initModel() {
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 
     net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
+    net.Add<mlpack::PReLUType<MAT_TYPE>>();
+    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+
+    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
     net.Add<mlpack::PReLUType<MAT_TYPE>>();
     net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
 

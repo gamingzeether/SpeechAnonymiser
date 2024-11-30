@@ -23,7 +23,7 @@
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
 
-const bool outputPassthrough = false;
+const bool outputPassthrough = true;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
