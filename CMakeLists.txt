@@ -16,6 +16,9 @@ project(SpeechAnonymiser CXX)
 
 set(VCPKG_POLICY_SKIP_ABSOLUTE_PATHS_CHECK enabled)
 
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
+
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################

@@ -567,6 +567,52 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
     }
 }
 
+std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target, int samplerate, TSVReader::TSVLine& tsv, std::vector<Phone>& phones) {
+    reader.shuffle();
+    const std::string clipPath = path + "/clips/";
+    const std::string transcriptsPath = path + "/transcript/";
+    Clip clip;
+    clip.initSampleRate(samplerate);
+    std::vector<float> audio = std::vector<float>();
+    TSVReader::CompactTSVLine* line;
+    while (true) {
+        TSVReader::CompactTSVLine* line = reader.read_line();
+        if (!line) {
+            reader.resetLine();
+            break;
+        }
+       tsv = TSVReader::convert(*line);
+        // Get transcription
+        const std::string& nextClipPath = tsv.PATH;
+        const std::string transcriptionPath = transcriptsPath + tsv.CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
+        if (!std::filesystem::exists(transcriptionPath)) {
+            //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
+            continue;
+        }
+        phones = parseTextgrid(transcriptionPath);
+
+        // Check if the clip should be loaded
+        bool shouldLoad = false;
+        for (size_t i = 0; i < phones.size(); i++) {
+            size_t phoneme = phones[i].phonetic;
+            if (phoneme == target) {
+                shouldLoad = true;
+                break;
+            }
+        }
+        if (!shouldLoad) {
+            continue;
+        }
+        loadNextClip(clipPath, tsv, clip, samplerate);
+        audio.resize(clip.size);
+        for (size_t i = 0; i < clip.size; i++) {
+            audio[i] = clip.buffer[i];
+        }
+        return audio;
+    }
+    return audio;
+}
+
 void Dataset::saveCache() {
     get(cachedData, cachedLabels);
     cached = true;

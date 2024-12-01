@@ -23,7 +23,7 @@
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
 
-const bool outputPassthrough = true;
+const bool outputPassthrough = false;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
@@ -77,7 +77,20 @@ static struct cag_option options[] = {
     .identifier = 'o',
     .access_letters = "o",
     .value_name = "PATH",
-    .description = "Output directory"}
+    .description = "Output directory"},
+
+  {
+    .identifier = '\\',
+    .access_name = "interactive",
+    .value_name = "PATH",
+    .description = "Used for development"
+}
+};
+
+struct AudioContainer {
+    std::vector<float> audio;
+    size_t pointer;
+    std::mutex mtx;
 };
 
 template <typename T>
@@ -166,6 +179,24 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
         iData->lastProcessed = (int)(oData->lastSample / scale);
     }
 
+    return 0;
+}
+
+int oneshotOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames,
+    double /*streamTime*/, RtAudioStreamStatus status, void* data) {
+
+    OUTPUT_TYPE* buffer = (OUTPUT_TYPE*)outputBuffer;
+
+    AudioContainer& container = *(AudioContainer*)data;
+    std::unique_lock<std::mutex> lock(container.mtx);
+    size_t size = container.audio.size();
+    size_t& ptr = container.pointer;
+    for (size_t i = 0; i < nBufferFrames; i++) {
+        float data = (ptr + i < size) ? container.audio[ptr++] : 0;
+        for (size_t j = 0; j < 2; j++) {
+            *buffer++ = data;
+        }
+    }
     return 0;
 }
 
@@ -487,6 +518,153 @@ int commandDefault() {
     return 0;
 }
 
+// For development - listening to and comparing sound clips/phonemes
+int commandInteractive(const std::string& path) {
+    AudioContainer ac;
+    ac.audio = std::vector<float>(1);
+    ac.pointer = 0;
+
+#pragma region Output
+    RtAudio audioQuery;
+    auto devices = audioQuery.getDeviceIds();
+    unsigned int outDevice = audioQuery.getDefaultOutputDevice();
+    if (outDevice == 0) {
+        std::cout << "No output devices available\n";
+        return 0;
+    }
+    std::vector<RtAudio::DeviceInfo> outputDevices = std::vector<RtAudio::DeviceInfo>();
+    int inIdx = 0;
+    int outIdx = 0;
+    for (size_t i = 0; i < devices.size(); i++) {
+        unsigned int deviceId = devices[i];
+        RtAudio::DeviceInfo deviceInfo = audioQuery.getDeviceInfo(deviceId);
+        if (deviceInfo.outputChannels > 0) {
+            if (deviceInfo.isDefaultOutput) {
+                outIdx = outputDevices.size();
+            }
+            outputDevices.push_back(deviceInfo);
+        }
+    }
+
+    std::string response;
+
+    for (size_t i = 0; i < outputDevices.size(); i++) {
+        std::cout << i << ": " << outputDevices[i].name << std::endl;
+    }
+    requestInput("Select output device", outIdx);
+    if (outIdx < 0 || outIdx >= outputDevices.size()) {
+        throw("Out of range");
+    } else {
+        outDevice = outputDevices[outIdx].ID;
+    }
+
+    RtAudio::StreamOptions outputFlags;
+    RtAudio outputAudio;
+
+    RtAudio::StreamParameters outputParameters;
+    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(outDevice);
+
+    outputParameters.deviceId = outDevice;
+    outputParameters.nChannels = outputInfo.outputChannels;
+    unsigned int outputSampleRate = 44100;
+    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
+
+
+    logger.log(std::format("Using output: {}", outputInfo.name), Logger::INFO);
+    logger.log(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
+    logger.log(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
+
+    OutputData outputData = OutputData();
+    outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
+    outputData.channels = outputParameters.nChannels;
+    outputData.input = NULL;
+    outputData.scale = (double)outputSampleRate / outputSampleRate;
+
+    if (outputAudio.openStream(&outputParameters, NULL, OUTPUT_FORMAT,
+        outputSampleRate, &outputBufferFrames, &oneshotOutput, (void*)&ac, &outputFlags)) {
+        std::cout << outputAudio.getErrorText() << '\n';
+        return 0; // problem with device settings
+    }
+#pragma endregion
+
+    auto tmp = SpeechEngineConcatenator();
+    tmp.setSampleRate(outputSampleRate)
+        .setChannels(1)
+        .setVolume(0.1)
+        .configure("AERIS CV-VC ENG Kire 2.0/");
+    speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
+
+    Dataset ds = Dataset(path + "/test.tsv", outputSampleRate, path);
+
+    if (outputAudio.startStream()) {
+        std::cout << outputAudio.getErrorText() << '\n';
+        cleanupRtAudio(outputAudio);
+        return -1;
+    }
+
+    std::string command;
+    std::string prefix = "~";
+    std::vector<float> clipAudio;
+    std::vector<Phone> clipPhones;
+    while (true) {
+        std::printf("%s: ", prefix);
+        std::getline(std::cin, command);
+        if (command == "voicebank" && prefix == "~") {
+            prefix = "voicebank";
+        } else if (command == "dataset" && prefix == "~") {
+            prefix = "dataset";
+        } else if (command == "exit") {
+            prefix = "~";
+        } else if (command != "" && prefix == "clip") {
+            int index = std::stoi(command);
+            if (0 <= index && index < clipPhones.size()) {
+                const Phone& p = clipPhones[index];
+                int buffer = 0.2 * sampleRate;
+                int start = std::max(0, (int)p.minIdx - buffer);
+                int end = std::min((int)(clipAudio.size() - 1), (int)p.maxIdx + buffer);
+                int len = end - start;
+                std::vector<float> aud = std::vector<float>(len);
+                for (int i = 0; i < len; i++) {
+                    float volume = (i + 2000 < len) ? 1 : (len - i) / 2000.0f;
+                    aud[i] = clipAudio[start + i] * volume;
+                }
+                std::unique_lock<std::mutex> lock(ac.mtx);
+                ac.audio = std::move(aud);
+                ac.pointer = 0;
+            } else if (index == -1) {
+                std::unique_lock<std::mutex> lock(ac.mtx);
+                ac.audio = clipAudio;
+                ac.pointer = 0;
+            }
+        } else if (command != "" && prefix == "voicebank") {
+            std::unique_lock<std::mutex> lock(ac.mtx);
+            SpeechFrame sf;
+            sf.phoneme = std::stoi(command);
+            speechEngine->pushFrame(sf);
+            ac.audio.resize(outputSampleRate / 2);
+            speechEngine->writeBuffer(ac.audio.data(), outputSampleRate / 2);
+            ac.pointer = 0;
+        } else if (command != "" && prefix == "dataset") {
+            size_t targetPhoneme = std::stoull(command);
+            if (targetPhoneme < ClassifierHelper::instance().inversePhonemeSet.size()) {
+                TSVReader::TSVLine tsv;
+                clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, tsv, clipPhones);
+                prefix = "clip";
+                std::printf("%s\n", tsv.PATH.c_str());
+                for (int i = 0; i < clipPhones.size(); i++) {
+                    const Phone& p = clipPhones[i];
+                    std::printf("%d  %s: %.2f, %.2f\n", i, ClassifierHelper::instance().inversePhonemeSet[p.phonetic].c_str(), p.min, p.max);
+                }
+            } else {
+                std::printf("Out of range\n");
+            }
+        } else {
+            std::printf("Invalid command\n");
+        }
+    }
+    return 0;
+}
+
 bool tryMakeDir(std::string path, bool fatal = true) {
     if (!std::filesystem::create_directories(path)) {
         if (std::filesystem::exists(path)) {
@@ -551,8 +729,8 @@ int main(int argc, char* argv[]) {
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-    bool trainMode = false, preprocessMode = false, helpMode = false;
-    std::string tVal, pVal, wVal, dVal, aVal, oVal;
+    bool trainMode = false, preprocessMode = false, helpMode = false, interactiveMode = false;
+    std::string tVal, pVal, wVal, dVal, aVal, oVal, iiVal;
     while (cag_option_fetch(&context)) {
         switch (cag_option_get_identifier(&context)) {
         case 't': // Train mode
@@ -578,6 +756,10 @@ int main(int argc, char* argv[]) {
         case 'o': // Output location
             oVal = cag_option_get_value(&context);
             break;
+        case '\\':
+            interactiveMode = true;
+            iiVal = cag_option_get_value(&context);
+            break;
         }
     }
 
@@ -591,6 +773,8 @@ int main(int argc, char* argv[]) {
         initClassifier(argc, argv);
         if (trainMode) {
             error = commandTrain(tVal);
+        } else if (interactiveMode) {
+            error = commandInteractive(iiVal);
         } else {
             error = commandDefault();
         }

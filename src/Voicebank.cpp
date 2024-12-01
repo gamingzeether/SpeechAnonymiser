@@ -154,7 +154,8 @@ Voicebank& Voicebank::open(const std::string& dir) {
 }
 
 const Voicebank::Unit& Voicebank::selectUnit(const DesiredFeatures& features) {
-    return units[0];
+    assert(features.to < units.size());
+    return units[features.to];
 }
 
 void Voicebank::loadUnit(size_t index) {
