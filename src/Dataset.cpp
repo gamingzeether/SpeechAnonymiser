@@ -111,8 +111,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     std::thread loaderThread = std::thread(
         [this, &minExamples, &inputSize, &outputSize, &print, &exampleCount,
         &loaderMutex, &loaderWaiter, &loaderReady,
-        &clip, &loaderFinished, &phones, &totalClips, &lineIndex] {
-            std::vector<Frame> frames = std::vector <Frame>(FFT_FRAMES);
+        &clip, &loaderFinished, &phones, &totalClips, &lineIndex, &realEx] {
+            std::vector<Frame> frames = std::vector <Frame>();
             // Unused because it needs cepstrum of whole clip
             std::vector<float> cepstrumAvg = std::vector <float>(FRAME_SIZE);
             while (keepLoading(minExamples, examples)) {
@@ -134,20 +134,37 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         }
                         size_t fftStart = 0;
                         size_t frameCounter = 0;
-                        std::vector<Frame> allFrames = std::vector<Frame>();
                         // Load all frames
                         while (fftStart + FFT_REAL_SAMPLES < clip.size) {
-                            allFrames.push_back(Frame());
-                            Frame& currentFrame = allFrames[frameCounter];
-                            Frame& prevFrame = (frameCounter >= DELTA_DISTANCE) ? allFrames[frameCounter - DELTA_DISTANCE] : allFrames[0];
+                            if (frames.size() <= frameCounter) {
+                                frames.push_back(Frame());
+                            }
+                            Frame& currentFrame = frames[frameCounter];
+                            Frame& prevFrame = (frameCounter >= DELTA_DISTANCE) ? frames[frameCounter - DELTA_DISTANCE] : frames[0];
                             currentFrame.reset();
                             ClassifierHelper::instance().processFrame(currentFrame, clip.buffer, fftStart, clip.size, prevFrame);
+
+                            size_t maxOverlap = 0;
+                            size_t maxIdx = 0;
+                            // Look for a phoneme we need
+                            for (int i = 0; i < phones.size(); i++) {
+                                const Phone& p = phones[i];
+
+                                if (p.maxIdx <= fftStart)
+                                    continue;
+                                size_t fftEnd = fftStart + FFT_FRAME_SPACING;
+                                if (p.minIdx >= fftEnd)
+                                    break;
+
+                                currentFrame.phone = p.phonetic;
+                            }
+
                             fftStart += FFT_FRAME_SPACING;
                             frameCounter++;
                         }
                         // Get average
                         size_t count = 0;
-                        for (const Frame& frame : allFrames) {
+                        for (const Frame& frame : frames) {
                             if (frameHasNull(frame))
                                 continue;
                             for (int i = 0; i < FRAME_SIZE; i++) {
@@ -160,48 +177,32 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         }
                     }
 
-                    // Look for a phoneme we need
-                    for (int i = 0; i < phones.size(); i++) {
-                        const Phone& p = phones[i];
-                        const size_t& currentPhone = p.phonetic;
+                    for (Frame& frame : frames) {
+                        // Apply cepstrum normalization
+                        for (int i = 0; i < FRAME_SIZE; i++) {
+                            frame.real[i] -= cepstrumAvg[i];
+                        }
+
+                        // NAN check
+                        const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
-                        if (phonemeCounter < examples) {
-                            // Check to make sure it doesn't go outside the bounds of the clip
-                            size_t center = (p.minIdx + p.maxIdx) / 2;
-                            size_t startOffset = CONTEXT_BACKWARD * FFT_FRAME_SPACING;
-                            size_t endOffset = (CONTEXT_FORWARD * FFT_FRAME_SPACING) + FFT_REAL_SAMPLES;
-                            if (startOffset <= center && center + endOffset < clip.size) {
-                                // Split and write into frames
-                                size_t frameStart = center - startOffset;
-                                for (int j = 0; j < FFT_FRAMES; j++) {
-                                    Frame& currentFrame = frames[j];
-                                    Frame& prevFrame = (j >= DELTA_DISTANCE) ? frames[j - DELTA_DISTANCE] : frames[0];
-                                    currentFrame.reset();
-                                    ClassifierHelper::instance().processFrame(currentFrame, clip.buffer, frameStart, clip.size, prevFrame);
-                                    frameStart += FFT_FRAME_SPACING;
-                                }
+                        bool hasNan = frameHasNull(frame);
 
-                                for (int j = 0; j < frames.size(); j++) {
-                                    Frame& frame = frames[j];
-                                    for (int k = 0; k < FRAME_SIZE; k++) {
-                                        frame.real[k] -= cepstrumAvg[k];
-                                    }
-                                }
-
-                                // NAN check
-                                bool hasNan = false;
-                                for (size_t j = 0; j < FFT_FRAMES; j++) {
-                                    if (frameHasNull(frames[j])) {
-                                        hasNan = true;
-                                        break;
-                                    }
-                                }
-                                if (!hasNan) {
-                                    ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter);
+                        // Write data
+                        if (!hasNan) {
+                            if (phonemeCounter < examples) {
+                                ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter);
+                                phonemeCounter++;
+                            } else {
+                                double rnd = (double)rand() / RAND_MAX;
+                                double flr = (double)examples / phonemeCounter;
+                                if (rnd < flr) {
+                                    ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], rand() % examples);
                                     phonemeCounter++;
                                 }
                             }
                         }
+                        size_t exampleIndex = exampleCount[currentPhone];
                     }
 
                     // Count how many examples have been collected
@@ -238,7 +239,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     while (keepLoading(minExamples, examples)) {
         TSVReader::CompactTSVLine* line = reader.read_line(lineIndex);
         if (!line) {
-            examples = minExamples;
+            examples = std::min(minExamples, examples);
             break;
         }
         nextClip = TSVReader::convert(*line);
@@ -294,7 +295,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
         saveCache();
     }
 
-    std::printf("Finished loading clips from %s with %zd examples (target: %zd)\n", reader.path().c_str(), minExamples, realEx);
+    std::printf("Finished loading clips from %s with %zd examples (actual: %zd)\n", reader.path().c_str(), minExamples, std::min(realEx, minExamples));
     std::printf("Loaded from %zd clips considering %zd total\n", totalClips, testedClips);
 }
 
@@ -552,7 +553,6 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
                 counter++;
             }
             // Run alignment
-            // TODO: Change hardcoded paths
             const std::string mfaLine = std::format("conda activate aligner && mfa align --clean {} {} {} {}", workDir, dictPath, acousticPath, outputDir);
             system(mfaLine.c_str());
             // Cleanup

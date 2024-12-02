@@ -625,7 +625,7 @@ int commandInteractive(const std::string& path) {
                 int len = end - start;
                 std::vector<float> aud = std::vector<float>(len);
                 for (int i = 0; i < len; i++) {
-                    float volume = (i + 2000 < len) ? 1 : (len - i) / 2000.0f;
+                    float volume = (i + 4000 < len) ? 1 : (len - i) / 4000.0f;
                     aud[i] = clipAudio[start + i] * volume;
                 }
                 std::unique_lock<std::mutex> lock(ac.mtx);

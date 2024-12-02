@@ -30,7 +30,7 @@ typedef float OUTPUT_TYPE;
 #define MEL_BINS 128
 #define FRAME_SIZE 24
 #define VEC4_COUNT (FRAME_SIZE / 4)
-#define MMAX_EXAMPLE_F 5
+#define MMAX_EXAMPLE_F 3
 #define ACTIVITY_WIDTH 5
 #define INFERENCE_FRAMES 1 // Classify once every x frames
 #define DELTA_DISTANCE 5 // Get delta from x frames back; must be less than FFT_FRAMES
