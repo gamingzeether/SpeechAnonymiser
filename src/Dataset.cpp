@@ -140,9 +140,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                                 frames.push_back(Frame());
                             }
                             Frame& currentFrame = frames[frameCounter];
-                            Frame& prevFrame = (frameCounter >= DELTA_DISTANCE) ? frames[frameCounter - DELTA_DISTANCE] : frames[0];
                             currentFrame.reset();
-                            ClassifierHelper::instance().processFrame(currentFrame, clip.buffer, fftStart, clip.size, prevFrame);
+                            ClassifierHelper::instance().processFrame(clip.buffer, fftStart, clip.size, frames, frameCounter);
 
                             size_t maxOverlap = 0;
                             size_t maxIdx = 0;

@@ -16,7 +16,7 @@ public:
     };
 
     void initalize(size_t sr);
-    void processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame);
+    void processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame);
     static size_t customHasher(const std::wstring& str);
 
     template <typename MatType>
@@ -25,8 +25,7 @@ public:
             const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
             size_t offset = f * FRAME_SIZE;
             for (size_t i = 0; i < FRAME_SIZE; i++) {
-                data(offset + i * 2, col) = readFrame.real[i];
-                data(offset + i * 2 + 1, col) = readFrame.delta[i];
+                data(offset + i, col) = readFrame.avg[i];
             }
         }
     };
@@ -50,6 +49,10 @@ private:
     float** melTransform;
     short* melStart;
     short* melEnd;
+
+    float* fftAmplitudes = new float[FFT_REAL_SAMPLES];
+    float* melFrequencies = new float[MEL_BINS];
+    float* windowAvg = new float[FFT_REAL_SAMPLES];
 
     void initalizePhonemeSet();
 

@@ -23,7 +23,7 @@
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
 
-const bool outputPassthrough = false;
+const bool outputPassthrough = true;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
@@ -250,16 +250,14 @@ void startFFT(InputData& inputData) {
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
         const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"æ")];
+        speechFrame.phoneme = silencePhoneme;
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
         while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_REAL_SAMPLES) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        std::vector<float> cepstralMean = std::vector<float>(FRAME_SIZE);
-        size_t meanCount = 1;
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
-            Frame& prevFrame = frames[(currentFrame + FFT_FRAMES - DELTA_DISTANCE) % FFT_FRAMES];
             // Wait for FFT_FRAME_SPACING new samples
             //auto start = std::chrono::high_resolution_clock::now();
             while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SPACING) {
@@ -269,11 +267,11 @@ void startFFT(InputData& inputData) {
             //std::cout << actual.count() << '\n';
             lastSampleStart = (lastSampleStart + FFT_FRAME_SPACING) % inputData.totalFrames;
             // Do FFT stuff
-            helper.processFrame(frame, inputData.buffer[0], lastSampleStart, inputData.totalFrames, prevFrame);
+            helper.processFrame(inputData.buffer[0], lastSampleStart, inputData.totalFrames, frames, currentFrame);
 
             // Write FFT output to visualizer
             app.fftData.currentFrame = currentFrame;
-            memcpy(app.fftData.frequencies[currentFrame], frame.real.data(), sizeof(float) * FFT_REAL_SAMPLES);
+            memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FFT_REAL_SAMPLES);
 
             // Pass data to neural network
             bool activity = false;
@@ -283,17 +281,6 @@ void startFFT(InputData& inputData) {
                     activity = true;
                     break;
                 }
-            }
-
-            // Cepstrum normalization
-            if (activity) {
-                for (int i = 0; i < FRAME_SIZE; i++) {
-                    cepstralMean[i] += (frame.real[i] - cepstralMean[i]) / meanCount;
-                }
-                meanCount++;
-            }
-            for (int i = 0; i < FRAME_SIZE; i++) {
-                frame.real[i] -= cepstralMean[i];
             }
 
             // Classify

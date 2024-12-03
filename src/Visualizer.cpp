@@ -848,25 +848,15 @@ void Visualizer::createSemaphores() {
 void Visualizer::updateUniformBuffer() {
 	UniformBufferObject ubo = {};
 
-	int currentFrame = fftData.currentFrame;
-	float* avg = new float[FFT_REAL_SAMPLES];
-	std::fill_n(avg, FFT_REAL_SAMPLES, 0.0f);
-	for (int j = 0; j < fftData.frames; j++) {
-		int k = (currentFrame + FFT_FRAMES - j) % FFT_FRAMES;
-		double mult = 1.0 / (k + 2);
-		for (int i = 0; i < FFT_REAL_SAMPLES; i++) {
-			avg[i] += fftData.frequencies[j][i] * mult;
-		}
-	}
+	float* currentFrame = fftData.frequencies[fftData.currentFrame];
 	for (int i = 0; i < VEC4_COUNT; i++) {
-		float x = avg[i * 4];
-		float y = avg[i * 4 + 1];
-		float z = avg[i * 4 + 2];
-		float w = avg[i * 4 + 3];
+		float x = currentFrame[i * 4];
+		float y = currentFrame[i * 4 + 1];
+		float z = currentFrame[i * 4 + 2];
+		float w = currentFrame[i * 4 + 3];
 		glm::vec4 vec = glm::vec4(x, y, z, w);
 		ubo.frequencies[i] = vec;
 	}
-	delete[] avg;
 
 	void* data;
 	vkMapMemory(device, uniformBufferMemory, 0, sizeof(glm::vec4) * VEC4_COUNT, 0, &data);

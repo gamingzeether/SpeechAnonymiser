@@ -32,7 +32,7 @@ void ClassifierHelper::initalize(size_t sr) {
             double fftFrequency = 2595.0 * log10(1.0 + (frequency / 700.0));
 
             double distance = abs(melFrequency - fftFrequency);
-            distance /= fftStep * 2;
+            distance /= fftStep;
             double effectMultiplier = 1.0 - (distance * distance);
 
             if (effectMultiplier > 0 && melStart[melIdx] == -1) {
@@ -68,7 +68,8 @@ void ClassifierHelper::initalize(size_t sr) {
     initalizePhonemeSet();
 }
 
-void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size_t& start, const size_t& totalSize, const Frame& prevFrame) {
+void ClassifierHelper::processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame) {
+    Frame& frame = allFrames[currentFrame];
     float max = 0.0;
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         max = fmaxf(max, abs(audio[i]));
@@ -82,12 +83,10 @@ void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size
 
     // Get mel spectrum
     fftwf_execute(fftwPlan);
-    float* fftAmplitudes = new float[FFT_REAL_SAMPLES];
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
         fftAmplitudes[i] = (complex[0] * complex[0] + complex[1] * complex[1]);
     }
-    float* melFrequencies = new float[MEL_BINS];
     for (size_t i = 0; i < MEL_BINS; i++) {
         melFrequencies[i] = 0.0001f;
     }
@@ -97,24 +96,30 @@ void ClassifierHelper::processFrame(Frame& frame, const float* audio, const size
             melFrequencies[melIdx] += effect * fftAmplitudes[fftIdx];
         }
     }
-    delete[] fftAmplitudes;
 
-    // DCT of mel spectrum
+    // Tanh of logs of mel
     for (size_t i = 0; i < MEL_BINS; i++) {
-        dctIn[i] = log10f(melFrequencies[i]);
-    }
-    fftwf_execute(dctPlan);
-
-    // Get the first FRAME_SIZE cepstrum coefficients
-    float dctScale = 10.0f / (MEL_BINS * 2);
-    for (size_t i = 0; i < FRAME_SIZE; i++) {
-        float value = dctOut[i] * dctScale;
-        value = 16.0 / (1.0 + std::pow(2.71828, -value));
+        float value = log10(melFrequencies[i]);
+        value = 2.0 / (1.0 + std::pow(2.71828, -value));
         frame.real[i] = value;
-        frame.delta[i] = value - prevFrame.real[i];
     }
 
-    delete[] melFrequencies;
+    // Average
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        windowAvg[i] = 0;
+    }
+    size_t nFrames = std::min(allFrames.size(), (size_t)FFT_FRAMES);
+    for (int i = 0; i < nFrames; i++) {
+        int rindex = (currentFrame - nFrames + i) % nFrames;
+        rindex = (nFrames + rindex) % nFrames; // Correct range if rindex is < 0
+        double mult = 0.5 / (nFrames - i + 2);
+        for (int j = 0; j < FRAME_SIZE; j++) {
+            windowAvg[j] += allFrames[rindex].real[j] * mult;
+        }
+    }
+    for (size_t i = 0; i < FRAME_SIZE; i++) {
+        frame.avg[i] = windowAvg[i];
+    }
 }
 
 size_t ClassifierHelper::customHasher(const std::wstring& str) {

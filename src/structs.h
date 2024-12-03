@@ -44,14 +44,14 @@ struct Phone {
 
 struct Frame {
     std::vector<float> real;
-    std::vector<float> delta; // Average change leading to this frame
+    std::vector<float> avg; // Average change leading to this frame
     float volume;
     size_t phone;
 
     void reset() {
         for (size_t i = 0; i < FRAME_SIZE; i++) {
             real[i] = 0;
-            delta[i] = 0;
+            avg[i] = 0;
         }
         volume = 0;
         phone = 0;
@@ -59,7 +59,7 @@ struct Frame {
 
     Frame() {
         real = std::vector<float>(FRAME_SIZE);
-        delta = std::vector<float>(FRAME_SIZE);
+        avg = std::vector<float>(FRAME_SIZE);
         volume = 0;
         phone = 0;
     }

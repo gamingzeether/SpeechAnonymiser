@@ -43,7 +43,7 @@ private:
 	Config config;
 	Hyperparameters hp;
 
-	int inputSize = FRAME_SIZE * FFT_FRAMES * 2;
+	int inputSize = FRAME_SIZE * FFT_FRAMES;
 	int outputSize = 0;
 	int sampleRate = 0;
 };
