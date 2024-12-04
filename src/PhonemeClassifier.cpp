@@ -48,12 +48,13 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
     std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.5;
-    hp.l2() = 0.01;
+    hp.dropout() = 0.2;
+    hp.l2() = 0.001;
     hp.batchSize() = 512;
-    hp.stepSize() = 0.001;
+    hp.stepSize() = 0.0001;
     hp.warmup() = 0;
     model.setHyperparameters(hp);
+    model.useLogger(logger);
 
     model.getSampleRate() = sampleRate;
 

@@ -5,9 +5,10 @@
 #include "include_mlpack.h"
 #include "ClassifierHelper.h"
 #include "Config.h"
+#include "Logger.h"
 
 #define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE>
-#define OPTIMIZER_TYPE ens::Adam
+#define OPTIMIZER_TYPE ens::AdaBelief
 
 class PhonemeModel {
 public:
@@ -32,6 +33,7 @@ public:
 	void setHyperparameters(Hyperparameters hp);
 	void initModel();
 	void initOptimizer();
+	void useLogger(Logger& l) { logger = l; };
 
 	void save(int checkpoint = -1);
 	bool load();
@@ -42,6 +44,7 @@ private:
 	OPTIMIZER_TYPE optim;
 	Config config;
 	Hyperparameters hp;
+	std::optional<Logger> logger;
 
 	int inputSize = FRAME_SIZE * FFT_FRAMES;
 	int outputSize = 0;

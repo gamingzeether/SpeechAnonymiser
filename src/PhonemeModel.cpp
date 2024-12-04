@@ -52,15 +52,28 @@ void PhonemeModel::initModel() {
 }
 
 void PhonemeModel::initOptimizer() {
+    /* Adam initalization
     optim = OPTIMIZER_TYPE(
-        0,  // Step size of the optimizer.
-        0, // Batch size. Number of data points that are used in each iteration.
-        0.9,        // Exponential decay rate for the first moment estimates.
-        0.999, // Exponential decay rate for the weighted infinity norm estimates.
-        1e-8,  // Value used to initialise the mean squared gradient parameter.
-        0, // Max number of iterations.
-        1e-8,           // Tolerance.
+        0,      // Step size of the optimizer.
+        0,      // Batch size. Number of data points that are used in each iteration.
+        0.9,    // Exponential decay rate for the first moment estimates.
+        0.999,  // Exponential decay rate for the weighted infinity norm estimates.
+        1e-8,   // Value used to initialise the mean squared gradient parameter.
+        0,      // Max number of iterations.
+        1e-8,   // Tolerance.
         true);
+    //*/
+    //* AdaBelief initalization
+    optim = OPTIMIZER_TYPE(
+        0,      // Step size for each iteration.
+        0,      // Number of points to process in a single step.
+        0.9,    // The exponential decay rate for the 1st moment estimates.
+        0.999,  // The exponential decay rate for the 2nd moment estimates.
+        1e-8,   // A small constant for numerical stability.
+        0,      // Maximum number of iterations allowed (0 means no limit).
+        1e-8,   // Maximum absolute tolerance to terminate algorithm.
+        true);
+    //*/
 
     optim.BatchSize() = hp.batchSize();
     optim.StepSize() = hp.stepSize();
@@ -92,7 +105,10 @@ bool PhonemeModel::load() {
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
-        size_t bufferSize = 32 * 1024 * 1024; // Allocate 32 MB
+        if (error != 0 && logger.has_value()) {
+            logger->log(std::format("Zip file open error {}", error), Logger::WARNING);
+        }
+        size_t bufferSize = 64 * 1024 * 1024; // Allocate 64 MB
         char* buf = new char[bufferSize];
         for (const char* string : ZIP_FILES) {
             zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);
@@ -105,6 +121,8 @@ bool PhonemeModel::load() {
         }
         delete[] buf;
         zip_discard(archive);
+    } else if (logger.has_value()) {
+        logger->log(std::format("{} does not exist", ARCHIVE_FILE), Logger::WARNING);
     }
 
     outputSize = ClassifierHelper::instance().inversePhonemeSet.size();
@@ -118,9 +136,15 @@ bool PhonemeModel::load() {
     if (!config.matchesDefault()) {
         config.useDefault();
         loaded = false;
+        if (logger.has_value()) {
+            logger->log("Config does not match", Logger::WARNING);
+        }
     }
     if (loaded && !ModelSerializer::loadNetwork(MODEL_FILE, &net)) {
         loaded = false;
+        if (logger.has_value()) {
+            logger->log(std::format("Failed to load model {}", MODEL_FILE), Logger::WARNING);
+        }
     }
     cleanUnpacked();
     return loaded;
