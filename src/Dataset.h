@@ -69,5 +69,5 @@ private:
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
     inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && (minExamples < examples * MMAX_EXAMPLE_F); };
     void saveCache();
-    inline bool frameHasNull(const Frame& frame);
+    inline bool frameHasNan(const Frame& frame);
 };

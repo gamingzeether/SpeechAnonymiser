@@ -129,6 +129,9 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/PhonemeModel.h"
     "${PROJECT_SOURCE_DIR}/Voicebank.h"
     "${PROJECT_SOURCE_DIR}/Config.h"
+    "${PROJECT_SOURCE_DIR}/PhonemeSet.h"
+    "${PROJECT_SOURCE_DIR}/Global.h"
+    "${PROJECT_SOURCE_DIR}/Util.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -148,6 +151,9 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/PhonemeModel.cpp"
     "${PROJECT_SOURCE_DIR}/Voicebank.cpp"
     "${PROJECT_SOURCE_DIR}/Config.cpp"
+    "${PROJECT_SOURCE_DIR}/PhonemeSet.cpp"
+    "${PROJECT_SOURCE_DIR}/Global.cpp"
+    "${PROJECT_SOURCE_DIR}/Util.cpp"
 )
 source_group("Sources" FILES ${Sources})
 

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <thread>
 #include "ClassifierHelper.h"
+#include "Global.h"
 
 #define ENGINE_STEP_FRAMES 256
 #define ENGINE_TIMESTEP ((double)ENGINE_STEP_FRAMES / sampleRate)
@@ -239,21 +240,21 @@ void SpeechEngineArticulator::_init() {
 
 #pragma region Animations
 	_initArticulators();
-	auto& ips = ClassifierHelper::instance().inversePhonemeSet;
+	const PhonemeSet& ips = Global::get().phonemeSet();
 	for (int i = 0; i < ips.size(); i++) {
-		const std::string& name = ips[i];
+		const std::string& name = ips.xSampa(i);
 		articAnim.loadGroup(std::format("configs/animations/phonemes/{}_anim.json", name), name);
 	}
 	articAnim.finalize();
 	for (int i = 0; i < ips.size(); i++) {
-		const std::string& name = ips[i];
+		const std::string& name = ips.xSampa(i);
 		phonToAnim[i] = articAnim.getAnimation(name);
 	}
 	// Disable animations
 	systemPressure().animIndex = -1;
 
 	// Set default anim to silence
-	size_t initPhoneme = ClassifierHelper::instance().phonemeSet[ClassifierHelper::instance().customHasher(L"")];
+	size_t initPhoneme = ips.fromString(L"spn");
 	articAnim.startAnimation(initPhoneme);
 #pragma endregion
 

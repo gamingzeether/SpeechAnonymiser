@@ -19,6 +19,7 @@
 #include "ModelSerializer.h"
 #include "Dataset.h"
 #include "ClassifierHelper.h"
+#include "Global.h"
 
 using namespace mlpack;
 
@@ -182,7 +183,7 @@ size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
 }
 
 std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
-    return ClassifierHelper::instance().inversePhonemeSet[in];
+    return Global::get().phonemeSet().xSampa(in);
 };
 
 void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel) {
@@ -231,11 +232,11 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     std::cout << "Confusion Matrix:\n";
     std::cout << "   ";
     for (size_t i = 0; i < outputSize; i++) {
-        std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
+        std::cout << std::setw(2) << Global::get().phonemeSet().xSampa(i) << " ";
     }
     std::cout << std::endl;
     for (size_t i = 0; i < outputSize; i++) {
-        std::cout << std::setw(2) << ClassifierHelper::instance().inversePhonemeSet[i] << " ";
+        std::cout << std::setw(2) << Global::get().phonemeSet().xSampa(i) << " ";
         size_t total = 0;
         for (size_t j = 0; j < outputSize; j++) {
             total += confusionMatrix[i][j];

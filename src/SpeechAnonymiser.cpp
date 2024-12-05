@@ -22,6 +22,7 @@
 #include "Dataset.h"
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
+#include "Global.h"
 
 const bool outputPassthrough = true;
 
@@ -249,7 +250,7 @@ void startFFT(InputData& inputData) {
 
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
-        const size_t silencePhoneme = helper.phonemeSet[helper.customHasher(L"æ")];
+        const size_t silencePhoneme = Global::get().phonemeSet().fromString(L"æ");
         speechFrame.phoneme = silencePhoneme;
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
@@ -633,14 +634,14 @@ int commandInteractive(const std::string& path) {
             ac.pointer = 0;
         } else if (command != "" && prefix == "dataset") {
             size_t targetPhoneme = std::stoull(command);
-            if (targetPhoneme < ClassifierHelper::instance().inversePhonemeSet.size()) {
+            if (targetPhoneme < Global::get().phonemeSet().size()) {
                 TSVReader::TSVLine tsv;
                 clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, tsv, clipPhones);
                 prefix = "clip";
                 std::printf("%s\n", tsv.PATH.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
                     const Phone& p = clipPhones[i];
-                    std::printf("%d  %s: %.2f, %.2f\n", i, ClassifierHelper::instance().inversePhonemeSet[p.phonetic].c_str(), p.min, p.max);
+                    std::printf("%d  %s: %.2f, %.2f\n", i, Global::get().phonemeSet().xSampa(p.phonetic).c_str(), p.min, p.max);
                 }
             } else {
                 std::printf("Out of range\n");

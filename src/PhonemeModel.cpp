@@ -4,6 +4,7 @@
 #include <fstream>
 #include <zip.h>
 #include "ModelSerializer.h"
+#include "Global.h"
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"
@@ -125,7 +126,7 @@ bool PhonemeModel::load() {
         logger->log(std::format("{} does not exist", ARCHIVE_FILE), Logger::WARNING);
     }
 
-    outputSize = ClassifierHelper::instance().inversePhonemeSet.size();
+    outputSize = Global::get().phonemeSet().size();
 
     config = Config(CONFIG_FILE, CURRENT_VERSION);
     config.setDefault("input_features", inputSize)

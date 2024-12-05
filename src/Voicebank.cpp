@@ -8,6 +8,8 @@
 #include <samplerate.h>
 #include "ClassifierHelper.h"
 #include "Logger.h"
+#include "Global.h"
+#include "Util.h"
 
 #define CACHE_VERSION 0
 #define DICT_WIDTH 5
@@ -98,16 +100,12 @@ Voicebank& Voicebank::open(const std::string& dir) {
 
                 JSONHelper::JSONObj dictionary = dictionaryConfig.object()["dictionary"];
                 size_t dictSize = dictionary.get_array_size();
-                auto set = ClassifierHelper::instance().phonemeSet;
+                auto set = Global::get().phonemeSet();
                 for (size_t i = 0; i < dictSize; i++) {
                     JSONHelper::JSONObj dictItem = dictionary[i];
                     std::string phoneme = dictItem["phoneme"].get_string();
                     // Check to see if it is a valid phoneme
-                    std::wstring wphoneme = ClassifierHelper::instance().utf8_to_utf16(phoneme);
-                    if (set.find(ClassifierHelper::instance().customHasher(wphoneme)) == set.end()) {
-                        std::printf("Invalid phoneme at index %zd\n", i);
-                        continue;
-                    }
+                    size_t pidx = Global::get().phonemeSet().fromString(phoneme);
                     charMapping[dictItem["sequence"].get_string()] = phoneme;
                 }
 
@@ -375,7 +373,6 @@ void Voicebank::loadAliases() {
     JSONHelper::JSONObj root = aliasConfig.object().getRoot();
     JSONHelper::JSONObj arr = root["aliases"];
     int count = root["aliases"].get_array_size();
-    ClassifierHelper& ch = ClassifierHelper::instance();
     for (int i = 0; i < count; i++) {
         JSONHelper::JSONObj aliasJson = arr[i];
         Features aliasFeatures;
@@ -383,8 +380,7 @@ void Voicebank::loadAliases() {
         JSONHelper::JSONObj phonemes = aliasJson["phonemes"];
         int pcount = phonemes.get_array_size();
         for (int j = 0; j < pcount; j++) {
-            std::wstring phonws = ch.utf8_to_utf16(phonemes[j].get_string());
-            size_t phonemeId = ch.phonemeSet[ch.customHasher(phonws)];
+            size_t phonemeId = Global::get().phonemeSet().fromString(phonemes[j].get_string());
             if (j == 0) {
                 aliasFeatures.from = phonemeId;
             } else if (j == pcount - 1) {

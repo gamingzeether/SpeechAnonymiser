@@ -19,6 +19,8 @@
 #include <dr_wav.h>
 #include <samplerate.h>
 #include "ClassifierHelper.h"
+#include "Util.h"
+#include "Global.h"
 
 void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy) {
     size_t outputSize = exampleData.size();
@@ -113,8 +115,6 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
         &loaderMutex, &loaderWaiter, &loaderReady,
         &clip, &loaderFinished, &phones, &totalClips, &lineIndex, &realEx] {
             std::vector<Frame> frames = std::vector <Frame>();
-            // Unused because it needs cepstrum of whole clip
-            std::vector<float> cepstrumAvg = std::vector <float>(FRAME_SIZE);
             while (keepLoading(minExamples, examples)) {
                 {
                     std::unique_lock<std::mutex> lock(loaderMutex);
@@ -126,14 +126,9 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                 if (clip.loaded) {
                     totalClips++;
 
-                    // Cepstrum normalization
+                    size_t frameCounter = 0;
                     {
-                        // Reset
-                        for (int j = 0; j < FRAME_SIZE; j++) {
-                            cepstrumAvg[j] = 0;
-                        }
                         size_t fftStart = 0;
-                        size_t frameCounter = 0;
                         // Load all frames
                         while (fftStart + FFT_REAL_SAMPLES < clip.size) {
                             if (frames.size() <= frameCounter) {
@@ -149,43 +144,23 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                             for (int i = 0; i < phones.size(); i++) {
                                 const Phone& p = phones[i];
 
-                                if (p.maxIdx <= fftStart)
-                                    continue;
-                                size_t fftEnd = fftStart + FFT_FRAME_SPACING;
-                                if (p.minIdx >= fftEnd)
+                                if (p.maxIdx >= fftStart && fftStart >= p.minIdx) {
+                                    currentFrame.phone = p.phonetic;
                                     break;
-
-                                currentFrame.phone = p.phonetic;
+                                }
                             }
 
                             fftStart += FFT_FRAME_SPACING;
                             frameCounter++;
                         }
-                        // Get average
-                        size_t count = 0;
-                        for (const Frame& frame : frames) {
-                            if (frameHasNull(frame))
-                                continue;
-                            for (int i = 0; i < FRAME_SIZE; i++) {
-                                cepstrumAvg[i] += frame.real[i];
-                            }
-                            count++;
-                        }
-                        for (int j = 0; j < FRAME_SIZE; j++) {
-                            cepstrumAvg[j] /= count;
-                        }
                     }
 
-                    for (Frame& frame : frames) {
-                        // Apply cepstrum normalization
-                        for (int i = 0; i < FRAME_SIZE; i++) {
-                            frame.real[i] -= cepstrumAvg[i];
-                        }
-
+                    for (size_t i = 0; i < frameCounter; i++) {
+                        Frame& frame = frames[i];
                         // NAN check
                         const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
-                        bool hasNan = frameHasNull(frame);
+                        bool hasNan = frameHasNan(frame);
 
                         // Write data
                         if (!hasNan) {
@@ -201,7 +176,6 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                                 }
                             }
                         }
-                        size_t exampleIndex = exampleCount[currentPhone];
                     }
 
                     // Count how many examples have been collected
@@ -215,7 +189,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                     }
                     minExamples = minTemp;
                     if (print && endFlag) {
-                        std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, ClassifierHelper::instance().inversePhonemeSet[minIdx].c_str());
+                        std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, Global::get().phonemeSet().xSampa(minIdx).c_str());
                         fflush(stdout);
                     }
                 } else { // Could not load
@@ -334,15 +308,7 @@ std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
         p.minIdx = sampleRate * p.min;
         p.maxIdx = sampleRate * p.max;
 
-        std::wstring wtext = ClassifierHelper::instance().utf8_to_utf16(text);
-
-        const auto& pIterator = ClassifierHelper::instance().phonemeSet.find(ClassifierHelper::customHasher(wtext));
-        if (pIterator != ClassifierHelper::instance().phonemeSet.end()) {
-            p.phonetic = pIterator->second;
-        } else {
-            std::cout << "unmapped phoneme: " << text << std::endl;
-            std::cout << "    at index " << i << " in " << path << std::endl;
-        }
+        p.phonetic = Global::get().phonemeSet().fromString(text);
         phones[i] = p;
     }
 
@@ -617,10 +583,10 @@ void Dataset::saveCache() {
     cached = true;
 }
 
-bool Dataset::frameHasNull(const Frame& frame) {
+bool Dataset::frameHasNan(const Frame& frame) {
 #ifdef DO_NAN_CHECK
     for (int i = 0; i < FRAME_SIZE; i++)
-        if (std::isnan(frame.real[i]))
+        if (std::isnan(frame.avg[i]))
             return true;
 #endif
     return false;

@@ -1,0 +1,517 @@
+{
+    "_version": -1,
+    "mappings": [
+        [
+            {
+                "token": "aj",
+                "x_sampa": {
+                    "symbol": "aI"
+                }
+            },
+            {
+                "token": "aw",
+                "x_sampa": {
+                    "symbol": "aU"
+                }
+            },
+            {
+                "token": "b",
+                "x_sampa": {
+                    "symbol": "b"
+                }
+            },
+            {
+                "token": "bʲ",
+                "x_sampa": {
+                    "symbol": "b",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "c",
+                "x_sampa": {
+                    "symbol": "c"
+                }
+            },
+            {
+                "token": "cʰ",
+                "x_sampa": {
+                    "symbol": "c",
+                    "diacritic": "_h"
+                }
+            },
+            {
+                "token": "cʷ",
+                "x_sampa": {
+                    "symbol": "c",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "d",
+                "x_sampa": {
+                    "symbol": "d"
+                }
+            },
+            {
+                "token": "dʒ",
+                "x_sampa": {
+                    "symbol": "dZ"
+                }
+            },
+            {
+                "token": "dʲ",
+                "x_sampa": {
+                    "symbol": "d",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "d̪",
+                "x_sampa": {
+                    "symbol": "d",
+                    "diacritic": "_d"
+                }
+            },
+            {
+                "token": "ej",
+                "x_sampa": {
+                    "symbol": "eI"
+                }
+            },
+            {
+                "token": "f",
+                "x_sampa": {
+                    "symbol": "f"
+                }
+            },
+            {
+                "token": "fʲ",
+                "x_sampa": {
+                    "symbol": "f",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "h",
+                "x_sampa": {
+                    "symbol": "h"
+                }
+            },
+            {
+                "token": "i",
+                "x_sampa": {
+                    "symbol": "i"
+                }
+            },
+            {
+                "token": "iː",
+                "x_sampa": {
+                    "symbol": "i",
+                    "diacritic": ":"
+                }
+            },
+            {
+                "token": "j",
+                "x_sampa": {
+                    "symbol": "j"
+                }
+            },
+            {
+                "token": "k",
+                "x_sampa": {
+                    "symbol": "k"
+                }
+            },
+            {
+                "token": "kʰ",
+                "x_sampa": {
+                    "symbol": "k",
+                    "diacritic": "_h"
+                }
+            },
+            {
+                "token": "kʷ",
+                "x_sampa": {
+                    "symbol": "k",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "l",
+                "x_sampa": {
+                    "symbol": "l"
+                }
+            },
+            {
+                "token": "m",
+                "x_sampa": {
+                    "symbol": "m"
+                }
+            },
+            {
+                "token": "mʲ",
+                "x_sampa": {
+                    "symbol": "m",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "m̩",
+                "x_sampa": {
+                    "symbol": "m",
+                    "diacritic": "_="
+                }
+            },
+            {
+                "token": "n",
+                "x_sampa": {
+                    "symbol": "n"
+                }
+            },
+            {
+                "token": "n̩",
+                "x_sampa": {
+                    "symbol": "n",
+                    "diacritic": "_="
+                }
+            },
+            {
+                "token": "ow",
+                "x_sampa": {
+                    "symbol": "U"
+                }
+            },
+            {
+                "token": "p",
+                "x_sampa": {
+                    "symbol": "p"
+                }
+            },
+            {
+                "token": "pʰ",
+                "x_sampa": {
+                    "symbol": "p",
+                    "diacritic": "_h"
+                }
+            },
+            {
+                "token": "pʲ",
+                "x_sampa": {
+                    "symbol": "p",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "pʷ",
+                "x_sampa": {
+                    "symbol": "p",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "s",
+                "x_sampa": {
+                    "symbol": "s"
+                }
+            },
+            {
+                "token": "spn",
+                "x_sampa": {
+                    "symbol": "."
+                }
+            },
+            {
+                "token": "t",
+                "x_sampa": {
+                    "symbol": "t"
+                }
+            },
+            {
+                "token": "tʃ",
+                "x_sampa": {
+                    "symbol": "tS"
+                }
+            },
+            {
+                "token": "tʰ",
+                "x_sampa": {
+                    "symbol": "t",
+                    "diacritic": "_h"
+                }
+            },
+            {
+                "token": "tʲ",
+                "x_sampa": {
+                    "symbol": "t",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "tʷ",
+                "x_sampa": {
+                    "symbol": "t",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "t̪",
+                "x_sampa": {
+                    "symbol": "t",
+                    "diacritic": "_d"
+                }
+            },
+            {
+                "token": "v",
+                "x_sampa": {
+                    "symbol": "v"
+                }
+            },
+            {
+                "token": "vʲ",
+                "x_sampa": {
+                    "symbol": "v",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "w",
+                "x_sampa": {
+                    "symbol": "w"
+                }
+            },
+            {
+                "token": "z",
+                "x_sampa": {
+                    "symbol": "z"
+                }
+            },
+            {
+                "token": "æ",
+                "x_sampa": {
+                    "symbol": "{"
+                }
+            },
+            {
+                "token": "ç",
+                "x_sampa": {
+                    "symbol": "C"
+                }
+            },
+            {
+                "token": "ð",
+                "x_sampa": {
+                    "symbol": "D"
+                }
+            },
+            {
+                "token": "ŋ",
+                "x_sampa": {
+                    "symbol": "n"
+                }
+            },
+            {
+                "token": "ɐ",
+                "x_sampa": {
+                    "symbol": "6"
+                }
+            },
+            {
+                "token": "ɑ",
+                "x_sampa": {
+                    "symbol": "A"
+                }
+            },
+            {
+                "token": "ɑː",
+                "x_sampa": {
+                    "symbol": "A",
+                    "diacritic": ":"
+                }
+            },
+            {
+                "token": "ɒ",
+                "x_sampa": {
+                    "symbol": "Q"
+                }
+            },
+            {
+                "token": "ɒː",
+                "x_sampa": {
+                    "symbol": "Q",
+                    "diacritic": ":"
+                }
+            },
+            {
+                "token": "ɔj",
+                "x_sampa": {
+                    "symbol": "Oj"
+                }
+            },
+            {
+                "token": "ə",
+                "x_sampa": {
+                    "symbol": "@"
+                }
+            },
+            {
+                "token": "ɚ",
+                "x_sampa": {
+                    "symbol": "@",
+                    "diacritic": "`"
+                }
+            },
+            {
+                "token": "ɛ",
+                "x_sampa": {
+                    "symbol": "E"
+                }
+            },
+            {
+                "token": "ɝ",
+                "x_sampa": {
+                    "symbol": "3",
+                    "diacritic": "`"
+                }
+            },
+            {
+                "token": "ɟ",
+                "x_sampa": {
+                    "symbol": "J\\"
+                }
+            },
+            {
+                "token": "ɟʷ",
+                "x_sampa": {
+                    "symbol": "J\\",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "ɡ",
+                "x_sampa": {
+                    "symbol": "g"
+                }
+            },
+            {
+                "token": "ɡʷ",
+                "x_sampa": {
+                    "symbol": "g",
+                    "diacritic": "_w"
+                }
+            },
+            {
+                "token": "ɪ",
+                "x_sampa": {
+                    "symbol": "I"
+                }
+            },
+            {
+                "token": "ɫ",
+                "x_sampa": {
+                    "symbol": "5"
+                }
+            },
+            {
+                "token": "ɫ̩",
+                "x_sampa": {
+                    "symbol": "5",
+                    "diacritic": "_="
+                }
+            },
+            {
+                "token": "ɱ",
+                "x_sampa": {
+                    "symbol": "J"
+                }
+            },
+            {
+                "token": "ɲ",
+                "x_sampa": {
+                    "symbol": "J"
+                }
+            },
+            {
+                "token": "ɹ",
+                "x_sampa": {
+                    "symbol": "r\\"
+                }
+            },
+            {
+                "token": "ɾ",
+                "x_sampa": {
+                    "symbol": "4"
+                }
+            },
+            {
+                "token": "ɾʲ",
+                "x_sampa": {
+                    "symbol": "4",
+                    "diacritic": "_j"
+                }
+            },
+            {
+                "token": "ɾ̃",
+                "x_sampa": {
+                    "symbol": "4",
+                    "diacritic": "_~"
+                }
+            },
+            {
+                "token": "ʃ",
+                "x_sampa": {
+                    "symbol": "S"
+                }
+            },
+            {
+                "token": "ʉ",
+                "x_sampa": {
+                    "symbol": "}"
+                }
+            },
+            {
+                "token": "ʉː",
+                "x_sampa": {
+                    "symbol": "}",
+                    "diacritic": ":"
+                }
+            },
+            {
+                "token": "ʊ",
+                "x_sampa": {
+                    "symbol": "U"
+                }
+            },
+            {
+                "token": "ʎ",
+                "x_sampa": {
+                    "symbol": "L"
+                }
+            },
+            {
+                "token": "ʒ",
+                "x_sampa": {
+                    "symbol": "Z"
+                }
+            },
+            {
+                "token": "ʔ",
+                "x_sampa": {
+                    "symbol": "."
+                }
+            },
+            {
+                "token": "θ",
+                "x_sampa": {
+                    "symbol": "T"
+                }
+            },
+            {
+                "token": "",
+                "x_sampa": {
+                    "symbol": "."
+                }
+            }
+        ]
+    ]
+}
