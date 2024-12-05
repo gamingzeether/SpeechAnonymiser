@@ -137,6 +137,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                             Frame& currentFrame = frames[frameCounter];
                             currentFrame.reset();
                             ClassifierHelper::instance().processFrame(clip.buffer, fftStart, clip.size, frames, frameCounter);
+                            currentFrame.invalid = frameHasNan(currentFrame);
 
                             size_t maxOverlap = 0;
                             size_t maxIdx = 0;
@@ -160,20 +161,17 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         // NAN check
                         const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
-                        bool hasNan = frameHasNan(frame);
 
                         // Write data
-                        if (!hasNan) {
-                            if (phonemeCounter < examples) {
-                                ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter);
+                        if (phonemeCounter < examples) {
+                            if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter))
                                 phonemeCounter++;
-                            } else {
-                                double rnd = (double)rand() / RAND_MAX;
-                                double flr = (double)examples / phonemeCounter;
-                                if (rnd < flr) {
-                                    ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], rand() % examples);
+                        } else {
+                            double rnd = (double)rand() / RAND_MAX;
+                            double flr = (double)examples / phonemeCounter;
+                            if (rnd < flr) {
+                                if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], rand() % examples))
                                     phonemeCounter++;
-                                }
                             }
                         }
                     }

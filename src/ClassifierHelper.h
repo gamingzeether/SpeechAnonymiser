@@ -19,14 +19,17 @@ public:
     void processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame);
 
     template <typename MatType>
-    void writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
+    bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
         for (size_t f = 0; f < FFT_FRAMES; f++) {
             const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
+            if (readFrame.invalid)
+                return false;
             size_t offset = f * FRAME_SIZE;
             for (size_t i = 0; i < FRAME_SIZE; i++) {
                 data(offset + i, col) = readFrame.avg[i];
             }
         }
+        return true;
     };
 
     inline void setGain(float g) { gain = g; };

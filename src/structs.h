@@ -47,6 +47,7 @@ struct Frame {
     std::vector<float> avg; // Average change leading to this frame
     float volume;
     size_t phone;
+    bool invalid;
 
     void reset() {
         for (size_t i = 0; i < FRAME_SIZE; i++) {
@@ -55,6 +56,7 @@ struct Frame {
         }
         volume = 0;
         phone = 0;
+        invalid = false;
     }
 
     Frame() {
@@ -62,6 +64,7 @@ struct Frame {
         avg = std::vector<float>(FRAME_SIZE);
         volume = 0;
         phone = 0;
+        invalid = false;
     }
 };
 
