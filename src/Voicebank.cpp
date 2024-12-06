@@ -11,7 +11,7 @@
 #include "Global.h"
 #include "Util.h"
 
-#define CACHE_VERSION 0
+#define CACHE_VERSION 1
 #define DICT_WIDTH 5
 
 std::string split(std::string& in, char c) {
@@ -105,14 +105,14 @@ Voicebank& Voicebank::open(const std::string& dir) {
                     JSONHelper::JSONObj dictItem = dictionary[i];
                     std::string phoneme = dictItem["phoneme"].get_string();
                     // Check to see if it is a valid phoneme
-                    size_t pidx = Global::get().phonemeSet().fromString(phoneme);
+                    size_t pidx = Global::get().phonemeSet().xSampaExists(phoneme);
                     charMapping[dictItem["sequence"].get_string()] = phoneme;
                 }
 
                 dictionaryConfig.close();
             }
             // Initalize alias file
-            Config aliasConfig = Config(cacheDirectory + "/aliases.json", 0);
+            Config aliasConfig = Config(cacheDirectory + "/aliases.json", CACHE_VERSION);
             aliasConfig.load(); // This will initalize a new file
             JSONHelper::JSONObj root = aliasConfig.object().getRoot();
             JSONHelper::JSONObj arr = root.add_arr("aliases");
@@ -122,15 +122,16 @@ Voicebank& Voicebank::open(const std::string& dir) {
                 alias["name"] = line.alias;
                 JSONHelper::JSONObj list = alias.add_arr("phonemes");
                 size_t pointer = 0;
-                while (pointer < line.alias.size()) {
+                std::string aliasTmp = line.alias.substr(0, line.alias.length() - shortName.length());
+                while (pointer < aliasTmp.size()) {
                     for (int i = DICT_WIDTH; i >= 0; i--) {
                         // Could not match
                         if (i == 0) {
-                            std::printf("Could not find match: %s, %zd\n", line.alias.c_str(), pointer);
+                            std::printf("Could not find match: %s, %zd\n", aliasTmp.c_str(), pointer);
                             pointer++;
                             break;
                         }
-                        std::string chk = line.alias.substr(pointer, i);
+                        std::string chk = aliasTmp.substr(pointer, i);
                         auto iter = charMapping.find(chk);
                         if (iter != charMapping.end()) {
                             // Found a match
@@ -148,6 +149,13 @@ Voicebank& Voicebank::open(const std::string& dir) {
         saveCache();
     }
 
+    loadAliases();
+
+    return *this;
+}
+
+Voicebank& Voicebank::setShort(const std::string& name) {
+    shortName = name;
     return *this;
 }
 
@@ -368,7 +376,7 @@ void Voicebank::Unit::unload() {
 }
 
 void Voicebank::loadAliases() {
-    Config aliasConfig = Config(cacheDirectory + "/aliases.json", 0);
+    Config aliasConfig = Config(cacheDirectory + "/aliases.json", CACHE_VERSION);
     aliasConfig.load();
     JSONHelper::JSONObj root = aliasConfig.object().getRoot();
     JSONHelper::JSONObj arr = root["aliases"];
@@ -380,7 +388,8 @@ void Voicebank::loadAliases() {
         JSONHelper::JSONObj phonemes = aliasJson["phonemes"];
         int pcount = phonemes.get_array_size();
         for (int j = 0; j < pcount; j++) {
-            size_t phonemeId = Global::get().phonemeSet().fromString(phonemes[j].get_string());
+            std::string xsampa = phonemes[j].get_string();
+            size_t phonemeId = Global::get().phonemeSet().xSampaIndex(xsampa);
             if (j == 0) {
                 aliasFeatures.from = phonemeId;
             } else if (j == pcount - 1) {

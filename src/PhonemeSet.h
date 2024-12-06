@@ -19,6 +19,8 @@ public:
 	PhonemeSet& addString(const std::wstring& str, const std::string& xSampa);
 
 	std::string xSampa(size_t phoneme) const;
+	size_t xSampaIndex(const std::string& str) const;
+	bool xSampaExists(const std::string& str) const;
 	size_t size() const { return _counter; };
 private:
 	size_t getOrNew(const std::string& xSampa);

@@ -46,6 +46,7 @@ public:
 
 	Voicebank() {};
 	Voicebank& targetSamplerate(int sr);
+	Voicebank& setShort(const std::string& name);
 	Voicebank& open(const std::string& directory);
 
 	const Unit& selectUnit(const DesiredFeatures& features);
@@ -64,6 +65,7 @@ private:
 	Config config;
 	std::string directory;
 	std::string cacheDirectory;
+	std::string shortName = "";
 	int samplerate;
 	std::vector<Unit> units;
 	std::map<std::string, Features> aliasMapping;

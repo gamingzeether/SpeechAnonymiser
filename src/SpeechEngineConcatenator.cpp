@@ -1,9 +1,12 @@
 #include "SpeechEngineConcatenator.h"
 
 SpeechEngineConcatenator& SpeechEngineConcatenator::configure(std::string file) {
-	for (auto& subdir : {"B3_Soft/", "B4_Power/", "D#4_Natural/", "G3_Soft/", "G4_Natural/"}) {
+	std::vector<std::string> subdirs = { "B3_Soft/", "B4_Power/", "D#4_Natural/", "G3_Soft/", "G4_Natural/" };
+	for (std::string& subdir : subdirs) {
 		Voicebank vb;
+		std::string shortName = subdir.substr(0, subdir.find('_'));
 		vb.targetSamplerate(sampleRate)
+			.setShort(shortName)
 			.open(file + subdir);
 		voicebanks.push_back(std::move(vb));
 	}
@@ -20,6 +23,11 @@ void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
 	} else {
 		desiredFeatures.from = NULL;
 	}
+	
+	if (desiredFeatures.from->features.to == frame.phoneme) {
+		return;
+	}
+
 	desiredFeatures.to = frame.phoneme;
 	Voicebank& vb = voicebanks[2];
 	const Voicebank::Unit& selectUnit = vb.selectUnit(desiredFeatures);

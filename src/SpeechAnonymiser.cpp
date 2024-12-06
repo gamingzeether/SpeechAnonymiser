@@ -601,8 +601,17 @@ int commandInteractive(const std::string& path) {
             prefix = "voicebank";
         } else if (command == "dataset" && prefix == "~") {
             prefix = "dataset";
+        } else if (command == "phones" && prefix == "~") {
+            for (int i = 0; i < Global::get().phonemeSet().size(); i++) {
+                std::string xs = Global::get().phonemeSet().xSampa(i);
+                std::printf("%2d : %s\n", i, xs.c_str());
+            }
         } else if (command == "exit") {
-            prefix = "~";
+            if (prefix == "clip") {
+                prefix = "dataset";
+            } else {
+                prefix = "~";
+            }
         } else if (command != "" && prefix == "clip") {
             int index = std::stoi(command);
             if (0 <= index && index < clipPhones.size()) {

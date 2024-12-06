@@ -24,4 +24,6 @@ protected:
 
 	std::vector<Voicebank> voicebanks;
 	std::vector<ActiveUnit> activeUnits;
+
+	size_t currentPhoneme = 0;
 };

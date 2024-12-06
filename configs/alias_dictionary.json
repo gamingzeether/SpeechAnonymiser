@@ -3,15 +3,15 @@
     "dictionary": [
         {
             "sequence": "-",
-            "phoneme": ""
+            "phoneme": "."
         },
         {
             "sequence": "a",
-            "phoneme": "ɐ"
+            "phoneme": "A"
         },
         {
             "sequence": "e",
-            "phoneme": "e"
+            "phoneme": "E"
         },
         {
             "sequence": "i",
@@ -19,71 +19,71 @@
         },
         {
             "sequence": "o",
-            "phoneme": "o"
+            "phoneme": "O"
         },
         {
             "sequence": "u",
-            "phoneme": "ʊ"
+            "phoneme": "U"
         },
         {
             "sequence": "E",
-            "phoneme": "ɛ"
+            "phoneme": "E"
         },
         {
             "sequence": "9",
-            "phoneme": "ow"
+            "phoneme": "E"
         },
         {
             "sequence": "3",
-            "phoneme": "ɝ"
+            "phoneme": "3"
         },
         {
             "sequence": "@",
-            "phoneme": "ə"
+            "phoneme": "@"
         },
         {
             "sequence": "A",
-            "phoneme": "ɑ"
+            "phoneme": "A"
         },
         {
             "sequence": "I",
-            "phoneme": "ɪ"
+            "phoneme": "I"
         },
         {
             "sequence": "O",
-            "phoneme": "ɔ"
+            "phoneme": "O"
         },
         {
             "sequence": "8",
-            "phoneme": "ow"
+            "phoneme": "U"
         },
         {
             "sequence": "Q",
-            "phoneme": "ɒ"
+            "phoneme": "Q"
         },
         {
             "sequence": "6",
-            "phoneme": "ɐ"
+            "phoneme": "6"
         },
         {
             "sequence": "x",
-            "phoneme": ""
+            "phoneme": "C"
         },
         {
             "sequence": "0",
-            "phoneme": "θ"
+            "phoneme": "T"
         },
         {
             "sequence": "1",
-            "phoneme": ""
+            "phoneme": "}"
         },
         {
             "sequence": "ng",
-            "phoneme": "ŋ"
+            "phoneme": "n"
         },
         {
             "sequence": "&",
-            "phoneme": "ow"
+            "phoneme": "A"
         },
         {
             "sequence": "ll",
@@ -147,23 +147,23 @@
         },
         {
             "sequence": "ch",
-            "phoneme": "tʃ"
+            "phoneme": "tS"
         },
         {
             "sequence": "dh",
-            "phoneme": "ð"
+            "phoneme": "D"
         },
         {
             "sequence": "sh",
-            "phoneme": "ʃ"
+            "phoneme": "S"
         },
         {
             "sequence": "th",
-            "phoneme": "θ"
+            "phoneme": "T"
         },
         {
             "sequence": "zh",
-            "phoneme": "ʒ"
+            "phoneme": "Z"
         },
         {
             "sequence": "h",
@@ -183,7 +183,7 @@
         },
         {
             "sequence": "r",
-            "phoneme": "ɾ"
+            "phoneme": "4"
         },
         {
             "sequence": "w",
@@ -191,11 +191,35 @@
         },
         {
             "sequence": "y",
-            "phoneme": "y"
+            "phoneme": "i"
         },
         {
             "sequence": "dd",
             "phoneme": "d"
+        },
+        {
+            "sequence": " ",
+            "phoneme": "."
+        },
+        {
+            "sequence": "2",
+            "phoneme": "E"
+        },
+        {
+            "sequence": "*",
+            "phoneme": "."
+        },
+        {
+            "sequence": "'",
+            "phoneme": "."
+        },
+        {
+            "sequence": "_",
+            "phoneme": "."
+        },
+        {
+            "sequence": "4",
+            "phoneme": "4"
         }
     ]
 }

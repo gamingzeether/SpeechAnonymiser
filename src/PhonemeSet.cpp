@@ -25,6 +25,14 @@ std::string PhonemeSet::xSampa(size_t phoneme) const {
 	return invXSampaMap.at(phoneme);
 }
 
+size_t PhonemeSet::xSampaIndex(const std::string& str) const {
+	return xSampaMap.at(str);
+}
+
+bool PhonemeSet::xSampaExists(const std::string& str) const {
+	return xSampaMap.find(str) != xSampaMap.end();
+}
+
 size_t PhonemeSet::getOrNew(const std::string& xSampa) {
 	auto iter = xSampaMap.find(xSampa);
 	if (iter == xSampaMap.end()) {
