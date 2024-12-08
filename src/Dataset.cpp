@@ -57,6 +57,7 @@ void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, bool print) 
         return;
     }
     endFlag = false;
+    ex = std::max((size_t)1, ex);
     loaderThread = std::thread([this, inputSize, outputSize, ex, print] {
         _start(inputSize, outputSize, ex, print);
     });

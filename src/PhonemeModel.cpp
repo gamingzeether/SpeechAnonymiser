@@ -11,7 +11,15 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION -6
+#define CURRENT_VERSION -7
+
+#define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
+#define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
+#define CONVT _VC, _FC, _VC, MAT_TYPE
+
+#define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE>>(neurons)
+#define ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
+#define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>()
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
     this->hp = hp;
@@ -20,36 +28,35 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(2048, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    net.Add<mlpack::ConvolutionType<CONVT>>(12, 9, 9, 1, 1, 0, 4);
+    ACTIVATION;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1536, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    net.Add<mlpack::ConvolutionType<CONVT>>(5, 5, 5, 1, 1, 0, 0);
+    ACTIVATION;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    net.Add<mlpack::ConvolutionType<CONVT>>(5, 3, 3, 1, 1, 0, 0);
+    ACTIVATION;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(1024, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    LINEAR(512);
+    ACTIVATION;
+    DROPOUT;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    LINEAR(128);
+    ACTIVATION;
+    DROPOUT;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    LINEAR(128);
+    ACTIVATION;
+    DROPOUT;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(768, mlpack::L2Regularizer(hp.l2()));
-    net.Add<mlpack::PReLUType<MAT_TYPE>>();
-    net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout());
+    LINEAR(64);
+    ACTIVATION;
+    DROPOUT;
 
-    net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(outputSize, mlpack::L2Regularizer(hp.l2()));
+    LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
+
+    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE };
 }
 
 void PhonemeModel::initOptimizer() {
@@ -72,6 +79,13 @@ void PhonemeModel::initOptimizer() {
         0.999,  // The exponential decay rate for the 2nd moment estimates.
         1e-8,   // A small constant for numerical stability.
         0,      // Maximum number of iterations allowed (0 means no limit).
+        1e-8,   // Maximum absolute tolerance to terminate algorithm.
+        true);
+    //*/
+    /* StandardSGD initalization
+    optim = OPTIMIZER_TYPE(
+        0,      // Step size for each iteration.
+        0,      // Number of points to process in a single step.
         1e-8,   // Maximum absolute tolerance to terminate algorithm.
         true);
     //*/

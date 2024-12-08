@@ -97,7 +97,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
 
     // Tanh of logs of mel
     for (size_t i = 0; i < MEL_BINS; i++) {
-        float value = log10(melFrequencies[i]);
+        float value = 1.0 + log10(melFrequencies[i]);
         value = 2.0 / (1.0 + std::pow(2.71828, -value));
         frame.real[i] = value;
     }

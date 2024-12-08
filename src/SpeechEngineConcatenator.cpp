@@ -24,7 +24,7 @@ void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
 		desiredFeatures.from = NULL;
 	}
 	
-	if (desiredFeatures.from->features.to == frame.phoneme) {
+	if (!desiredFeatures.from || desiredFeatures.from->features.to == frame.phoneme) {
 		return;
 	}
 

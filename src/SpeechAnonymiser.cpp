@@ -650,7 +650,7 @@ int commandInteractive(const std::string& path) {
                 std::printf("%s\n", tsv.PATH.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
                     const Phone& p = clipPhones[i];
-                    std::printf("%d  %s: %.2f, %.2f\n", i, Global::get().phonemeSet().xSampa(p.phonetic).c_str(), p.min, p.max);
+                    std::printf("%2d  %s: %.2f, %.2f\n", i, Global::get().phonemeSet().xSampa(p.phonetic).c_str(), p.min, p.max);
                 }
             } else {
                 std::printf("Out of range\n");

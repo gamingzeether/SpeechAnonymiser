@@ -47,13 +47,11 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 
     ClassifierHelper::instance().initalize(sr);
 
-    std::vector<size_t> inputDimensions = { FRAME_SIZE, FFT_FRAMES, 1 };
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.2;
-    hp.l2() = 0.001;
-    hp.batchSize() = 512;
-    hp.stepSize() = 0.0001;
-    hp.warmup() = 0;
+    hp.dropout() = 0.1;
+    hp.l2() = 0.0001;
+    hp.batchSize() = 128;
+    hp.stepSize() = 0.001;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
@@ -64,7 +62,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
         model.initModel();
     }
     model.initOptimizer();
-    model.network().InputDimensions() = inputDimensions;
 
     logger.log(std::format("Model initalized with {} input features and {} output features", model.getInputSize(), model.getOutputSize()), Logger::INFO);
 
