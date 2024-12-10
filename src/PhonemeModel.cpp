@@ -19,7 +19,7 @@
 
 #define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE>>(neurons)
 #define ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
-#define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>()
+#define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
     this->hp = hp;
@@ -28,13 +28,13 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::ConvolutionType<CONVT>>(12, 9, 9, 1, 1, 0, 4);
+    net.Add<mlpack::ConvolutionType<CONVT>>(15, 9, 9, 1, 1, 0, 4);
     ACTIVATION;
 
-    net.Add<mlpack::ConvolutionType<CONVT>>(5, 5, 5, 1, 1, 0, 0);
+    net.Add<mlpack::ConvolutionType<CONVT>>(8, 7, 7, 1, 1, 0, 0);
     ACTIVATION;
 
-    net.Add<mlpack::ConvolutionType<CONVT>>(5, 3, 3, 1, 1, 0, 0);
+    net.Add<mlpack::ConvolutionType<CONVT>>(6, 4, 4, 1, 1, 0, 0);
     ACTIVATION;
 
     LINEAR(512);

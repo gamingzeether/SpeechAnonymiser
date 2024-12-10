@@ -51,7 +51,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     hp.dropout() = 0.1;
     hp.l2() = 0.0001;
     hp.batchSize() = 128;
-    hp.stepSize() = 0.001;
+    hp.stepSize() = 0.0001;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
@@ -134,11 +134,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     [&](const MAT_TYPE& /* param */)
                     {
                         logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
+                        model.network().SetNetworkMode(false);
                         // Compare training and test accuracy to check for overfitting
                         if (epoch++ % 10 == 0) {
                             printConfusionMatrix(trainData, trainLabel);
                             printConfusionMatrix(testData, testLabel);
-                            model.network().SetNetworkMode(true);
                         }
 
                         // Validation
@@ -149,6 +149,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                             logger.log("Saving new best model", Logger::INFO);
                             model.save(999);
                         }
+                        model.network().SetNetworkMode(true);
                         return validationLoss;
                     }, 20));
 
