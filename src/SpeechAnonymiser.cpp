@@ -84,8 +84,13 @@ static struct cag_option options[] = {
     .identifier = '\\',
     .access_name = "interactive",
     .value_name = "PATH",
-    .description = "Used for development"
-}
+    .description = "Used for development"},
+
+   {
+    .identifier = 'e',
+    .access_letters = "e",
+    .value_name = "PATH",
+    .description = "Evaluate model accuracy"}
 };
 
 struct AudioContainer {
@@ -662,6 +667,11 @@ int commandInteractive(const std::string& path) {
     return 0;
 }
 
+int commandEvaluate(const std::string& path) {
+    classifier.evaluate(path);
+    return 0;
+}
+
 bool tryMakeDir(std::string path, bool fatal = true) {
     if (!std::filesystem::create_directories(path)) {
         if (std::filesystem::exists(path)) {
@@ -726,8 +736,8 @@ int main(int argc, char* argv[]) {
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-    bool trainMode = false, preprocessMode = false, helpMode = false, interactiveMode = false;
-    std::string tVal, pVal, wVal, dVal, aVal, oVal, iiVal;
+    bool trainMode = false, preprocessMode = false, helpMode = false, interactiveMode = false, evaluateMode = false;
+    std::string tVal, pVal, wVal, dVal, aVal, oVal, iiVal, eVal;
     while (cag_option_fetch(&context)) {
         switch (cag_option_get_identifier(&context)) {
         case 't': // Train mode
@@ -757,6 +767,10 @@ int main(int argc, char* argv[]) {
             interactiveMode = true;
             iiVal = cag_option_get_value(&context);
             break;
+        case 'e':
+            evaluateMode = true;
+            eVal = cag_option_get_value(&context);
+            break;
         }
     }
 
@@ -772,6 +786,8 @@ int main(int argc, char* argv[]) {
             error = commandTrain(tVal);
         } else if (interactiveMode) {
             error = commandInteractive(iiVal);
+        } else if (evaluateMode) {
+            error = commandEvaluate(eVal);
         } else {
             error = commandDefault();
         }

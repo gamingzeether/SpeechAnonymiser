@@ -393,3 +393,16 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
         }
     }
 }
+
+void PhonemeClassifier::evaluate(const std::string& path) {
+    int inputSize = model.getInputSize();
+    int outputSize = model.getOutputSize();
+
+    Dataset test(path + "/test.tsv", 16000, path);
+    test.start(inputSize, outputSize, 500, true);
+    test.join();
+
+    CPU_MAT_TYPE data, labels;
+    test.get(data, labels);
+    printConfusionMatrix(data, labels);
+}

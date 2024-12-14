@@ -21,6 +21,7 @@ public:
     std::string getPhonemeString(const size_t& in);
     void printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel);
     void tuneHyperparam(const std::string& path, int iterations);
+    void evaluate(const std::string& path);
 
     inline size_t getInputSize() { return model.getInputSize(); };
     inline size_t getOutputSize() { return model.getOutputSize(); };
