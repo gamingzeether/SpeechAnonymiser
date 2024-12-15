@@ -48,10 +48,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.1;
+    hp.dropout() = 0.005;
     hp.l2() = 0.0001;
     hp.batchSize() = 128;
-    hp.stepSize() = 0.0001;
+    hp.stepSize() = 0.005;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 

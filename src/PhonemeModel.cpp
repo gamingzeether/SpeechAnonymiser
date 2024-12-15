@@ -17,7 +17,7 @@
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
 #define CONVT _VC, _FC, _VC, MAT_TYPE
 
-#define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE>>(neurons)
+#define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
 #define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
 
@@ -28,28 +28,27 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    net.Add<mlpack::ConvolutionType<CONVT>>(15, 9, 9, 1, 1, 0, 4);
-    ACTIVATION;
-
-    net.Add<mlpack::ConvolutionType<CONVT>>(8, 7, 7, 1, 1, 0, 0);
-    ACTIVATION;
-
-    net.Add<mlpack::ConvolutionType<CONVT>>(6, 4, 4, 1, 1, 0, 0);
-    ACTIVATION;
-
-    LINEAR(512);
+    LINEAR(2048);
     ACTIVATION;
     DROPOUT;
 
-    LINEAR(128);
+    LINEAR(2048);
     ACTIVATION;
     DROPOUT;
 
-    LINEAR(128);
+    LINEAR(2048);
     ACTIVATION;
     DROPOUT;
 
-    LINEAR(64);
+    LINEAR(2048);
+    ACTIVATION;
+    DROPOUT;
+
+    LINEAR(2048);
+    ACTIVATION;
+    DROPOUT;
+
+    LINEAR(2048);
     ACTIVATION;
     DROPOUT;
 
@@ -99,6 +98,8 @@ void PhonemeModel::save(int checkpoint) {
     config.save();
 
     int error = 0;
+    if (std::filesystem::exists(ARCHIVE_FILE))
+        std::filesystem::remove(ARCHIVE_FILE);
     zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS | ZIP_CREATE, &error);
     for (const char* string : ZIP_FILES) {
         zip_source_t* source = zip_source_file(archive, string, 0, ZIP_LENGTH_TO_END);
@@ -133,6 +134,7 @@ bool PhonemeModel::load() {
                 out.write(buf, readBytes);
                 out.close();
             }
+            zip_fclose(file);
         }
         delete[] buf;
         zip_discard(archive);
