@@ -19,6 +19,7 @@ This project aims to provide as much anonymity as STT-TTS voice changers while h
 Also see: 
 - [Speaker de-identification using diphone recognition and speech synthesis](https://lmi.fe.uni-lj.si/wp-content/uploads/2023/05/Speakerde-identificationusingdiphonerecognitionandspeechsynthesis.pdf)
   - Proposes DROPSY, a similar method that uses diphone recognition and focuses on hiding the voice
+- [speaker-anonymization](https://github.com/digitalphonetics/speaker-anonymization)
 
 # How does it work?
 
