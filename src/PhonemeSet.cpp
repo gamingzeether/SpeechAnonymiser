@@ -17,6 +17,11 @@ size_t PhonemeSet::fromString(const std::wstring& str) const {
 
 PhonemeSet& PhonemeSet::addString(const std::wstring& str, const std::string& xSampa) {
 	size_t hash = Util::customHasher(str);
+	if (stringMap.find(hash) != stringMap.end()) {
+		if (xSampaMap[xSampa] == stringMap[hash])
+			return *this;
+		throw("Hash collision");
+	}
 	stringMap[hash] = getOrNew(xSampa);
 	return *this;
 }

@@ -64,8 +64,9 @@ None
 
 ###### *There might be more steps that I'm forgetting*
 
-# Training
+# Preparing datasets
 
+If using Common Voice:
 1. Download Mozilla Common Voice dataset
 1. Install Montreal Forced Aligner
 1. Extract dataset
@@ -76,9 +77,17 @@ None
         - transcript
         - train.tsv
         - ...
-1. Train with `-t [path to dataset]`
+
+If using TIMIT:
+1. Convert WAV files from NIST to RIFF
+    - Rename new files to *\_.wav ex: SA1.WAV -> SA1\_.wav
+    - I used `find . -name '*.WAV' | parallel -P20 sox {} '{.}_.wav'`
 
 ###### *There might be more steps that I'm forgetting*
+
+# Training
+
+1. Train with `-t [path to dataset]`
 
 # Want to contribute? / Have questions? / Something doesn't work?
 

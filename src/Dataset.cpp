@@ -75,10 +75,37 @@ bool Dataset::join() {
     return true;
 }
 
-void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
-    reader.shuffle();
-    reader.resetLine();
+void Dataset::setSubtype(Dataset::Subtype t) {
+    if (type == COMMON_VOICE) {
+        std::string tsv = path;
+        switch (t) {
+        case TRAIN:
+            tsv += "/train.tsv";
+            break;
+        case TEST:
+            tsv += "/test.tsv";
+            break;
+        case VALIDATE:
+            tsv += "/dev.tsv";
+            break;
+        }
+        reader.open(tsv);
+    } else if (type == TIMIT) {
+        switch (t) {
+        case TRAIN:
+            path += "/TRAIN";
+            break;
+        case TEST:
+            path += "/TEST";
+            break;
+        case VALIDATE:
+            path += "/TEST";
+            break;
+        }
+    }
+}
 
+void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
 	std::vector<size_t> exampleCount(outputSize);
 	exampleData = std::vector<CPU_MAT_TYPE>(outputSize);
     exampleLabel = std::vector<CPU_MAT_TYPE>(outputSize);
@@ -97,6 +124,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     size_t minExamples = 0;
     Clip clip = Clip();
     clip.initSampleRate(sampleRate);
+    clip.type = type;
     std::vector<Phone> phones;
     std::mutex loaderMutex;
     std::condition_variable loaderWaiter;
@@ -110,7 +138,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     // Allow searching for next clip while current clip is being loaded
     // Find clip -> Find clip -> Find clip -> etc
     //  \-> Load clip -\-> Load clip
-#pragma region MP3 Loader thread
+#pragma region Loader thread
     std::thread loaderThread = std::thread(
         [this, &minExamples, &inputSize, &outputSize, &print, &exampleCount,
         &loaderMutex, &loaderWaiter, &loaderReady,
@@ -123,7 +151,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                     loaderReady = false;
                 }
 
-                clip.loadMP3(sampleRate);
+                clip.load(sampleRate);
                 if (clip.loaded) {
                     totalClips++;
 
@@ -148,6 +176,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 
                                 if (p.maxIdx >= fftStart && fftStart >= p.minIdx) {
                                     currentFrame.phone = p.phonetic;
+
                                     break;
                                 }
                             }
@@ -192,7 +221,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         fflush(stdout);
                     }
                 } else { // Could not load
-                    reader.dropIdx(lineIndex);
+                    if (type == COMMON_VOICE)
+                        reader.dropIdx(lineIndex);
                 }
 
                 {
@@ -207,53 +237,84 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
     // Find clip with wanted phonemes
 #pragma region Find clips
     size_t testedClips = 0;
-    TSVReader::TSVLine nextClip;
-    while (keepLoading(minExamples, examples)) {
-        TSVReader::CompactTSVLine* line = reader.read_line(lineIndex);
-        if (!line) {
-            examples = std::min(minExamples, examples);
-            break;
-        }
-        nextClip = TSVReader::convert(*line);
-        // Get transcription
-        const std::string& nextClipPath = nextClip.PATH;
-        const std::string transcriptionPath = transcriptsPath + nextClip.CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
-        if (!std::filesystem::exists(transcriptionPath)) {
-            //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
-            reader.dropIdx(lineIndex);
-            continue;
-        }
-        std::vector tempPhones = parseTextgrid(transcriptionPath);
-
-        // Check if the clip should be loaded
-        bool shouldLoad = false;
-        for (size_t i = 0; i < tempPhones.size(); i++) {
-            size_t binCount = exampleCount[tempPhones[i].phonetic];
-            if (binCount < examples * MMAX_EXAMPLE_F) {
-                shouldLoad = true;
+    if (type == COMMON_VOICE) {
+        reader.shuffle();
+        reader.resetLine();
+        TSVReader::TSVLine nextClip;
+        while (keepLoading(minExamples, examples)) {
+            TSVReader::CompactTSVLine* line = reader.read_line(lineIndex);
+            if (!line) {
                 break;
             }
-        }
-        testedClips++;
-        if (!shouldLoad) {
-            continue;
-        }
+            nextClip = TSVReader::convert(*line);
+            // Get transcription
+            const std::string& nextClipPath = nextClip.PATH;
+            const std::string transcriptionPath = transcriptsPath + nextClip.CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";
+            if (!std::filesystem::exists(transcriptionPath)) {
+                //std::cout << "Missing transcription: " << transcriptionPath << std::endl;
+                reader.dropIdx(lineIndex);
+                continue;
+            }
+            std::vector tempPhones = parseTextgrid(transcriptionPath);
 
-        {
-            std::unique_lock<std::mutex> lock(loaderMutex);
-            loaderWaiter.wait(lock, [&loaderFinished] { return loaderFinished; });
-            loaderFinished = false;
+            // Check if the clip should be loaded
+            bool shouldLoad = wantClip(tempPhones, exampleCount);
+            testedClips++;
+            if (!shouldLoad) {
+                continue;
+            }
+
+            {
+                std::unique_lock<std::mutex> lock(loaderMutex);
+                loaderWaiter.wait(lock, [&loaderFinished] { return loaderFinished; });
+                loaderFinished = false;
+            }
+
+            phones = std::move(tempPhones);
+            loadNextClip(clipPath, nextClip, clip, -1);
+
+            {
+                std::lock_guard<std::mutex> lock(loaderMutex);
+                loaderReady = true;
+                loaderWaiter.notify_one();
+            }
         }
+    } else if (type == TIMIT) {
+        std::filesystem::recursive_directory_iterator mainIter(path);
+        for (const auto& item : mainIter) {
+            if (item.is_regular_file() && keepLoading(minExamples, examples)) {
+                auto& path = item.path();
+                if (path.extension() == ".PHN") {
+                    auto fname = path.filename();
+                    std::vector<Phone> tempPhones = parseTIMIT(path.string());
+                    testedClips++;
+                    bool shouldLoad = wantClip(tempPhones, exampleCount);
+                    std::string cpath = path.string();
+                    cpath = cpath.substr(0, cpath.size() - 4);
+                    cpath += "_.wav";
 
-        phones = tempPhones;
-        loadNextClip(clipPath, nextClip, clip, -1);
+                    if (!shouldLoad)
+                        continue;
 
-        {
-            std::lock_guard<std::mutex> lock(loaderMutex);
-            loaderReady = true;
-            loaderWaiter.notify_one();
+                    {
+                        std::unique_lock<std::mutex> lock(loaderMutex);
+                        loaderWaiter.wait(lock, [&loaderFinished] { return loaderFinished; });
+                        loaderFinished = false;
+                    }
+
+                    phones = std::move(tempPhones);
+                    loadNextClip(cpath, clip, -1);
+
+                    {
+                        std::lock_guard<std::mutex> lock(loaderMutex);
+                        loaderReady = true;
+                        loaderWaiter.notify_one();
+                    }
+                }
+            }
         }
     }
+    examples = std::min(minExamples, examples);
 #pragma endregion
 
     endFlag = true;
@@ -316,13 +377,41 @@ std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
     return phones;
 }
 
+std::vector<Phone> Dataset::parseTIMIT(const std::string& path) {
+    std::ifstream phonemeReader;
+    phonemeReader.open(path);
+
+    std::string line;
+    std::vector<Phone> tempPhones;
+    while (true) {
+        std::getline(phonemeReader, line);
+        if (line == "")
+            break;
+
+        size_t s1 = line.find(' ');
+        size_t s2 = line.find(' ', s1 + 1);
+
+        std::string i1 = line.substr(0, s1).c_str();
+        std::string i2 = line.substr(s1 + 1, s2 - s1 - 1).c_str();
+        std::string i3 = line.substr(s2 + 1).c_str();
+
+        Phone p = Phone();
+        p.minIdx = std::stoull(i1);
+        p.min = p.minIdx / 16000.0;
+        p.maxIdx = std::stoull(i2);
+        p.max = p.maxIdx / 16000.0;
+        p.phonetic = Global::get().phonemeSet().fromString(i3);
+
+        tempPhones.push_back(std::move(p));
+    };
+
+    phonemeReader.close();
+    return tempPhones;
+}
+
 void Dataset::loadNextClip(const std::string& clipPath, TSVReader::TSVLine tabSeperated, OUT Clip& clip, int sampleRate) {
-    clip.clipPath = clipPath;
-    clip.loaded = false;
     clip.tsvElements = tabSeperated;
-    if (sampleRate > 0) {
-        clip.loadMP3(sampleRate);
-    }
+    loadNextClip(clipPath, clip, sampleRate);
 }
 
 void Dataset::loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate) {
@@ -330,35 +419,39 @@ void Dataset::loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip
     loadNextClip(clipPath, elements, clip, sampleRate);
 }
 
-void Dataset::Clip::loadMP3(int targetSampleRate) {
+void Dataset::loadNextClip(const std::string& clipPath, OUT Clip& clip, int sampleRate) {
+    clip.clipPath = clipPath;
+    clip.loaded = false;
+    if (sampleRate > 0) {
+        clip.load(sampleRate);
+    }
+}
+
+void Dataset::Clip::load(int targetSampleRate) {
     // Read mp3 file from tsv
     //printf("Loading MP3: %s\n", tsvElements[TSVReader::Indices::PATH].c_str());
 
-    drmp3_config cfg;
-    drmp3_uint64 samples;
+    size_t clipSamples, clipSampleRate;
+    float* floatBuffer = NULL;
 
-    std::string clipFullPath = clipPath + tsvElements.PATH;
-    if (!std::filesystem::exists(clipFullPath)) {
-        printf("%s does not exist\n", clipFullPath.c_str());
+    std::string clipFullPath = getFilePath();
+    if (clipFullPath == "")
         return;
+
+    switch (type) {
+    case COMMON_VOICE:
+        floatBuffer = loadMP3(clipSamples, clipSampleRate, clipFullPath);
+        break;
+    case TIMIT:
+        floatBuffer = loadWAV(clipSamples, clipSampleRate, clipFullPath);
+        break;
     }
-
-    float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(clipFullPath.c_str(), &cfg, &samples, NULL);
-
     if (floatBuffer == NULL) {
         printf("Failed to open file: %s\n", clipFullPath.c_str());
         return;
     }
-    if (cfg.channels <= 0) {
-        printf("%s has invalid channel count (%d)\n", clipFullPath.c_str(), cfg.channels);
-        return;
-    }
-    if (cfg.sampleRate <= 0) {
-        printf("%s has invalid sample rate (%d)\n", clipFullPath.c_str(), cfg.sampleRate);
-        return;
-    }
 
-    float length = (double)samples / cfg.sampleRate;
+    float length = (double)clipSamples / clipSampleRate;
     float newLength = length + 0.1f;
     if (newLength > allocatedLength) {
         // Not very efficient but should slow/stop after a certain point
@@ -367,14 +460,15 @@ void Dataset::Clip::loadMP3(int targetSampleRate) {
         allocatedLength = newLength;
     }
 
-    if (cfg.sampleRate == targetSampleRate) {
-        memcpy(buffer, floatBuffer, sizeof(float) * samples);
-        size = samples;
-        sampleRate = cfg.sampleRate;
-    } else if (cfg.sampleRate % targetSampleRate == 0 && cfg.sampleRate > targetSampleRate) {
+    // Convert sample rate
+    if (clipSampleRate == targetSampleRate) {
+        memcpy(buffer, floatBuffer, sizeof(float) * clipSamples);
+        size = clipSamples;
+        sampleRate = clipSampleRate;
+    } else if (clipSampleRate % targetSampleRate == 0 && clipSampleRate > targetSampleRate) {
         // Integer down sample rate conversion
-        int factor = cfg.sampleRate / targetSampleRate;
-        size = samples / factor;
+        int factor = clipSampleRate / targetSampleRate;
+        size = clipSamples / factor;
         for (size_t i = 0; i < size; i++) {
             buffer[i] = floatBuffer[i * factor];
         }
@@ -382,15 +476,15 @@ void Dataset::Clip::loadMP3(int targetSampleRate) {
     } else {
         SRC_DATA upsampleData = SRC_DATA();
         upsampleData.data_in = floatBuffer;
-        upsampleData.input_frames = samples;
-        double ratio = (double)targetSampleRate / cfg.sampleRate;
-        long outSize = (long)(ratio * samples);
+        upsampleData.input_frames = clipSamples;
+        double ratio = (double)targetSampleRate / clipSampleRate;
+        long outSize = (long)(ratio * clipSamples);
         upsampleData.src_ratio = ratio;
         upsampleData.data_out = buffer;
         upsampleData.output_frames = outSize;
-        int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, cfg.channels);
+        int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, 1);
         if (error) {
-            std::cout << "Error while upsampling: " << src_strerror(error) << '\n';
+            std::cout << "Error while resampling: " << src_strerror(error) << '\n';
         }
         sampleRate = targetSampleRate;
         size = outSize;
@@ -412,6 +506,82 @@ void Dataset::Clip::loadMP3(int targetSampleRate) {
     }
 
     loaded = true;
+}
+
+float* Dataset::Clip::loadMP3(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path) {
+    drmp3_config cfg;
+    drmp3_uint64 scount;
+    float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &cfg, &scount, NULL);
+
+    if (cfg.channels <= 0) {
+        printf("%s has invalid channel count (%d)\n", path.c_str(), cfg.channels);
+        return NULL;
+    }
+    if (cfg.sampleRate <= 0) {
+        printf("%s has invalid sample rate (%d)\n", path.c_str(), cfg.sampleRate);
+        return NULL;
+    }
+
+    convertMono(floatBuffer, scount, cfg.channels);
+
+    samples = scount;
+    sampleRate = cfg.sampleRate;
+    return floatBuffer;
+}
+
+float* Dataset::Clip::loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path) {
+    unsigned int channels, sr;
+    drwav_uint64 clipSamples;
+    float* floatBuffer = drwav_open_file_and_read_pcm_frames_f32(path.c_str(), &channels, &sr, &clipSamples, NULL);
+
+    if (channels <= 0) {
+        printf("%s has invalid channel count (%d)\n", path.c_str(), channels);
+        return NULL;
+    }
+    if (sr <= 0) {
+        printf("%s has invalid sample rate (%d)\n", path.c_str(), sr);
+        return NULL;
+    }
+
+    convertMono(floatBuffer, clipSamples, channels);
+    samples = clipSamples;
+    sampleRate = sr;
+    return floatBuffer;
+}
+
+std::string Dataset::Clip::getFilePath() {
+    std::string path;
+    switch (type) {
+    case COMMON_VOICE:
+        path = clipPath + tsvElements.PATH;
+        break;
+    case TIMIT:
+        path = clipPath;
+        break;
+    default:
+        throw("Invalid type");
+        break;
+    }
+    if (!std::filesystem::exists(path)) {
+        printf("%s does not exist\n", path.c_str());
+        return "";
+    }
+    return path;
+}
+
+void Dataset::Clip::convertMono(float* buffer, OUT size_t& length, int channels) {
+    if (channels <= 1)
+        return;
+    
+    length /= channels;
+    for (size_t i = 0; i < length; i++) {
+        float sum = 0;
+        size_t off = i * channels;
+        for (int j = 0; j < channels; j++) {
+            sum += buffer[off + j];
+        }
+        buffer[i] = sum / channels;
+    }
 }
 
 void Dataset::preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir) {
@@ -473,6 +643,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             // Batches
             int counter = 0;
             Clip clip = Clip();
+            clip.type = COMMON_VOICE;
             clip.initSampleRate(sampleRate);
             TSVReader::TSVLine tabSeperated = TSVReader::convert(*tsv.read_line());
             while (tabSeperated.CLIENT_ID != "" && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
@@ -486,7 +657,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
                 if (std::filesystem::exists(transcriptPath)) {
                     continue;
                 }
-                clip.loadMP3(16000);
+                clip.load(16000);
 
                 std::string speakerPath = workDir + clip.tsvElements.CLIENT_ID + "/";
                 if (!std::filesystem::is_directory(speakerPath)) {
@@ -536,6 +707,7 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
     const std::string clipPath = path + "/clips/";
     const std::string transcriptsPath = path + "/transcript/";
     Clip clip;
+    clip.type = COMMON_VOICE;
     clip.initSampleRate(samplerate);
     std::vector<float> audio = std::vector<float>();
     TSVReader::CompactTSVLine* line;
@@ -589,4 +761,16 @@ bool Dataset::frameHasNan(const Frame& frame) {
             return true;
 #endif
     return false;
+}
+
+bool Dataset::wantClip(const std::vector<Phone>& phones, const std::vector<size_t>& exampleCount) {
+    bool shouldLoad = false;
+    for (size_t i = 0; i < phones.size(); i++) {
+        size_t binCount = exampleCount[phones[i].phonetic];
+        if (binCount < examples * MMAX_EXAMPLE_F) {
+            shouldLoad = true;
+            break;
+        }
+    }
+    return shouldLoad;
 }

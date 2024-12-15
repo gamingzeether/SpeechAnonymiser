@@ -72,8 +72,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
     //tuneHyperparam(path, 100);
 
-    model.optimizer().MaxIterations() = epochs * examples * model.getOutputSize();
-
     std::vector<Phone> phones;
     
     int inputSize = model.getInputSize();
@@ -85,9 +83,12 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     std::thread trainThread;
     bool isTraining = false;
-    Dataset train(path + "/train.tsv", sampleRate, path);
-    Dataset validate(path + "/dev.tsv", sampleRate, path);
-    Dataset test(path + "/test.tsv", sampleRate, path);
+    Dataset train(sampleRate, path);
+    Dataset validate(sampleRate, path);
+    Dataset test(sampleRate, path);
+    train.setSubtype(Dataset::TRAIN);
+    validate.setSubtype(Dataset::VALIDATE);
+    test.setSubtype(Dataset::TEST);
     size_t loops = 0;
     double bestLoss = 9e+99;
 
@@ -122,6 +123,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateData);
             CONVERT(validateLabel);
 #endif
+
+            model.optimizer().MaxIterations() = epochs * trainLabel.n_elem;
 
             model.optimizer().StepSize() = model.rate(1);
             logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);
@@ -267,8 +270,10 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
     int outputSize = model.getOutputSize();
 
     // Get data
-    Dataset train(path + "/train.tsv", 16000, path);
-    Dataset validate(path + "/dev.tsv", 16000, path);
+    Dataset train(16000, path);
+    Dataset validate(16000, path);
+    train.setSubtype(Dataset::TRAIN);
+    validate.setSubtype(Dataset::VALIDATE);
     size_t tuneSize = 250;
     train.start(inputSize, outputSize, tuneSize * 0.8, true);
     validate.start(inputSize, outputSize, tuneSize * 0.2, true);
@@ -398,7 +403,8 @@ void PhonemeClassifier::evaluate(const std::string& path) {
     int inputSize = model.getInputSize();
     int outputSize = model.getOutputSize();
 
-    Dataset test(path + "/test.tsv", 16000, path);
+    Dataset test(16000, path);
+    test.setSubtype(Dataset::TEST);
     test.start(inputSize, outputSize, 500, true);
     test.join();
 

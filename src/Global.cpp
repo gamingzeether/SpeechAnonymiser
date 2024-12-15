@@ -44,6 +44,10 @@ void Global::initPhonemeSet() {
 					phoneme.diacritic = xSampa["diacritic"].get_string();
 				}
 
+				if (i > 0 && !ps.xSampaExists(phoneme.symbol)) {
+					std::printf("Does not exists: %s\n", phoneme.symbol.c_str());
+				}
+
 				ps.addString(token, phoneme.symbol);
 			}
 		}

@@ -587,7 +587,8 @@ int commandInteractive(const std::string& path) {
         .configure("AERIS CV-VC ENG Kire 2.0/");
     speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
 
-    Dataset ds = Dataset(path + "/test.tsv", outputSampleRate, path);
+    Dataset ds = Dataset(outputSampleRate, path);
+    ds.setSubtype(Dataset::TEST);
 
     if (outputAudio.startStream()) {
         std::cout << outputAudio.getErrorText() << '\n';

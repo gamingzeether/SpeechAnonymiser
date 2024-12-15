@@ -7,6 +7,18 @@
 
 class Dataset {
 public:
+    enum Type {
+        COMMON_VOICE,
+        TIMIT,
+    };
+    enum Subtype {
+        TRAIN,
+        TEST,
+        VALIDATE,
+    };
+
+    Type getType() { return type; };
+
 	void get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy = true);
 
     void start(size_t inputSize, size_t outputSize, size_t examples, bool print = false);
@@ -17,8 +29,16 @@ public:
 
     std::vector<float> _findAndLoad(const std::string& path, size_t target, int samplerate, TSVReader::TSVLine& tsv, std::vector<Phone>& phones);
 
+    void setSubtype(Subtype t);
+
     Dataset() : reader(TSVReader()), sampleRate(16000), path("") {};
-    Dataset(const std::string tsv, int sr, std::string pth) : reader(TSVReader()), sampleRate(sr), path(pth) { reader.open(tsv); };
+    Dataset(int sr, std::string pth) : reader(TSVReader()), sampleRate(sr), path(pth) {
+        if (path.substr(path.size() - 5) == "TIMIT") {
+            type = TIMIT;
+        } else {
+            type = COMMON_VOICE;
+        }
+    };
 private:
     struct Clip {
         std::string clipPath;
@@ -29,9 +49,9 @@ private:
         std::string sentence;
         unsigned int sampleRate;
         bool loaded = false;
-        bool isTest = false;
+        Type type;
 
-        void loadMP3(int targetSampleRate);
+        void load(int targetSampleRate);
         void initSampleRate(size_t sr) {
             allocatedLength = 5;
             buffer = new float[(size_t)(sr * allocatedLength)];
@@ -47,6 +67,11 @@ private:
         ~Clip() {
             delete[] buffer;
         }
+    private:
+        float* loadMP3(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path);
+        float* loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path);
+        void convertMono(float* buffer, OUT size_t& length, int channels);
+        std::string getFilePath();
     };
 
 	TSVReader reader;
@@ -62,12 +87,16 @@ private:
     bool cached = false;
     CPU_MAT_TYPE cachedData;
     CPU_MAT_TYPE cachedLabels;
+    Type type;
 
     void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
 	std::vector<Phone> parseTextgrid(const std::string& path);
+    std::vector<Phone> parseTIMIT(const std::string& path);
     void loadNextClip(const std::string& clipPath, TSVReader::TSVLine tabSeperated, OUT Clip& clip, int sampleRate);
     void loadNextClip(const std::string& clipPath, TSVReader& tsv, OUT Clip& clip, int sampleRate);
+    void loadNextClip(const std::string& clipPath, OUT Clip& clip, int sampleRate);
     inline bool keepLoading(size_t minExamples, size_t examples) { return (minExamples < examples || !endFlag) && (minExamples < examples * MMAX_EXAMPLE_F); };
     void saveCache();
     inline bool frameHasNan(const Frame& frame);
+    bool wantClip(const std::vector<Phone>& phones, const std::vector<size_t>& exampleCount);
 };
