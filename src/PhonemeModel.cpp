@@ -124,16 +124,18 @@ bool PhonemeModel::load() {
         if (error != 0 && logger.has_value()) {
             logger->log(std::format("Zip file open error {}", error), Logger::WARNING);
         }
-        size_t bufferSize = 64 * 1024 * 1024; // Allocate 64 MB
+        size_t bufferSize = 16 * 1024 * 1024;
         char* buf = new char[bufferSize];
         for (const char* string : ZIP_FILES) {
             zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);
-            zip_int64_t readBytes = zip_fread(file, buf, bufferSize);
-            if (readBytes >= 0) {
-                std::ofstream out = std::ofstream(string, std::ios::binary | std::ios::trunc);
+            std::ofstream out = std::ofstream(string, std::ios::binary | std::ios::trunc);
+            while (true) {
+                zip_int64_t readBytes = zip_fread(file, buf, bufferSize);
+                if (readBytes <= 0)
+                    break;
                 out.write(buf, readBytes);
-                out.close();
-            }
+            };
+            out.close();
             zip_fclose(file);
         }
         delete[] buf;
