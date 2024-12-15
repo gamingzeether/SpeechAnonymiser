@@ -522,9 +522,8 @@ float* Dataset::Clip::loadMP3(OUT size_t& samples, OUT size_t& sampleRate, const
         return NULL;
     }
 
-    convertMono(floatBuffer, scount, cfg.channels);
-
     samples = scount;
+    convertMono(floatBuffer, samples, cfg.channels);
     sampleRate = cfg.sampleRate;
     return floatBuffer;
 }
@@ -543,8 +542,8 @@ float* Dataset::Clip::loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const
         return NULL;
     }
 
-    convertMono(floatBuffer, clipSamples, channels);
     samples = clipSamples;
+    convertMono(floatBuffer, samples, channels);
     sampleRate = sr;
     return floatBuffer;
 }

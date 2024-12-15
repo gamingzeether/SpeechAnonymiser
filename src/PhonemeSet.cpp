@@ -20,7 +20,7 @@ PhonemeSet& PhonemeSet::addString(const std::wstring& str, const std::string& xS
 	if (stringMap.find(hash) != stringMap.end()) {
 		if (xSampaMap[xSampa] == stringMap[hash])
 			return *this;
-		throw("Hash collision");
+		std::wprintf(L"Collision: %s:%s", str.c_str(), Util::utf8_to_utf16(xSampa).c_str());
 	}
 	stringMap[hash] = getOrNew(xSampa);
 	return *this;
