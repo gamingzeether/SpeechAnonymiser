@@ -601,7 +601,7 @@ int commandInteractive(const std::string& path) {
     std::vector<float> clipAudio;
     std::vector<Phone> clipPhones;
     while (true) {
-        std::printf("%s: ", prefix);
+        std::printf("%s: ", prefix.c_str());
         std::getline(std::cin, command);
         if (command == "voicebank" && prefix == "~") {
             prefix = "voicebank";

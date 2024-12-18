@@ -170,7 +170,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 
                             size_t maxOverlap = 0;
                             size_t maxIdx = 0;
-                            // Look for a phoneme we need
+                            // Assign phoneme ID to frame
                             for (int i = 0; i < phones.size(); i++) {
                                 const Phone& p = phones[i];
 
@@ -188,7 +188,6 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 
                     for (size_t i = 0; i < frameCounter; i++) {
                         Frame& frame = frames[i];
-                        // NAN check
                         const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
 

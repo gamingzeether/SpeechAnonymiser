@@ -11,18 +11,15 @@ PhonemeSet& PhonemeSet::addString(const std::string& str, const std::string& xSa
 }
 
 size_t PhonemeSet::fromString(const std::wstring& str) const {
-	size_t hash = Util::customHasher(str);
-	return stringMap.at(hash);
+	return stringMap.at(str);
 }
 
 PhonemeSet& PhonemeSet::addString(const std::wstring& str, const std::string& xSampa) {
-	size_t hash = Util::customHasher(str);
-	if (stringMap.find(hash) != stringMap.end()) {
-		if (xSampaMap[xSampa] == stringMap[hash])
-			return *this;
-		std::wprintf(L"Collision: %s:%s", str.c_str(), Util::utf8_to_utf16(xSampa).c_str());
+	if (stringMap.find(str) != stringMap.end()) {
+		if (xSampaMap[xSampa] != stringMap[str])
+			std::wprintf(L"Collision: %s:%s", str.c_str(), Util::utf8_to_utf16(xSampa).c_str());
 	}
-	stringMap[hash] = getOrNew(xSampa);
+	stringMap[str] = getOrNew(xSampa);
 	return *this;
 }
 

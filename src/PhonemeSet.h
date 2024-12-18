@@ -27,7 +27,7 @@ private:
 
 	std::map<std::string, size_t> xSampaMap;
 	std::map<size_t, std::string> invXSampaMap;
-	std::map<size_t, size_t> stringMap;
+	std::map<std::wstring, size_t> stringMap;
 
 	size_t _counter = 0;
 };

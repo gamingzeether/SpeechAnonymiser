@@ -8,7 +8,12 @@
         "libsamplerate",
         "bandicoot",
         "mlpack",
-        "rtaudio",
+        {
+            "name": "rtaudio",
+            "features": [
+                "pulse"
+            ]
+        },
         "vulkan",
         "yyjson",
         "libzip"
