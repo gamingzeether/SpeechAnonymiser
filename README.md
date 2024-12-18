@@ -51,19 +51,7 @@ Run the executable
 None
 
 # Building
-### Windows
-1. Install CMake
-1. Install Visual Studio 2022
-1. Install vcpkg
-1. Run build.bat
-
-### Linux
-1. Install CMake
-1. Install gcc
-1. Install vcpkg
-1. Run build.sh
-
-###### *There might be more steps that I'm forgetting*
+`cmake -B "out/build" && cmake --build "out/build"`
 
 # Preparing datasets
 
