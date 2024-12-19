@@ -11,7 +11,7 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION -7
+#define CURRENT_VERSION -10
 
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
@@ -28,11 +28,15 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    LINEAR(2048);
+    LINEAR(4096);
     ACTIVATION;
     DROPOUT;
 
-    LINEAR(2048);
+    LINEAR(4096);
+    ACTIVATION;
+    DROPOUT;
+
+    LINEAR(4096);
     ACTIVATION;
     DROPOUT;
 

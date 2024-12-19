@@ -48,9 +48,9 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.005;
+    hp.dropout() = 0.2;
     hp.l2() = 0.0001;
-    hp.batchSize() = 128;
+    hp.batchSize() = 256;
     hp.stepSize() = 0.005;
     model.setHyperparameters(hp);
     model.useLogger(logger);
@@ -210,21 +210,29 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     }
     size_t testedExamples = 0;
 
+#ifdef USE_GPU
+    CONVERT(testData)
+#endif
+
+    MAT_TYPE results;
+    model.network().Predict(CNAME(testData), results, 256);
     {
         for (size_t i = 0; i < testCount; i++) {
-            MAT_TYPE input;
-#ifdef USE_GPU
-            input = coot::conv_to<MAT_TYPE>::from(testData.submat(arma::span(0, inputSize - 1), arma::span(i, i)));
-#else
-            input = testData.submat(arma::span(0, inputSize - 1), arma::span(i, i));
-#endif
-            size_t result = classify(input);
+            float max = results(0, i);
+            size_t maxIdx = 0;
+            for (size_t j = 0; j < outputSize; j++) {
+                float val = results(j, i);
+                if (val > max) {
+                    max = val;
+                    maxIdx = j;
+                }
+            }
             size_t label = testLabel(0, i);
-            if (result == label) {
+            if (maxIdx == label) {
                 correctPhonemes[label]++;
                 correctCount++;
             }
-            confusionMatrix[label][result]++;
+            confusionMatrix[label][maxIdx]++;
             totalPhonemes[label]++;
             testedExamples++;
         }
