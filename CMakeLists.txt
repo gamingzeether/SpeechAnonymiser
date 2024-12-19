@@ -1,21 +1,29 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
-
-set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CXX_STANDARD 20)
+set(VCPKG_POLICY_SKIP_ABSOLUTE_PATHS_CHECK enabled)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
+option(ASAN "Compile with Address Sanitizer." OFF)
+option(OMP "Compile with OpenMP." OFF)
+option(AUDIO "Compile with audio in/output." ON)
+if (ASAN)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+endif()
+if (AUDIO)
+    list(APPEND VCPKG_MANIFEST_FEATURES "audio")
+endif()
+
+add_definitions(-DAUDIO=${AUDIO})
+
 project(SpeechAnonymiser CXX)
 
-set(VCPKG_POLICY_SKIP_ABSOLUTE_PATHS_CHECK enabled)
-
-#add_compile_options(-fsanitize=address)
-#add_link_options(-fsanitize=address)
+set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -174,12 +182,14 @@ find_package(SampleRate CONFIG REQUIRED)
 find_package(Bandicoot CONFIG REQUIRED)
 find_package(Armadillo CONFIG REQUIRED)
 find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
-find_package(RtAudio CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(yyjson CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)
-if (NOT MSVC)
+if (NOT MSVC AND OMP)
     find_package(OpenMP REQUIRED)
+endif()
+if (AUDIO)
+    find_package(RtAudio CONFIG REQUIRED)
 endif()
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
@@ -194,13 +204,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SampleRate::samplerate)
 target_link_libraries(${PROJECT_NAME} PRIVATE bandicoot)
 target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
 target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)
 target_link_libraries(${PROJECT_NAME} PRIVATE libzip::zip)
 if (NOT MSVC)
-    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+    if (OMP)
+        target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+    endif()
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+endif()
+if (AUDIO)
+    target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 endif()
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")

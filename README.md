@@ -51,7 +51,11 @@ Run the executable
 None
 
 # Building
-`cmake -B "out/build" && cmake --build "out/build"`
+`cmake -B out/build {OPTIONS} && cmake --build out/build`
+{OPTIONS} can be replaced with flags to change functionality
+- `-DASAN={ON/OFF}` Compile with Address Sanitizer.
+- `-DOMP={ON/OFF}` Compile with OpenMP.
+- `-DAUDIO={ON/OFF}` Compile with audio in/output.
 
 # Preparing datasets
 

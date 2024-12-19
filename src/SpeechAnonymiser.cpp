@@ -11,7 +11,6 @@
 #include <unordered_set>
 #include <format>
 #include <optional>
-#include <rtaudio/RtAudio.h>
 #include <cargs.h>
 #include "Visualizer.h"
 #include "TSVReader.h"
@@ -23,6 +22,9 @@
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
 #include "Global.h"
+#ifdef AUDIO
+#include <rtaudio/RtAudio.h>
+#endif
 
 const bool outputPassthrough = true;
 
@@ -128,6 +130,7 @@ void requestInput(const std::string& request, double& value) {
     }
 }
 
+#ifdef AUDIO
 int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
     double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data) {
 
@@ -211,6 +214,7 @@ void cleanupRtAudio(RtAudio audio) {
         audio.closeStream();
     }
 }
+#endif
 
 void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
@@ -366,6 +370,7 @@ int commandPreprocess(const std::string& path, const std::string& workDir, const
     return 0;
 }
 
+#ifdef AUDIO
 int commandDefault() {
 #pragma region Input and output selector
     RtAudio audioQuery;
@@ -667,6 +672,7 @@ int commandInteractive(const std::string& path) {
     }
     return 0;
 }
+#endif
 
 int commandEvaluate(const std::string& path) {
     classifier.evaluate(path);
@@ -786,11 +792,21 @@ int main(int argc, char* argv[]) {
         if (trainMode) {
             error = commandTrain(tVal);
         } else if (interactiveMode) {
+#ifdef AUDIO
             error = commandInteractive(iiVal);
+#else
+            logger.log("Compiled without audio support, exiting", Logger::FATAL);
+            error = -1;
+#endif
         } else if (evaluateMode) {
             error = commandEvaluate(eVal);
         } else {
+#ifdef AUDIO
             error = commandDefault();
+#else
+            logger.log("Compiled without audio support, exiting", Logger::FATAL);
+            error = -1;
+#endif
         }
     }
 

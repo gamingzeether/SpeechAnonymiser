@@ -8,14 +8,21 @@
         "libsamplerate",
         "bandicoot",
         "mlpack",
-        {
-            "name": "rtaudio",
-            "features": [
-                "pulse"
-            ]
-        },
         "vulkan",
         "yyjson",
         "libzip"
-    ]
+    ],
+    "features": {
+        "audio": {
+            "description": "Compile with audio input and output",
+            "dependencies": [
+                {
+                    "name": "rtaudio",
+                    "features": [
+                        "pulse"
+                    ]
+                }
+            ]
+        }
+    }
 }
