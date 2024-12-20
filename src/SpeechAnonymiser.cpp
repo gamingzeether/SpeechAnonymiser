@@ -22,6 +22,7 @@
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
 #include "Global.h"
+#include "Util.h"
 #ifdef AUDIO
 #include <rtaudio/RtAudio.h>
 #endif
@@ -270,7 +271,7 @@ void startFFT(InputData& inputData) {
             Frame& frame = frames[currentFrame];
             // Wait for FFT_FRAME_SPACING new samples
             //auto start = std::chrono::high_resolution_clock::now();
-            while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SPACING) {
+            while ((inputData.totalFrames + inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_FRAME_SPACING) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             //auto actual = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
@@ -790,15 +791,18 @@ int main(int argc, char* argv[]) {
     } else {
         initClassifier(argc, argv);
         if (trainMode) {
+            Util::removeTrailingSlash(tVal);
             error = commandTrain(tVal);
         } else if (interactiveMode) {
 #ifdef AUDIO
+            Util::removeTrailingSlash(iiVal);
             error = commandInteractive(iiVal);
 #else
             logger.log("Compiled without audio support, exiting", Logger::FATAL);
             error = -1;
 #endif
         } else if (evaluateMode) {
+            Util::removeTrailingSlash(eVal);
             error = commandEvaluate(eVal);
         } else {
 #ifdef AUDIO

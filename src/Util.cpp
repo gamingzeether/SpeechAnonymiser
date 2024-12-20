@@ -76,3 +76,10 @@ size_t Util::customHasher(const std::wstring& str) {
     }
     return v;
 }
+
+void Util::removeTrailingSlash(std::string& path) {
+    char back = path.back();
+    size_t length = path.length();
+    if (length > 1 && (back == '/' || back == '\\'))
+        path.pop_back();
+}
