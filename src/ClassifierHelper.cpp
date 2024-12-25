@@ -95,7 +95,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         }
     }
 
-    // Tanh of logs of mel
+    // Logs of mel
     for (size_t i = 0; i < MEL_BINS; i++) {
         float value = log10(1.0f + melFrequencies[i]);
         frame.real[i] = value;
@@ -107,8 +107,8 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     }
     size_t nFrames = std::min(allFrames.size(), (size_t)FFT_FRAMES);
     for (int i = 0; i < nFrames; i++) {
-        int rindex = (currentFrame + i) % nFrames;
-        double mult = 0.25 / (nFrames - i + 2);
+        size_t rindex = (currentFrame + nFrames - i) % nFrames;
+        double mult = 0.5 / (i + 1);
         for (int j = 0; j < FRAME_SIZE; j++) {
             windowAvg[j] += allFrames[rindex].real[j] * mult;
         }

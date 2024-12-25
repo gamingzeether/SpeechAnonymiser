@@ -46,20 +46,30 @@ Run the executable
 - `-p` or `--preprocess` Process dataset before training
 - `-h` or `--help` Shows help
 
+No flags will start the program in the default mode
+
 # Releases
 
-None
+https://github.com/gamingzeether/SpeechAnonymiser/releases
 
 # Building
-`cmake -B out/build {OPTIONS} && cmake --build out/build`
-{OPTIONS} can be replaced with flags to change functionality
-- `-DASAN={ON/OFF}` Compile with Address Sanitizer.
-- `-DOMP={ON/OFF}` Compile with OpenMP.
-- `-DAUDIO={ON/OFF}` Compile with audio in/output.
+This depends on vcpkg, cmake, a generator, and a compiler that supports c++20.
+Everything else should be installed by vcpkg.
+
+Run
+```
+cmake -B out/build {OPTIONS}
+cmake --build out/build --config Release
+```
+`{OPTIONS}` can be replaced with flags to change functionality
+- `-DASAN={ON/OFF}` Compile with Address Sanitizer. (Default OFF)
+- `-DOMP={ON/OFF}` Compile with OpenMP. (Default OFF)
+- `-DAUDIO={ON/OFF}` Compile with audio in/output. (Default ON)
+- `-DMKL={ON/OFF}` Compile with Intel MKL. (Default OFF)
 
 # Preparing datasets
 
-If using Common Voice:
+If using Common Voice: (Note: some clips are too noisy and the aligner provides bad alignments)
 1. Download Mozilla Common Voice dataset
 1. Install Montreal Forced Aligner
 1. Extract dataset

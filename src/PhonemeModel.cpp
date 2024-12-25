@@ -17,6 +17,7 @@
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
 #define CONVT _VC, _FC, _VC, MAT_TYPE
 
+#define LINEARNB(neurons) net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
 #define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
@@ -28,31 +29,7 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    LINEAR(4096);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(4096);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(4096);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(2048);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(2048);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(2048);
-    ACTIVATION;
-    DROPOUT;
-
-    LINEAR(2048);
+    LINEAR(8192);
     ACTIVATION;
     DROPOUT;
 

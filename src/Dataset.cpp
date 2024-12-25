@@ -42,7 +42,7 @@ void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy
                 for (size_t r = 0; r < inputSize; r++) {
                     data(r, offset + c) = dataMat(r, c);
                 }
-                labels(0, offset + c) = labelMat(0, c);
+                labels(0, offset + c) = i;
             }
             if (destroy) {
                 exampleData.pop_back();

@@ -14,7 +14,6 @@
 #include <cargs.h>
 #include "Visualizer.h"
 #include "TSVReader.h"
-#include "ModelSerializer.h"
 #include "structs.h"
 #include "PhonemeClassifier.h"
 #include "ClassifierHelper.h"

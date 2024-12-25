@@ -48,10 +48,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.2;
-    hp.l2() = 0.0001;
-    hp.batchSize() = 256;
-    hp.stepSize() = 0.005;
+    hp.dropout() = 0.1;
+    hp.l2() = 0.00001;
+    hp.batchSize() = 64;
+    hp.stepSize() = 1e-4;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
@@ -146,6 +146,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
                         // Validation
                         double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));
+                        validationLoss /= validateLabel.n_cols;
                         logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
                         if (validationLoss < bestLoss && epoch > 0) {
                             bestLoss = validationLoss;

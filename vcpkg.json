@@ -23,6 +23,15 @@
                     ]
                 }
             ]
+        },
+        "mkl": {
+            "description": "Compile with Intel MKL",
+            "dependencies": [
+                {
+                    "name": "intel-mkl",
+                    "platform": "(windows | linux | osx) & x64"
+                }
+            ]
         }
     }
 }

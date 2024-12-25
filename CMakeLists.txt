@@ -11,6 +11,7 @@ endif()
 option(ASAN "Compile with Address Sanitizer." OFF)
 option(OMP "Compile with OpenMP." OFF)
 option(AUDIO "Compile with audio in/output." ON)
+option(MKL "Compile with Intel MKL." OFF)
 if (ASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
@@ -18,12 +19,15 @@ endif()
 if (AUDIO)
     list(APPEND VCPKG_MANIFEST_FEATURES "audio")
 endif()
+if (MKL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "mkl")
+endif()
 
 add_definitions(-DAUDIO=${AUDIO})
 
-project(SpeechAnonymiser CXX)
-
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+
+project(SpeechAnonymiser CXX)
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -171,51 +175,65 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-find_package(Cargs CONFIG REQUIRED)
-find_path(DRLIBS_INCLUDE_DIRS "dr_mp3.h")
-find_path(DRLIBS_INCLUDE_DIRS "dr_wav.h")
-find_package(FFTW3 CONFIG REQUIRED)
-find_package(FFTW3f CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
-find_package(SampleRate CONFIG REQUIRED)
-find_package(Bandicoot CONFIG REQUIRED)
-find_package(Armadillo CONFIG REQUIRED)
-find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
-find_package(Vulkan REQUIRED)
-find_package(yyjson CONFIG REQUIRED)
-find_package(libzip CONFIG REQUIRED)
-if (NOT MSVC AND OMP)
-    find_package(OpenMP REQUIRED)
-endif()
-if (AUDIO)
-    find_package(RtAudio CONFIG REQUIRED)
-endif()
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE cargs)
-target_include_directories(${PROJECT_NAME} PRIVATE ${DRLIBS_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3)
-target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3f)
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
-target_link_libraries(${PROJECT_NAME} PRIVATE SampleRate::samplerate)
-target_link_libraries(${PROJECT_NAME} PRIVATE bandicoot)
-target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
-target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
-target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)
-target_link_libraries(${PROJECT_NAME} PRIVATE libzip::zip)
 if (NOT MSVC)
     if (OMP)
+        find_package(OpenMP REQUIRED)
         target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
     endif()
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
 endif()
+
 if (AUDIO)
+    find_package(RtAudio CONFIG REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE RtAudio::rtaudio)
 endif()
+
+if (MKL)
+    find_package(MKL CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE MKL::MKL)
+endif()
+
+find_package(Cargs CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE cargs)
+
+find_path(DRLIBS_INCLUDE_DIRS "dr_mp3.h")
+find_path(DRLIBS_INCLUDE_DIRS "dr_wav.h")
+target_include_directories(${PROJECT_NAME} PRIVATE ${DRLIBS_INCLUDE_DIRS})
+
+find_package(FFTW3 CONFIG REQUIRED)
+find_package(FFTW3f CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3)
+target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3f)
+
+find_package(glfw3 CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+
+find_package(glm CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
+
+find_package(SampleRate CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE SampleRate::samplerate)
+
+find_package(Bandicoot CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE bandicoot)
+
+find_package(Armadillo CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
+
+find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
+target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
+
+find_package(Vulkan REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+
+find_package(yyjson CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)
+
+find_package(libzip CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE libzip::zip)
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE SpeechAnonymiser)
