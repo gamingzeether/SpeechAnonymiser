@@ -18,12 +18,11 @@ if (ASAN)
 endif()
 if (AUDIO)
     list(APPEND VCPKG_MANIFEST_FEATURES "audio")
+    add_definitions(-DAUDIO=${AUDIO})
 endif()
 if (MKL)
     list(APPEND VCPKG_MANIFEST_FEATURES "mkl")
 endif()
-
-add_definitions(-DAUDIO=${AUDIO})
 
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
