@@ -29,7 +29,7 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    LINEAR(8192);
+    LINEAR(1024);
     ACTIVATION;
     DROPOUT;
 

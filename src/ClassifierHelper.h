@@ -21,9 +21,12 @@ public:
     template <typename MatType>
     bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
         for (size_t f = 0; f < FFT_FRAMES; f++) {
-            const Frame& readFrame = frames[(lastWritten + frames.size() - f) % frames.size()];
+            const Frame& readFrame = frames[(lastWritten + f) % frames.size()];
             if (readFrame.invalid)
                 return false;
+        }
+        for (size_t f = 0; f < FFT_FRAMES; f++) {
+            const Frame& readFrame = frames[(lastWritten + f) % frames.size()];
             size_t offset = f * FRAME_SIZE;
             for (size_t i = 0; i < FRAME_SIZE; i++) {
                 data(offset + i, col) = readFrame.avg[i];

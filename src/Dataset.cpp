@@ -141,7 +141,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
         [this, &minExamples, &inputSize, &outputSize, &print, &exampleCount,
         &loaderMutex, &loaderWaiter, &loaderReady,
         &clip, &loaderFinished, &phones, &totalClips, &lineIndex, &realEx] {
-            std::vector<Frame> frames = std::vector <Frame>();
+            std::vector<Frame> frames = std::vector<Frame>();
             while (keepLoading(minExamples, examples)) {
                 {
                     std::unique_lock<std::mutex> lock(loaderMutex);
@@ -184,22 +184,27 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         }
                     }
 
-                    for (size_t i = 0; i < frameCounter; i++) {
-                        Frame& frame = frames[i];
+                    for (size_t i = 0; i < frameCounter - FFT_FRAMES; i++) {
+                        size_t currentFrameIndex = i + CONTEXT_BACKWARD;
+                        Frame& frame = frames[currentFrameIndex];
                         const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
 
                         // Write data
+                        size_t writeCol;
                         if (phonemeCounter < examples) {
-                            if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], phonemeCounter))
-                                phonemeCounter++;
+                            writeCol = phonemeCounter;
                         } else {
                             double rnd = (double)rand() / RAND_MAX;
                             double flr = (double)examples / phonemeCounter;
                             if (rnd < flr) {
-                                if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, 0, exampleData[currentPhone], rand() % examples))
-                                    phonemeCounter++;
+                                writeCol = rand() % examples;
+                            } else {
+                                continue;
                             }
+                        }
+                        if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, currentFrameIndex, exampleData[currentPhone], writeCol)) {
+                            phonemeCounter++;
                         }
                     }
 
