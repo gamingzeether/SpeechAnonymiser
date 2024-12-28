@@ -1,4 +1,4 @@
-﻿#include "Dataset.h"
+#include "Dataset.h"
 
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
@@ -22,7 +22,7 @@
 #include "Util.h"
 #include "Global.h"
 
-void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy) {
+void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels) {
     size_t outputSize = exampleData.size();
     size_t inputSize = exampleData[0].n_rows;
 
@@ -44,10 +44,8 @@ void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy
                 }
                 labels(0, offset + c) = i;
             }
-            if (destroy) {
                 exampleData.pop_back();
                 exampleLabel.pop_back();
-            }
         }
     }
 }

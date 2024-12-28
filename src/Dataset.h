@@ -19,7 +19,7 @@ public:
 
     Type getType() { return type; };
 
-	void get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels, bool destroy = true);
+	void get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels);
 
     void start(size_t inputSize, size_t outputSize, size_t examples, bool print = false);
 
