@@ -34,6 +34,7 @@ typedef float OUTPUT_TYPE;
 #define ACTIVITY_WIDTH 5
 #define INFERENCE_FRAMES 1 // Classify once every x frames
 #define DELTA_DISTANCE 5 // Get delta from x frames back; must be less than FFT_FRAMES
+#define AVG_FRAMES 5
 
 #define PREPROCESS_BATCH_SIZE 1500
 #define CLIP_LENGTH 15

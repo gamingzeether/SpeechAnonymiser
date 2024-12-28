@@ -106,7 +106,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         windowAvg[i] = 0;
     }
     size_t nFrames = std::min(allFrames.size(), (size_t)FFT_FRAMES);
-    for (int i = 0; i < nFrames; i++) {
+    for (int i = 0; i < AVG_FRAMES; i++) {
         size_t rindex = (currentFrame + nFrames - i) % nFrames;
         double mult = 0.5 / (i + 1);
         for (int j = 0; j < FRAME_SIZE; j++) {
