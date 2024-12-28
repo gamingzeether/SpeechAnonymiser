@@ -65,7 +65,7 @@ cmake --build out/build --config Release
 - `-DASAN={ON/OFF}` Compile with Address Sanitizer. (Default OFF)
 - `-DOMP={ON/OFF}` Compile with OpenMP. (Default OFF)
 - `-DAUDIO={ON/OFF}` Compile with audio in/output. (Default ON)
-- `-DMKL={ON/OFF}` Compile with Intel MKL. (Default OFF)
+- `-DMKL={ON/OFF}` Compile with Intel MKL. (Currently does nothing) (Default OFF)
 
 # Preparing datasets
 
