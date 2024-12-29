@@ -28,7 +28,35 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    LINEAR(1024);
+    /*
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        64,  // maps
+        3,   // kernelWidth
+        3,   // kernelHeight
+        1,   // strideWidth
+        1,   // strideHeight
+        0,   // padW
+        0    // padH
+
+    );
+    net.Add<mlpack::MaxPoolingType<MAT_TYPE>>(
+        2,   // kernelWidth
+        2,   // kernelHeight
+        1,   // strideWidth
+        1    // strideHeight
+    );
+    ACTIVATION;
+    */
+
+    LINEAR(8192);
+    ACTIVATION;
+    DROPOUT;
+
+    LINEAR(4096);
+    ACTIVATION;
+    DROPOUT;
+
+    LINEAR(4096);
     ACTIVATION;
     DROPOUT;
 

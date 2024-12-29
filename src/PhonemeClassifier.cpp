@@ -48,10 +48,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.1;
-    hp.l2() = 0.00001;
+    hp.dropout() = 0.25;
+    hp.l2() = 0.001;
     hp.batchSize() = 64;
-    hp.stepSize() = 1e-4;
+    hp.stepSize() = 1e-3;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
@@ -124,7 +124,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 #endif
 
-            model.optimizer().MaxIterations() = epochs * trainLabel.n_elem;
+            model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
 
             model.optimizer().StepSize() = model.rate(1);
             logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);
@@ -199,9 +199,6 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     size_t** confusionMatrix = new size_t * [outputSize];
     size_t* totalPhonemes = new size_t[outputSize];
     for (size_t i = 0; i < outputSize; i++) {
-        totalPhonemes[i] = 0;
-    }
-    for (size_t i = 0; i < outputSize; i++) {
         correctPhonemes[i] = 0;
         totalPhonemes[i] = 0;
         confusionMatrix[i] = new size_t[outputSize];
@@ -247,10 +244,7 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     std::cout << std::endl;
     for (size_t i = 0; i < outputSize; i++) {
         std::cout << std::setw(2) << Global::get().phonemeSet().xSampa(i) << " ";
-        size_t total = 0;
-        for (size_t j = 0; j < outputSize; j++) {
-            total += confusionMatrix[i][j];
-        }
+        size_t total = totalPhonemes[i];
         for (size_t j = 0; j < outputSize; j++) {
             double fraction = (double)confusionMatrix[i][j] / total;
             int percent = fraction * 100;
