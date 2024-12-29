@@ -6,6 +6,7 @@
 #include "ClassifierHelper.h"
 #include "Config.h"
 #include "Logger.h"
+#include <zip.h>
 
 #define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::HeInitialization, MAT_TYPE>
 #define OPTIMIZER_TYPE ens::AdaBelief
@@ -39,6 +40,9 @@ public:
 	bool load();
 private:
 	void cleanUnpacked();
+	void logZipError(int error);
+	void logZipError(zip_t* archive);
+	void logZipError(zip_error_t* error);
 
 	NETWORK_TYPE net;
 	OPTIMIZER_TYPE optim;

@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <zip.h>
 #include "ModelSerializer.h"
 #include "Global.h"
 
@@ -79,14 +78,20 @@ void PhonemeModel::save(int checkpoint) {
     config.save();
 
     int error = 0;
-    if (std::filesystem::exists(ARCHIVE_FILE))
-        std::filesystem::remove(ARCHIVE_FILE);
     zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS | ZIP_CREATE, &error);
+    if (archive == NULL) {
+        logZipError(error);
+        return;
+    }
     for (const char* string : ZIP_FILES) {
         zip_source_t* source = zip_source_file(archive, string, 0, ZIP_LENGTH_TO_END);
-        error = zip_file_add(archive, string, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+        zip_int64_t index = zip_file_add(archive, string, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+        if (index < 0)
+            logZipError(archive);
     }
     error = zip_close(archive);
+    if (error != 0)
+        logZipError(archive);
     cleanUnpacked();
 
     if (checkpoint >= 0) {
@@ -102,13 +107,16 @@ bool PhonemeModel::load() {
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
-        if (error != 0 && logger.has_value()) {
-            logger->log(std::format("Zip file open error {}", error), Logger::WARNING);
+        if (archive == NULL) {
+            logZipError(error);
+            return false;
         }
         size_t bufferSize = 16 * 1024 * 1024;
         char* buf = new char[bufferSize];
         for (const char* string : ZIP_FILES) {
             zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);
+            if (file == NULL)
+                logZipError(archive);
             std::ofstream out = std::ofstream(string, std::ios::binary | std::ios::trunc);
             while (true) {
                 zip_int64_t readBytes = zip_fread(file, buf, bufferSize);
@@ -118,6 +126,8 @@ bool PhonemeModel::load() {
             };
             out.close();
             zip_fclose(file);
+            if (error != 0)
+                logZipError(archive);
         }
         delete[] buf;
         zip_discard(archive);
@@ -154,4 +164,23 @@ void PhonemeModel::cleanUnpacked() {
     for (const char* string : ZIP_FILES) {
         std::filesystem::remove(string);
     }
+}
+
+void PhonemeModel::logZipError(int error) {
+    zip_error_t zerror;
+    zip_error_init_with_code(&zerror, error);
+    logZipError(&zerror);
+}
+
+void PhonemeModel::logZipError(zip_t* archive) {
+    zip_error_t* error = zip_get_error(archive);
+    logZipError(error);
+}
+
+void PhonemeModel::logZipError(zip_error_t* error) {
+    const char* errString = zip_error_strerror(error);
+    if (logger.has_value()) {
+        logger.value().log(errString, Logger::ERR);
+    }
+    zip_error_fini(error);
 }
