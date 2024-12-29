@@ -95,10 +95,13 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         }
     }
 
-    // Logs of mel
+    // Do DCT
     for (size_t i = 0; i < MEL_BINS; i++) {
-        float value = log10(1.0f + melFrequencies[i]);
-        frame.real[i] = value;
+        dctIn[i] = log10(melFrequencies[i]);
+    }
+    fftwf_execute(dctPlan);
+    for (size_t i = 0; i < FRAME_SIZE; i++) {
+        frame.real[i] = dctOut[i];
     }
 
     // Average
