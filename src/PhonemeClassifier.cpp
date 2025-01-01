@@ -1,4 +1,4 @@
-﻿#include "PhonemeClassifier.h"
+#include "PhonemeClassifier.h"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -10,9 +10,10 @@
 
 #ifdef USE_GPU
 #define CNAME(mat) gpu##mat
-#define CONVERT(mat) MAT_TYPE CNAME(mat) = coot::conv_to<MAT_TYPE>::from(mat);
+#define CONVERT(mat) MAT_TYPE CNAME(mat) = coot::conv_to<MAT_TYPE>::from(mat)
 #else
 #define CNAME(mat) mat
+#define CONVERT(mat) ;
 #endif
 
 #include <filesystem>
@@ -117,12 +118,10 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             copyDone = true;
             int epoch = 0;
 
-#ifdef USE_GPU
             CONVERT(trainData);
             CONVERT(trainLabel);
             CONVERT(validateData);
             CONVERT(validateLabel);
-#endif
 
             model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
 
@@ -208,9 +207,7 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     }
     size_t testedExamples = 0;
 
-#ifdef USE_GPU
-    CONVERT(testData)
-#endif
+    CONVERT(testData);
 
     MAT_TYPE results;
     model.network().Predict(CNAME(testData), results, 256);
@@ -286,12 +283,11 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
     train.get(tuneTrainData, tuneTrainLabel);
     CPU_MAT_TYPE tuneValidData, tuneValidLabel;
     validate.get(tuneValidData, tuneValidLabel);
-#ifdef USE_GPU
+
     CONVERT(tuneTrainData);
     CONVERT(tuneTrainLabel);
     CONVERT(tuneValidData);
     CONVERT(tuneValidLabel);
-#endif
 
     // Prepare models
     std::vector<PhonemeModel> models;
