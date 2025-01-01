@@ -68,6 +68,7 @@ void ClassifierHelper::initalize(size_t sr) {
 
 void ClassifierHelper::processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame) {
     Frame& frame = allFrames[currentFrame];
+    Frame& prevFrame = (currentFrame > 0) ? allFrames[currentFrame - 1] : frame;
     float max = 0.0;
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         max = fmaxf(max, abs(audio[i]));
@@ -105,6 +106,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     }
 
     // Average
+    /*
     for (int i = 0; i < FRAME_SIZE; i++) {
         windowAvg[i] = 0;
     }
@@ -116,7 +118,10 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
             windowAvg[j] += allFrames[rindex].real[j] * mult;
         }
     }
+    */
     for (size_t i = 0; i < FRAME_SIZE; i++) {
-        frame.avg[i] = windowAvg[i];
+        frame.avg[i] = frame.real[i];
+        frame.delta[i] = frame.avg[i] - prevFrame.avg[i];
+        frame.accel[i] = frame.delta[i] - prevFrame.delta[i];
     }
 }

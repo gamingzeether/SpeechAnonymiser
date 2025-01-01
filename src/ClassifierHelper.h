@@ -25,11 +25,14 @@ public:
             if (readFrame.invalid)
                 return false;
         }
+        auto colPtr = data.colptr(col);
         for (size_t f = 0; f < FFT_FRAMES; f++) {
             const Frame& readFrame = frames[(lastWritten + f) % frames.size()];
             size_t offset = f * FRAME_SIZE;
             for (size_t i = 0; i < FRAME_SIZE; i++) {
-                data(offset + i, col) = readFrame.avg[i];
+                *(colPtr++) = readFrame.avg[i];
+                *(colPtr++) = readFrame.delta[i];
+                *(colPtr++) = readFrame.accel[i];
             }
         }
         return true;

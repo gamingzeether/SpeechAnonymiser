@@ -281,7 +281,7 @@ void startFFT(InputData& inputData) {
 
             // Write FFT output to visualizer
             app.fftData.currentFrame = currentFrame;
-            memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FFT_REAL_SAMPLES);
+            memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FRAME_SIZE);
 
             // Pass data to neural network
             bool activity = false;
@@ -298,8 +298,7 @@ void startFFT(InputData& inputData) {
                 count++;
                 if (count > INFERENCE_FRAMES) {
                     count = 0;
-                    helper.writeInput<CPU_MAT_TYPE>(frames, currentFrame, data, 0);
-
+                    if (helper.writeInput<CPU_MAT_TYPE>(frames, currentFrame, data, 0)) {
                     //auto classifyStart = std::chrono::high_resolution_clock::now();
                     size_t phoneme = classifier.classify(data);
                     speechFrame.phoneme = phoneme;
@@ -307,6 +306,9 @@ void startFFT(InputData& inputData) {
 
                     std::cout << classifier.getPhonemeString(phoneme) << std::endl;
                     //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
+                    } else {
+                        std::cout << "Error writing input\n";
+                    }
                 }
             } else {
                 speechFrame.phoneme = silencePhoneme;

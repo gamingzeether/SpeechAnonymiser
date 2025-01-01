@@ -50,7 +50,7 @@ private:
 	Hyperparameters hp;
 	std::optional<Logger> logger;
 
-	int inputSize = FRAME_SIZE * FFT_FRAMES;
+	int inputSize = FRAME_SIZE * FFT_FRAMES * 3;
 	int outputSize = 0;
 	int sampleRate = 0;
 };

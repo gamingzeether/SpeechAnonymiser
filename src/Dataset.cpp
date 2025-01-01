@@ -765,9 +765,12 @@ void Dataset::saveCache() {
 
 bool Dataset::frameHasNan(const Frame& frame) {
 #ifdef DO_NAN_CHECK
-    for (int i = 0; i < FRAME_SIZE; i++)
-        if (std::isnan(frame.avg[i]))
+    for (int i = 0; i < FRAME_SIZE; i++) {
+        if (!(std::isfinite(frame.avg[i]) && 
+              std::isfinite(frame.delta[i]) && 
+              std::isfinite(frame.accel[i])))
             return true;
+    }
 #endif
     return false;
 }

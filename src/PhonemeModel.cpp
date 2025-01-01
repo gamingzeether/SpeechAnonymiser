@@ -63,7 +63,7 @@ void PhonemeModel::initModel() {
     LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
 
-    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE };
+    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
 }
 
 void PhonemeModel::initOptimizer() {
