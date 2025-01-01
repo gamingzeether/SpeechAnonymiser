@@ -1,4 +1,4 @@
-﻿#include "define.h"
+#include "define.h"
 
 #include "common_inc.h"
 
@@ -103,7 +103,7 @@ struct AudioContainer {
 
 template <typename T>
 bool requestString(const std::string& request, std::string& out, T& value) {
-    std::cout << request << std::endl << "Default: " << value << std::endl;
+    std::cout << request << std::endl << "(Default " << value << ") ";
     std::getline(std::cin, out);
     std::cout << std::endl;
     return out != "";
@@ -364,8 +364,18 @@ int commandTrain(const std::string& path) {
 }
 
 int commandPreprocess(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir) {
+    char* condaEnv = getenv("CONDA_DEFAULT_ENV");
+    if (condaEnv == NULL || strcmp(condaEnv, "aligner") != 0) {
+        std::string errorMessage = "Aligner not detected, make sure MFA is installed and activated before starting this program";
+        logger.log(errorMessage, Logger::FATAL);
+        return -1;
+    }
+
+    int batchSize = 1500;
+    requestInput("Set batch size: ", batchSize);
+    
     Dataset ds = Dataset();
-    ds.preprocessDataset(path, workDir, dictPath, acousticPath, outputDir);
+    ds.preprocessDataset(path, workDir, dictPath, acousticPath, outputDir, batchSize);
 
     return 0;
 }
@@ -786,6 +796,11 @@ int main(int argc, char* argv[]) {
     if (helpMode) {
         error = commandHelp();
     } else if (preprocessMode) {
+        Util::removeTrailingSlash(pVal);
+        Util::removeTrailingSlash(wVal);
+        Util::removeTrailingSlash(dVal);
+        Util::removeTrailingSlash(aVal);
+        Util::removeTrailingSlash(oVal);
         error = commandPreprocess(pVal, wVal, dVal, aVal, oVal);
     } else {
         initClassifier(argc, argv);

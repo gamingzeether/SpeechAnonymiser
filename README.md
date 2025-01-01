@@ -63,7 +63,7 @@ cmake --build out/build --config Release
 ```
 `{OPTIONS}` can be replaced with flags to change functionality
 - `-DASAN={ON/OFF}` Compile with Address Sanitizer. (Default OFF)
-- `-DOMP={ON/OFF}` Compile with OpenMP. (Default OFF)
+- `-DOMP={ON/OFF}` Compile with OpenMP. (No effect on MSVC) (Default OFF)
 - `-DAUDIO={ON/OFF}` Compile with audio in/output. (Default ON)
 - `-DMKL={ON/OFF}` Compile with Intel MKL. (Currently does nothing) (Default OFF)
 

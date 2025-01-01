@@ -24,6 +24,7 @@ TSVReader::TSVLine TSVReader::convert(const TSVReader::CompactTSVLine& compact) 
 	}
 	expanded.CLIENT_ID = idString;
 	expanded.PATH = std::format("common_voice_en_{}.mp3", compact.PATH);
+	expanded.SENTENCE = compact.SENTENCE;
 	return expanded;
 }
 

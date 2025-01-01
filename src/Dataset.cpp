@@ -337,6 +337,10 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
     std::ifstream reader;
     reader.open(path);
+    if (reader.is_open()) {
+        //std::printf("Failed to open file: %s\n", path.c_str());
+        return {};
+    }
 
     std::string line;
     while (reader.good()) {
@@ -585,7 +589,7 @@ void Dataset::Clip::convertMono(float* buffer, OUT size_t& length, int channels)
     }
 }
 
-void Dataset::preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir) {
+void Dataset::preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir, size_t batchSize) {
     // Generate phoneme list
     /*
     TSVReader dictReader;
@@ -635,7 +639,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
     const std::string clipPath = path + "/clips/";
     for (int i = 0; i < tables.size(); i++) {
         TSVReader tsv;
-        tsv.open((path + tables[i]).c_str());
+        tsv.open((path + tables[i]).c_str(), true);
 
         unsigned long globalCounter = 0;
         bool tsvGood = true;
@@ -646,22 +650,24 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             Clip clip = Clip();
             clip.type = COMMON_VOICE;
             clip.initSampleRate(sampleRate);
-            TSVReader::TSVLine tabSeperated = TSVReader::convert(*tsv.read_line());
-            while (tabSeperated.CLIENT_ID != "" && !(counter >= PREPROCESS_BATCH_SIZE && globalCounter % PREPROCESS_BATCH_SIZE == 0)) {
-                std::cout << globalCounter << "\n";
+            TSVReader::CompactTSVLine* compact = tsv.read_line();
+            while (compact != NULL && !(counter >= batchSize && globalCounter % batchSize == 0)) {
+                TSVReader::TSVLine tabSeperated = TSVReader::convert(*compact);
+                compact = tsv.read_line();
+                std::cout << globalCounter << "\r";
 
                 loadNextClip(clipPath, tabSeperated, clip, -1);
 
                 globalCounter++;
-                std::string transcriptPath = path + "/transcript/" + clip.tsvElements.CLIENT_ID + "/" + clip.tsvElements.PATH;
+                std::string transcriptPath = outputDir + "/" + clip.tsvElements.CLIENT_ID + "/" + clip.tsvElements.PATH;
                 transcriptPath = transcriptPath.substr(0, transcriptPath.length() - 4) + ".TextGrid";
                 if (std::filesystem::exists(transcriptPath)) {
                     continue;
                 }
                 clip.load(16000);
 
-                std::string speakerPath = workDir + clip.tsvElements.CLIENT_ID + "/";
-                if (!std::filesystem::is_directory(speakerPath)) {
+                std::string speakerPath = workDir + "/" + clip.tsvElements.CLIENT_ID + "/";
+                if (!std::filesystem::exists(speakerPath)) {
                     std::filesystem::create_directory(speakerPath);
                 }
                 std::string originalPath = clip.tsvElements.PATH;
@@ -688,8 +694,9 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
 
                 counter++;
             }
+            std::cout << "\n";
             // Run alignment
-            const std::string mfaLine = std::format("conda activate aligner && mfa align --clean {} {} {} {}", workDir, dictPath, acousticPath, outputDir);
+            const std::string mfaLine = std::format("mfa align --use_mp --quiet --clean {} {} {} {}", workDir, dictPath, acousticPath, outputDir);
             system(mfaLine.c_str());
             // Cleanup
             std::filesystem::directory_iterator iterator(workDir);
@@ -699,6 +706,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             auto diff = std::chrono::system_clock::now() - start;
             double duration = std::chrono::duration_cast<std::chrono::duration<double>>(diff).count();
             std::cout << "Iteration took " << duration << " seconds\n";
+            tsvGood = compact != NULL;
         }
     }
 }

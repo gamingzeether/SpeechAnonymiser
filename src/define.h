@@ -36,5 +36,4 @@ typedef float OUTPUT_TYPE;
 #define DELTA_DISTANCE 4 // Get delta from x frames back; must be less than FFT_FRAMES
 #define AVG_FRAMES 4
 
-#define PREPROCESS_BATCH_SIZE 1500
 #define CLIP_LENGTH 15
