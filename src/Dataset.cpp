@@ -671,6 +671,9 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
                     continue;
                 }
                 clip.load(16000);
+                if (!clip.loaded) {
+                    continue;
+                }
 
                 std::string speakerPath = audioWorkDir + "/" + clip.tsvElements.CLIENT_ID + "/";
                 if (!std::filesystem::exists(speakerPath)) {

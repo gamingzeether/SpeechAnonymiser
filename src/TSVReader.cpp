@@ -126,7 +126,7 @@ TSVReader::CompactTSVLine* TSVReader::read_line() {
 }
 
 TSVReader::CompactTSVLine* TSVReader::read_line(OUT size_t& index) {
-	if (readLine <= lines.size()) {
+	if (readLine < lines.size()) {
 		index = readLine++;
 		return &(lines[index]);
 	}
