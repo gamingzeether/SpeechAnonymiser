@@ -651,7 +651,13 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             clip.type = COMMON_VOICE;
             clip.initSampleRate(sampleRate);
             TSVReader::CompactTSVLine* compact = tsv.read_line();
-            while (compact != NULL && !(counter >= batchSize && globalCounter % batchSize == 0)) {
+
+            std::string audioWorkDir = workDir + "/audio";
+            std::string mfaWorkDir = workDir + "/mfa";
+            std::filesystem::create_directories(audioWorkDir);
+            std::filesystem::create_directories(mfaWorkDir);
+
+            while ((compact != NULL && compact->CLIENT_ID != 0) && !(counter >= batchSize && globalCounter % batchSize == 0)) {
                 TSVReader::TSVLine tabSeperated = TSVReader::convert(*compact);
                 compact = tsv.read_line();
                 std::cout << globalCounter << "\r";
@@ -666,7 +672,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
                 }
                 clip.load(16000);
 
-                std::string speakerPath = workDir + "/" + clip.tsvElements.CLIENT_ID + "/";
+                std::string speakerPath = audioWorkDir + "/" + clip.tsvElements.CLIENT_ID + "/";
                 if (!std::filesystem::exists(speakerPath)) {
                     std::filesystem::create_directory(speakerPath);
                 }
@@ -696,10 +702,10 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             }
             std::cout << "\n";
             // Run alignment
-            const std::string mfaLine = std::format("mfa align --use_mp --quiet --clean {} {} {} {}", workDir, dictPath, acousticPath, outputDir);
+            const std::string mfaLine = std::format("mfa align -t {} --use_mp --quiet --clean {} {} {} {}", mfaWorkDir, audioWorkDir, dictPath, acousticPath, outputDir);
             system(mfaLine.c_str());
             // Cleanup
-            std::filesystem::directory_iterator iterator(workDir);
+            std::filesystem::directory_iterator iterator(audioWorkDir);
             for (const auto& directory : iterator) {
                 std::filesystem::remove_all(directory);
             }
