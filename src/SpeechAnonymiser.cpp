@@ -1,4 +1,4 @@
-#include "define.h"
+﻿#include "define.h"
 
 #include "common_inc.h"
 
@@ -300,13 +300,13 @@ void startFFT(InputData& inputData) {
                 if (count > INFERENCE_FRAMES) {
                     count = 0;
                     if (helper.writeInput<CPU_MAT_TYPE>(frames, currentFrame, data, 0)) {
-                    //auto classifyStart = std::chrono::high_resolution_clock::now();
-                    size_t phoneme = classifier.classify(data);
-                    speechFrame.phoneme = phoneme;
-                    //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
+                        //auto classifyStart = std::chrono::high_resolution_clock::now();
+                        size_t phoneme = classifier.classify(data);
+                        speechFrame.phoneme = phoneme;
+                        //auto classifyDuration = std::chrono::high_resolution_clock::now() - classifyStart;
 
-                    std::cout << classifier.getPhonemeString(phoneme) << std::endl;
-                    //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
+                        std::cout << classifier.getPhonemeString(phoneme) << std::endl;
+                        //std::cout << std::chrono::duration<double>(classifyDuration).count() * 1000 << " ms\n";
                     } else {
                         std::cout << "Error writing input\n";
                     }
@@ -347,7 +347,7 @@ int commandTrain(const std::string& path) {
         throw("Out of range");
     }
 
-    int epochs = 100;
+    int epochs = 1000;
     requestInput("Set number of epochs", epochs);
     logger.log(std::format("Set epochs: {}", epochs), Logger::VERBOSE);
     if (epochs <= 0) {

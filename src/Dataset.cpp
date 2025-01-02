@@ -505,7 +505,7 @@ void Dataset::Clip::load(int targetSampleRate) {
             max = val;
         }
     }
-    float targetMax = 1.0f;
+    float targetMax = 0.8f;
     float factor = targetMax / max;
     for (size_t i = 0; i < size; i++) {
         buffer[i] *= factor;
@@ -657,7 +657,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             std::filesystem::create_directories(audioWorkDir);
             std::filesystem::create_directories(mfaWorkDir);
 
-            while ((compact != NULL && compact->CLIENT_ID != 0) && !(counter >= batchSize && globalCounter % batchSize == 0)) {
+            while (compact != NULL && !(counter >= batchSize && globalCounter % batchSize == 0)) {
                 TSVReader::TSVLine tabSeperated = TSVReader::convert(*compact);
                 compact = tsv.read_line();
                 std::cout << globalCounter << "\r";

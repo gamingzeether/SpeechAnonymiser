@@ -10,7 +10,7 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION -10
+#define CURRENT_VERSION -13
 
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
@@ -28,38 +28,66 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
-    /*
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        3,   // kernelWidth
-        3,   // kernelHeight
+        20,  // maps
+        5,   // kernelWidth
+        5,   // kernelHeight
         1,   // strideWidth
         1,   // strideHeight
         0,   // padW
         0    // padH
-
     );
-    net.Add<mlpack::MaxPoolingType<MAT_TYPE>>(
-        2,   // kernelWidth
-        2,   // kernelHeight
+    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
+        2,
+        2,
+        1,
+        1
+    );
+    ACTIVATION;
+
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        16,  // maps
+        5,   // kernelWidth
+        5,   // kernelHeight
         1,   // strideWidth
-        1    // strideHeight
+        1,   // strideHeight
+        0,   // padW
+        0    // padH
+    );
+    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
+        2,
+        2,
+        1,
+        1
     );
     ACTIVATION;
-    */
 
-    LINEAR(8192);
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        64,  // maps
+        9,   // kernelWidth
+        9,   // kernelHeight
+        1,   // strideWidth
+        1,   // strideHeight
+        0,   // padW
+        0    // padH
+    );
+    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
+        2,
+        2,
+        1,
+        1
+    );
     ACTIVATION;
-    DROPOUT;
 
-    LINEAR(4096);
+    DROPOUT;
+    LINEAR(512);
     ACTIVATION;
-    DROPOUT;
 
-    LINEAR(4096);
+    DROPOUT;
+    LINEAR(512);
     ACTIVATION;
-    DROPOUT;
 
+    DROPOUT;
     LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
 

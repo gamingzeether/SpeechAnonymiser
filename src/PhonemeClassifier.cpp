@@ -1,4 +1,4 @@
-#include "PhonemeClassifier.h"
+﻿#include "PhonemeClassifier.h"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -51,8 +51,8 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
     hp.dropout() = 0.25;
     hp.l2() = 0.001;
-    hp.batchSize() = 64;
-    hp.stepSize() = 1e-3;
+    hp.batchSize() = 32;
+    hp.stepSize() = 1e-4;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
