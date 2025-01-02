@@ -229,10 +229,11 @@ void startFFT(InputData& inputData) {
     Visualizer app;
     app.initWindow();
     logger.log("Starting visualizer", Logger::INFO);
-    app.fftData.frames = FFT_FRAMES;
+    const size_t frameCount = FFT_FRAMES * 2;
+    app.fftData.frames = frameCount;
     app.fftData.currentFrame = 0;
-    app.fftData.frequencies = new float* [FFT_FRAMES];
-    for (size_t i = 0; i < FFT_FRAMES; i++) {
+    app.fftData.frequencies = new float* [frameCount];
+    for (size_t i = 0; i < frameCount; i++) {
         app.fftData.frequencies[i] = new float[FFT_REAL_SAMPLES];
         for (size_t j = 0; j < FFT_REAL_SAMPLES; j++) {
             app.fftData.frequencies[i][j] = 0.0;
@@ -248,7 +249,7 @@ void startFFT(InputData& inputData) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
         logger.log("Starting FFT thread processing", Logger::VERBOSE);
-        std::vector<Frame> frames = std::vector<Frame>(FFT_FRAMES);
+        std::vector<Frame> frames = std::vector<Frame>(frameCount);
         for (Frame& f : frames) {
             f.reset();
         }
@@ -286,7 +287,7 @@ void startFFT(InputData& inputData) {
             // Pass data to neural network
             bool activity = false;
             for (int i = 0; i < ACTIVITY_WIDTH; i++) {
-                Frame& activityFrame = frames[(currentFrame + FFT_FRAMES - i) % FFT_FRAMES];
+                Frame& activityFrame = frames[(currentFrame + frameCount - i) % frameCount];
                 if (activityFrame.volume >= activationThreshold) {
                     activity = true;
                     break;
@@ -314,7 +315,7 @@ void startFFT(InputData& inputData) {
                 speechFrame.phoneme = silencePhoneme;
             }
             speechEngine->pushFrame(speechFrame);
-            currentFrame = (currentFrame + 1) % FFT_FRAMES;
+            currentFrame = (currentFrame + 1) % frameCount;
         }
         });
 
