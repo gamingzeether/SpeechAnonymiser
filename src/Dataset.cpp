@@ -337,8 +337,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
 std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
     std::ifstream reader;
     reader.open(path);
-    if (reader.is_open()) {
-        //std::printf("Failed to open file: %s\n", path.c_str());
+    if (!reader.is_open()) {
+        std::printf("Failed to open file: %s\n", path.c_str());
         return {};
     }
 
