@@ -21,14 +21,13 @@ public:
     template <typename MatType>
     bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
         for (size_t f = 0; f < FFT_FRAMES; f++) {
-            const Frame& readFrame = frames[(lastWritten + f) % frames.size()];
+            const Frame& readFrame = frames[(lastWritten - f) % frames.size()];
             if (readFrame.invalid)
                 return false;
         }
         auto colPtr = data.colptr(col);
         for (size_t f = 0; f < FFT_FRAMES; f++) {
-            const Frame& readFrame = frames[(lastWritten + f) % frames.size()];
-            size_t offset = f * FRAME_SIZE;
+            const Frame& readFrame = frames[(lastWritten - f) % frames.size()];
             for (size_t i = 0; i < FRAME_SIZE; i++) {
                 *(colPtr++) = readFrame.avg[i];
                 *(colPtr++) = readFrame.delta[i];

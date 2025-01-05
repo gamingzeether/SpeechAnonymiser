@@ -181,9 +181,8 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                         }
                     }
 
-                    for (size_t i = 0; i < frameCounter - FFT_FRAMES; i++) {
-                        size_t currentFrameIndex = i + CONTEXT_BACKWARD;
-                        Frame& frame = frames[currentFrameIndex];
+                    for (size_t i = FFT_FRAMES; i < frameCounter; i++) {
+                        Frame& frame = frames[i - CONTEXT_BACKWARD];
                         const size_t& currentPhone = frame.phone;
                         auto& phonemeCounter = exampleCount[currentPhone];
 
@@ -200,7 +199,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                                 continue;
                             }
                         }
-                        if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, currentFrameIndex, exampleData[currentPhone], writeCol)) {
+                        if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, i, exampleData[currentPhone], writeCol)) {
                             phonemeCounter++;
                         }
                     }

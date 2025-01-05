@@ -282,8 +282,8 @@ void startFFT(InputData& inputData) {
             helper.processFrame(inputData.buffer[0], lastSampleStart, inputData.totalFrames, frames, currentFrame);
 
             // Write FFT output to visualizer
-            app.fftData.currentFrame = currentFrame;
             memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FRAME_SIZE);
+            app.fftData.currentFrame = currentFrame;
 
             // Pass data to neural network
             bool activity = false;

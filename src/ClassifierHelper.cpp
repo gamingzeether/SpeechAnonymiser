@@ -70,14 +70,12 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     Frame& prevFrame = (currentFrame > 0) ? allFrames[currentFrame - 1] : frame;
     float max = 0.0;
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
-        max = fmaxf(max, abs(audio[i]));
-    }
-    frame.volume = max * gain;
-    for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         size_t readLocation = (start + i) % totalSize;
-        const float& value = audio[readLocation];
-        fftwIn[i] = value * window[i] * gain;
+        const float value = audio[readLocation] * gain;
+        max = fmaxf(max, value);
+        fftwIn[i] = value * window[i];
     }
+    frame.volume = max;
 
     // Get mel spectrum
     fftwf_execute(fftwPlan);
@@ -86,6 +84,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         fftAmplitudes[i] = (complex[0] * complex[0] + complex[1] * complex[1]);
     }
     for (size_t melIdx = 0; melIdx < MEL_BINS; melIdx++) {
+        melFrequencies[melIdx] = 0;
         for (size_t fftIdx = melStart[melIdx]; fftIdx < melEnd[melIdx]; fftIdx++) {
             const float& effect = melTransform[melIdx][fftIdx];
             melFrequencies[melIdx] += effect * fftAmplitudes[fftIdx];
@@ -102,7 +101,6 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     }
 
     // Average
-    /*
     for (int i = 0; i < FRAME_SIZE; i++) {
         windowAvg[i] = 0;
     }
@@ -114,9 +112,8 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
             windowAvg[j] += allFrames[rindex].real[j] * mult;
         }
     }
-    */
     for (size_t i = 0; i < FRAME_SIZE; i++) {
-        frame.avg[i] = frame.real[i];
+        frame.avg[i] = windowAvg[i];
         frame.delta[i] = frame.avg[i] - prevFrame.avg[i];
         frame.accel[i] = frame.delta[i] - prevFrame.delta[i];
     }
