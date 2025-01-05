@@ -366,7 +366,7 @@ else()
     endif()
     if (LTO AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
         target_compile_options(${PROJECT_NAME} PRIVATE
-            -flto
+            -flto=auto
         )
     endif()
 endif()
