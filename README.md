@@ -58,7 +58,7 @@ Everything else should be installed by vcpkg.
 
 Run
 ```
-cmake -B out -DDCMAKE_BUILD_TYPE=Release {OPTIONS}
+cmake -B out -DCMAKE_BUILD_TYPE=Release {OPTIONS}
 cmake --build out
 ```
 `{OPTIONS}` can be replaced with flags to change functionality
