@@ -12,6 +12,7 @@ option(ASAN "Compile with Address Sanitizer." OFF)
 option(OMP "Compile with OpenMP." OFF)
 option(AUDIO "Compile with audio in/output." ON)
 option(MKL "Compile with Intel MKL." OFF)
+option(LTO "Compile with LTO on release builds." ON)
 if (ASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
@@ -180,10 +181,6 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 if (NOT MSVC)
-    if (OMP)
-        find_package(OpenMP REQUIRED)
-        target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-    endif()
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
 endif()
 
@@ -355,13 +352,23 @@ else()
         $<$<CONFIG:Release>:
             -Ofast
             -ffunction-sections
-            -flto
         >
-        -fopenmp
         -std=c++2a
         ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT}
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )
+    if (OMP)
+        find_package(OpenMP REQUIRED)
+        target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -fopenmp
+        )
+    endif()
+    if (LTO AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -flto
+        )
+    endif()
 endif()
 
 add_custom_command(

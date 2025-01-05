@@ -66,6 +66,7 @@ cmake --build out
 - `-DOMP={ON/OFF}` Compile with OpenMP. (No effect on MSVC) (Default OFF)
 - `-DAUDIO={ON/OFF}` Compile with audio in/output. (Default ON)
 - `-DMKL={ON/OFF}` Compile with Intel MKL. (Currently does nothing) (Default OFF)
+- `-DLTO={ON/OFF}` Compile with link time optimization. Increases compile time. (Default ON)
 
 # Preparing datasets
 
