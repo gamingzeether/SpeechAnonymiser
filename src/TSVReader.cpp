@@ -42,7 +42,7 @@ TSVReader::CompactTSVLine TSVReader::convert(const TSVReader::TSVLine& expanded)
 	return compact;
 }
 
-void TSVReader::open(const std::string& filepath, bool readSentence) {
+void TSVReader::open(const std::string& filepath, bool readSentence, const std::string& filter) {
 	filePath = filepath;
 	if (reader.is_open()) {
 		reader.close();
@@ -106,7 +106,7 @@ void TSVReader::open(const std::string& filepath, bool readSentence) {
 			}
 			last = next + 1;
 		}
-		if (lineParseCheck) {
+		if (lineParseCheck && (filter == "" || parsedLine.CLIENT_ID == filter)) {
 			lines.push_back(TSVReader::convert(parsedLine));
 		}
 	}

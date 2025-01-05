@@ -84,7 +84,7 @@ void Dataset::setSubtype(Dataset::Subtype t) {
             tsv += "/dev.tsv";
             break;
         }
-        reader.open(tsv);
+        reader.open(tsv, false, clientFilter);
     } else if (type == TIMIT) {
         switch (t) {
         case TRAIN:

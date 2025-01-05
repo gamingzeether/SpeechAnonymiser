@@ -53,7 +53,7 @@ public:
     void shuffle();
     void resetLine() { readLine = 0; };
 
-    void open(const std::string& filepath, bool readSentence = false);
+    void open(const std::string& filepath, bool readSentence = false, const std::string& filter = "");
     CompactTSVLine* read_line();
     CompactTSVLine* read_line(OUT size_t& index);
 private:

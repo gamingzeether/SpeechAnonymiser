@@ -34,7 +34,11 @@ public:
     void setSubtype(Subtype t);
 
     Dataset() : reader(TSVReader()), sampleRate(16000), path("") {};
-    Dataset(int sr, std::string pth) : reader(TSVReader()), sampleRate(sr), path(pth) {
+    Dataset(int sr, std::string pth, std::string filter = "") : 
+            reader(TSVReader()),
+            sampleRate(sr),
+            path(pth),
+            clientFilter(filter) {
         if (path.substr(path.size() - 5) == "TIMIT") {
             type = TIMIT;
         } else {
@@ -81,6 +85,7 @@ private:
     std::string path;
     std::thread loaderThread;
     bool endFlag; // Set to true when training is done to end loading after minExamples > examples instead of examples * MMAX_EXAMPLE_F
+    std::string clientFilter;
 
 	std::vector<CPU_MAT_TYPE> exampleData;
     std::vector<CPU_MAT_TYPE> exampleLabel;
