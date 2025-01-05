@@ -43,14 +43,14 @@ static struct cag_option options[] = {
     .identifier = 't',
     .access_letters = "t",
     .access_name = "train",
-    .value_name = "PATH",
+    .value_name = "[Dataset directory]",
     .description = "Phoneme classifier training mode"},
 
   {
     .identifier = 'p',
     .access_letters = "p",
     .access_name = "preprocess",
-    .value_name = "PATH",
+    .value_name = "[Common Voice directory]",
     .description = "Preprocess training data"},
 
   {
@@ -62,37 +62,37 @@ static struct cag_option options[] = {
   {
     .identifier = 'w',
     .access_letters = "w",
-    .value_name = "PATH",
+    .value_name = "[Directory]",
     .description = "Work directory"},
 
   {
     .identifier = 'd',
     .access_letters = "d",
-    .value_name = "PATH",
+    .value_name = "[Dictionary]",
     .description = "MFA dictionary path"},
 
   {
     .identifier = 'a',
     .access_letters = "a",
-    .value_name = "PATH",
+    .value_name = "[Model]",
     .description = "MFA acoustic model path"},
 
   {
     .identifier = 'o',
     .access_letters = "o",
-    .value_name = "PATH",
+    .value_name = "[Directory]",
     .description = "Output directory"},
 
   {
     .identifier = '\\',
     .access_name = "interactive",
-    .value_name = "PATH",
+    .value_name = "[Dataset directory]",
     .description = "Used for development"},
 
    {
     .identifier = 'e',
     .access_letters = "e",
-    .value_name = "PATH",
+    .value_name = "[Dataset directory]",
     .description = "Evaluate model accuracy"}
 };
 
