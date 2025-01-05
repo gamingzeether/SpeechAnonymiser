@@ -3,10 +3,7 @@
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
 
-#if !defined(NDEBUG) || (defined(__GNUC__) && defined(__aarch64__))
-// Fix an issue where some frames have nan values
-// Seems to come from the dct returning nan but not sure why
-// Doesnt seem to happen on x64 msvc143 but does occasionally on aarch64 gcc13
+#if !defined(NDEBUG)
 #define DO_NAN_CHECK
 #endif
 

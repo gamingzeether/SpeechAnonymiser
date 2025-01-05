@@ -1,7 +1,6 @@
 ﻿#include "ClassifierHelper.h"
 
 #include <math.h>
-#include <stdexcept>
 
 void ClassifierHelper::initalize(size_t sr) {
     window = new float[FFT_FRAME_SAMPLES];
@@ -86,9 +85,6 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         fftwf_complex& complex = fftwOut[i];
         fftAmplitudes[i] = (complex[0] * complex[0] + complex[1] * complex[1]);
     }
-    for (size_t i = 0; i < MEL_BINS; i++) {
-        melFrequencies[i] = 0.0001f;
-    }
     for (size_t melIdx = 0; melIdx < MEL_BINS; melIdx++) {
         for (size_t fftIdx = melStart[melIdx]; fftIdx < melEnd[melIdx]; fftIdx++) {
             const float& effect = melTransform[melIdx][fftIdx];
@@ -98,7 +94,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
 
     // Do DCT
     for (size_t i = 0; i < MEL_BINS; i++) {
-        dctIn[i] = log10(melFrequencies[i]);
+        dctIn[i] = log10(std::max(melFrequencies[i], 1e-6f));
     }
     fftwf_execute(dctPlan);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
