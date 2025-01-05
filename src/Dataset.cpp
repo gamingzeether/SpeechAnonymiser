@@ -219,7 +219,7 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print)
                     }
                     minExamples = minTemp;
                     if (print && endFlag) {
-                        std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, Global::get().phonemeSet().xSampa(minIdx).c_str());
+                        std::printf("%d clips; Min: %d of %s\r", (int)totalClips, (int)minExamples, G_PS.xSampa(minIdx).c_str());
                         fflush(stdout);
                     }
                 } else { // Could not load
@@ -374,7 +374,7 @@ std::vector<Phone> Dataset::parseTextgrid(const std::string& path) {
         p.minIdx = sampleRate * p.min;
         p.maxIdx = sampleRate * p.max;
 
-        p.phonetic = Global::get().phonemeSet().fromString(text);
+        p.phonetic = G_PS.fromString(text);
         phones[i] = p;
     }
 
@@ -406,7 +406,7 @@ std::vector<Phone> Dataset::parseTIMIT(const std::string& path) {
         p.min = p.minIdx / 16000.0;
         p.maxIdx = std::stoull(i2);
         p.max = p.maxIdx / 16000.0;
-        p.phonetic = Global::get().phonemeSet().fromString(i3);
+        p.phonetic = G_PS.fromString(i3);
 
         tempPhones.push_back(std::move(p));
     };
@@ -632,9 +632,9 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
 
     // Generate phoneme alignments
     const std::vector<std::string> tables = {
-        "/train.tsv",
         "/dev.tsv",
-        "/test.tsv"
+        "/test.tsv",
+        "/train.tsv"
     };
     const std::string clipPath = path + "/clips/";
     for (int i = 0; i < tables.size(); i++) {
@@ -720,7 +720,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
     }
 }
 
-std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target, int samplerate, TSVReader::TSVLine& tsv, std::vector<Phone>& phones) {
+std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target, int samplerate, TSVReader::TSVLine& tsv, std::vector<Phone>& phones, const std::string& filter) {
     reader.shuffle();
     const std::string clipPath = path + "/clips/";
     const std::string transcriptsPath = path + "/transcript/";
@@ -736,6 +736,8 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
             break;
         }
        tsv = TSVReader::convert(*line);
+        if (filter != "" && tsv.CLIENT_ID != filter)
+            continue;
         // Get transcription
         const std::string& nextClipPath = tsv.PATH;
         const std::string transcriptionPath = transcriptsPath + tsv.CLIENT_ID + "/" + nextClipPath.substr(0, nextClipPath.length() - 4) + ".TextGrid";

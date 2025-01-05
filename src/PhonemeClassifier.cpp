@@ -184,7 +184,7 @@ size_t PhonemeClassifier::classify(const MAT_TYPE& data) {
 }
 
 std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
-    return Global::get().phonemeSet().xSampa(in);
+    return G_PS.xSampa(in);
 };
 
 void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel) {
@@ -236,11 +236,11 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     std::cout << "Confusion Matrix:\n";
     std::cout << "   ";
     for (size_t i = 0; i < outputSize; i++) {
-        std::cout << std::setw(2) << Global::get().phonemeSet().xSampa(i) << " ";
+        std::cout << std::setw(2) << G_PS.xSampa(i) << " ";
     }
     std::cout << std::endl;
     for (size_t i = 0; i < outputSize; i++) {
-        std::cout << std::setw(2) << Global::get().phonemeSet().xSampa(i) << " ";
+        std::cout << std::setw(2) << G_PS.xSampa(i) << " ";
         size_t total = totalPhonemes[i];
         for (size_t j = 0; j < outputSize; j++) {
             double fraction = (double)confusionMatrix[i][j] / total;

@@ -100,12 +100,12 @@ Voicebank& Voicebank::open(const std::string& dir) {
 
                 JSONHelper::JSONObj dictionary = dictionaryConfig.object()["dictionary"];
                 size_t dictSize = dictionary.get_array_size();
-                auto set = Global::get().phonemeSet();
+                auto set = G_PS;
                 for (size_t i = 0; i < dictSize; i++) {
                     JSONHelper::JSONObj dictItem = dictionary[i];
                     std::string phoneme = dictItem["phoneme"].get_string();
                     // Check to see if it is a valid phoneme
-                    size_t pidx = Global::get().phonemeSet().xSampaExists(phoneme);
+                    size_t pidx = G_PS.xSampaExists(phoneme);
                     charMapping[dictItem["sequence"].get_string()] = phoneme;
                 }
 
@@ -389,7 +389,7 @@ void Voicebank::loadAliases() {
         int pcount = phonemes.get_array_size();
         for (int j = 0; j < pcount; j++) {
             std::string xsampa = phonemes[j].get_string();
-            size_t phonemeId = Global::get().phonemeSet().xSampaIndex(xsampa);
+            size_t phonemeId = G_PS.xSampaIndex(xsampa);
             if (j == 0) {
                 aliasFeatures.from = phonemeId;
             } else if (j == pcount - 1) {

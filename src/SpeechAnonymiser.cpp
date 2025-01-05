@@ -1,4 +1,4 @@
-﻿#include "define.h"
+#include "define.h"
 
 #include "common_inc.h"
 
@@ -20,6 +20,7 @@
 #include "Dataset.h"
 #include "Logger.h"
 #include "SpeechEngineConcatenator.h"
+#include "SpeechEngineFormant.h"
 #include "Global.h"
 #include "Util.h"
 #ifdef AUDIO
@@ -260,7 +261,7 @@ void startFFT(InputData& inputData) {
 
         ClassifierHelper& helper = ClassifierHelper::instance();
         SpeechFrame speechFrame;
-        const size_t silencePhoneme = Global::get().phonemeSet().fromString(L"æ");
+        const size_t silencePhoneme = G_PS.fromString(L"æ");
         speechFrame.phoneme = silencePhoneme;
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
@@ -502,12 +503,19 @@ int commandDefault() {
 #pragma endregion
 
     // Initalize speech engine
-    auto tmp = SpeechEngineConcatenator();
-    tmp.setSampleRate(outputSampleRate)
+    /*
+    auto tmpEngine = SpeechEngineConcatenator();
+    tmpEngine.setSampleRate(outputSampleRate)
         .setChannels(2)
         .setVolume(0.05)
         .configure("AERIS CV-VC ENG Kire 2.0/");
-    speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
+    */
+    auto tmpEngine = SpeechEngineFormant();
+    tmpEngine.setSampleRate(outputSampleRate)
+        .setChannels(2)
+        .setVolume(0.001)
+        .configure("configs/formants/formants.json");
+    speechEngine = std::unique_ptr<SpeechEngine>(&tmpEngine);
 
     if (inputAudio.startStream()) {
         std::cout << inputAudio.getErrorText() << '\n';
@@ -626,8 +634,8 @@ int commandInteractive(const std::string& path) {
         } else if (command == "dataset" && prefix == "~") {
             prefix = "dataset";
         } else if (command == "phones" && prefix == "~") {
-            for (int i = 0; i < Global::get().phonemeSet().size(); i++) {
-                std::string xs = Global::get().phonemeSet().xSampa(i);
+            for (int i = 0; i < G_PS.size(); i++) {
+                std::string xs = G_PS.xSampa(i);
                 std::printf("%2d : %s\n", i, xs.c_str());
             }
         } else if (command == "exit") {
@@ -667,14 +675,14 @@ int commandInteractive(const std::string& path) {
             ac.pointer = 0;
         } else if (command != "" && prefix == "dataset") {
             size_t targetPhoneme = std::stoull(command);
-            if (targetPhoneme < Global::get().phonemeSet().size()) {
+            if (targetPhoneme < G_PS.size()) {
                 TSVReader::TSVLine tsv;
                 clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, tsv, clipPhones);
                 prefix = "clip";
                 std::printf("%s\n", tsv.PATH.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
                     const Phone& p = clipPhones[i];
-                    std::printf("%2d  %s: %.2f, %.2f\n", i, Global::get().phonemeSet().xSampa(p.phonetic).c_str(), p.min, p.max);
+                    std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS.xSampa(p.phonetic).c_str(), p.min, p.max);
                 }
             } else {
                 std::printf("Out of range\n");

@@ -5,6 +5,10 @@
 #include <string>
 #include <map>
 
+#define G_PS Global::get().phonemeSet()
+
+// Access through Global::get().phonemeSet()
+// Or the macro G_PS
 class PhonemeSet {
 public:
 	struct Phoneme {

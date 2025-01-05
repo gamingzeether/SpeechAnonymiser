@@ -191,7 +191,7 @@ bool PhonemeModel::load() {
         logger->log(std::format("{} does not exist", ARCHIVE_FILE), Logger::WARNING);
     }
 
-    outputSize = Global::get().phonemeSet().size();
+    outputSize = G_PS.size();
 
     config = Config(CONFIG_FILE, CURRENT_VERSION);
     config.setDefault("input_features", inputSize)

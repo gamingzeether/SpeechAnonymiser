@@ -219,28 +219,12 @@ float SpeechEngineArticulator::VocalTract::step(float input) {
 #pragma endregion
 
 void SpeechEngineArticulator::_init() {
-#pragma region Logger
-	logger = Logger();
-	logger.addStream(Logger::Stream("speech_engine.log").
-		outputTo(Logger::VERBOSE).
-		outputTo(Logger::INFO).
-		outputTo(Logger::WARNING).
-		outputTo(Logger::ERR).
-		outputTo(Logger::FATAL));
-	logger.addStream(Logger::Stream(std::cout).
-		outputTo(Logger::INFO).
-		outputTo(Logger::WARNING).
-		outputTo(Logger::ERR).
-		outputTo(Logger::FATAL));
-
-	logger.log("Starting", Logger::VERBOSE);
-	logger.log(std::format("Sample rate: {}", sampleRate), Logger::VERBOSE);
-	logger.log(std::format("Channels: {}", channels), Logger::VERBOSE);
-#pragma endregion
+	initLogger();
+    logger.log("Type: Articulator", Logger::INFO);
 
 #pragma region Animations
 	_initArticulators();
-	const PhonemeSet& ips = Global::get().phonemeSet();
+	const PhonemeSet& ips = G_PS;
 	for (int i = 0; i < ips.size(); i++) {
 		const std::string& name = ips.xSampa(i);
 		articAnim.loadGroup(std::format("configs/animations/phonemes/{}_anim.json", name), name);

@@ -65,7 +65,8 @@ void SpeechEngineConcatenator::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned i
 }
 
 void SpeechEngineConcatenator::_init() {
-
+	initLogger();
+    logger.log("Type: Concatenator", Logger::INFO);
 }
 
 void SpeechEngineConcatenator::playUnit(const Voicebank::Unit& unit) {

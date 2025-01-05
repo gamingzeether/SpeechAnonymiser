@@ -36,7 +36,8 @@ public:
 		return *this;
 	}
 
-	// Call this last
+	// Last step in setting up the speech engine
+	// Configures and initalizes the engine for use
 	virtual SpeechEngine& configure(std::string file) = 0;
 protected:
 	static float _random() {
@@ -44,6 +45,24 @@ protected:
 		return randomDist(randomEngine);
 	};
 	virtual void _init() = 0;
+	void initLogger() {
+		logger = Logger();
+		logger.addStream(Logger::Stream("speech_engine.log").
+			outputTo(Logger::VERBOSE).
+			outputTo(Logger::INFO).
+			outputTo(Logger::WARNING).
+			outputTo(Logger::ERR).
+			outputTo(Logger::FATAL));
+		logger.addStream(Logger::Stream(std::cout).
+			outputTo(Logger::INFO).
+			outputTo(Logger::WARNING).
+			outputTo(Logger::ERR).
+			outputTo(Logger::FATAL));
+	
+		logger.log("Starting", Logger::VERBOSE);
+		logger.log(std::format("Sample rate: {}", sampleRate), Logger::VERBOSE);
+		logger.log(std::format("Channels: {}", channels), Logger::VERBOSE);
+	}
 
 	Logger logger;
 
