@@ -58,8 +58,8 @@ Everything else should be installed by vcpkg.
 
 Run
 ```
-cmake -B out/build {OPTIONS}
-cmake --build out/build --config Release
+cmake -B out -DDCMAKE_BUILD_TYPE=Release {OPTIONS}
+cmake --build out
 ```
 `{OPTIONS}` can be replaced with flags to change functionality
 - `-DASAN={ON/OFF}` Compile with Address Sanitizer. (Default OFF)

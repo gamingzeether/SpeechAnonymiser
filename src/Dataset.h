@@ -1,5 +1,7 @@
 #include "common_inc.h"
 
+#define ARMA_DONT_PRINT_FAST_MATH_WARNING
+
 #include <thread>
 #include <armadillo>
 #include "TSVReader.h"

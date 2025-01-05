@@ -349,12 +349,17 @@ if(MSVC)
     endif()
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Release>:
-            -O3;
-            -ffunction-sections;
+        $<$<CONFIG:Debug>:
+            -O2
         >
-        -std=c++2a;
-        ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
+        $<$<CONFIG:Release>:
+            -Ofast
+            -ffunction-sections
+            -flto
+        >
+        -fopenmp
+        -std=c++2a
+        ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT}
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )
 endif()

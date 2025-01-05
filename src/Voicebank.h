@@ -4,7 +4,7 @@
 
 #include <string>
 #include <vector>
-#include <armadillo>
+#include <map>
 #include "structs.h"
 #include "Config.h"
 
