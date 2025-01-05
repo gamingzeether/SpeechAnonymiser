@@ -686,12 +686,19 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
                 drwav wav;
                 drwav_data_format format = drwav_data_format();
                 format.container = drwav_container_riff;
-                format.format = DR_WAVE_FORMAT_IEEE_FLOAT;
+                format.format = DR_WAVE_FORMAT_PCM;
                 format.channels = 1;
                 format.sampleRate = 16000;
-                format.bitsPerSample = 32;
+                format.bitsPerSample = 16;
                 drwav_init_file_write(&wav, (fileName + ".wav").c_str(), &format, NULL);
-                drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, clip.size, clip.buffer);
+
+                drwav_int16* intBuffer = new drwav_int16[clip.size];
+                for (size_t j = 0; j < clip.size; j++) {
+                    intBuffer[j] = std::numeric_limits<drwav_int16>::max() * clip.buffer[j];
+                }
+                drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, clip.size, intBuffer);
+                delete[] intBuffer;
+
                 drwav_uninit(&wav);
 
                 // Transcript
@@ -706,7 +713,9 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             std::cout << "\n";
             // Run alignment
             const std::string mfaLine = std::format("mfa align -t {} --use_mp --quiet --clean {} {} {} {}", mfaWorkDir, audioWorkDir, dictPath, acousticPath, outputDir);
-            system(mfaLine.c_str());
+            int result = system(mfaLine.c_str());
+            if (result != 0)
+                std::printf("MFA exited with exit code %d\n", result);
             // Cleanup
             std::filesystem::directory_iterator iterator(audioWorkDir);
             for (const auto& directory : iterator) {
