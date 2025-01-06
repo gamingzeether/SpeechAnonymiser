@@ -29,9 +29,9 @@ public:
         for (size_t f = 0; f < FFT_FRAMES; f++) {
             const Frame& readFrame = frames[(lastWritten - f) % frames.size()];
             for (size_t i = 0; i < FRAME_SIZE; i++) {
-                *(colPtr++) = readFrame.avg[i];
-                *(colPtr++) = readFrame.delta[i];
-                *(colPtr++) = readFrame.accel[i];
+                colPtr[(0 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.avg[i];
+                colPtr[(1 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.delta[i];
+                colPtr[(2 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.accel[i];
             }
         }
         return true;
