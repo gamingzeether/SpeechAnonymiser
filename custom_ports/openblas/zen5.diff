@@ -1,0 +1,21 @@
+diff --git a/cpuid_x86.c b/cpuid_x86.c
+index f77cca1..4431f65 100644
+--- a/cpuid_x86.c
++++ b/cpuid_x86.c
+@@ -1676,6 +1676,7 @@ int get_cpuname(void){
+ 	    return CPUTYPE_BARCELONA;
+         }
+       case 10: // Zen3/4
++      case 11: // Zen5
+ #ifndef NO_AVX512
+           if(support_avx512_bf16())
+             return CPUTYPE_COOPERLAKE;
+@@ -2451,7 +2452,7 @@ int get_coretype(void){
+ 	  }
+ 	  break;
+ 	}
+-      } else if (exfamily == 8 || exfamily == 10) {
++      } else if (exfamily == 8 || exfamily == 10  || exfamily == 11) {
+ 	switch (model) {
+ 	case 1:
+ 	  // AMD Ryzen
