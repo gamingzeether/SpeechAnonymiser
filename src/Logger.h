@@ -8,6 +8,7 @@
 #include <optional>
 #include <vector>
 #include <assert.h>
+#include <format>
 
 class Logger {
 public:

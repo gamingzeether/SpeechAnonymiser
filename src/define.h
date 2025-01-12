@@ -24,7 +24,7 @@ typedef float OUTPUT_TYPE;
 #define FFT_FRAME_SAMPLES 512
 #define FFT_FRAME_SPACING 160
 #define CONTEXT_FORWARD 7
-#define CONTEXT_BACKWARD 13
+#define CONTEXT_BACKWARD 16
 #define FFT_FRAMES (CONTEXT_FORWARD + 1 + CONTEXT_BACKWARD)
 #define FFT_REAL_SAMPLES (FFT_FRAME_SAMPLES / 2)
 #define MEL_BINS 64
@@ -33,7 +33,7 @@ typedef float OUTPUT_TYPE;
 #define MMAX_EXAMPLE_F 3
 #define ACTIVITY_WIDTH 5
 #define INFERENCE_FRAMES 2 // Classify once every x frames
-#define DELTA_DISTANCE 4 // Get delta from x frames back; must be less than FFT_FRAMES
 #define AVG_FRAMES 4
+#define NUM_LOADER_THREADS 8 // Number of threads to use per dataset
 
 #define CLIP_LENGTH 15

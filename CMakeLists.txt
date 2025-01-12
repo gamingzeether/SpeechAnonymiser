@@ -143,6 +143,8 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/PhonemeSet.h"
     "${PROJECT_SOURCE_DIR}/Global.h"
     "${PROJECT_SOURCE_DIR}/Util.h"
+    "${PROJECT_SOURCE_DIR}/ParallelWorker.h"
+    "${PROJECT_SOURCE_DIR}/TimitIterator.h"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -166,6 +168,7 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/PhonemeSet.cpp"
     "${PROJECT_SOURCE_DIR}/Global.cpp"
     "${PROJECT_SOURCE_DIR}/Util.cpp"
+    "${PROJECT_SOURCE_DIR}/TimitIterator.cpp"
 )
 source_group("Sources" FILES ${Sources})
 
@@ -347,10 +350,11 @@ if(MSVC)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE
         $<$<CONFIG:Debug>:
-            -O2
+            -O0
         >
         $<$<CONFIG:Release>:
-            -Ofast
+            -O3
+            -ffast-math
             -ffunction-sections
         >
         -std=c++2a

@@ -105,6 +105,20 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         // Start training thread
         bool copyDone = false;
         trainThread = std::thread([&]{
+            train.end();
+            test.end();
+            validate.end();
+
+            // Print status
+            while (!train.done() || !test.done() || !validate.done()) {
+                std::string status = std::format("Train: {}, Test: {}, Validate: {}\r",
+                        train.getMinCount(),
+                        test.getMinCount(),
+                        validate.getMinCount());
+                std::cout << status << std::flush;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
             train.join();
             test.join();
             validate.join();
