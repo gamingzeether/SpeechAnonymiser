@@ -353,9 +353,11 @@ else()
             -O0
         >
         $<$<CONFIG:Release>:
-            -O3
-            -ffast-math
             -ffunction-sections
+            -O3
+            -fno-signed-zeros
+            -funsafe-math-optimizations
+            -fno-trapping-math
         >
         -std=c++2a
         ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT}

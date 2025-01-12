@@ -3,7 +3,7 @@
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
 
-#if !defined(NDEBUG)
+#if 1
 #define DO_NAN_CHECK
 #endif
 
