@@ -360,6 +360,7 @@ else()
             -fno-trapping-math
         >
         -std=c++2a
+        -march=native
         ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT}
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )

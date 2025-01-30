@@ -29,62 +29,61 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        20,  // maps
-        5,   // kernelWidth
-        5,   // kernelHeight
+        128, // maps
+        2,   // kernelWidth
+        2,   // kernelHeight
         1,   // strideWidth
-        1,   // strideHeight
-        0,   // padW
-        0    // padH
+        1    // strideHeight
     );
-    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
-        2,
-        2,
-        1,
-        1
-    );
-    ACTIVATION;
-
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        16,  // maps
-        5,   // kernelWidth
-        5,   // kernelHeight
-        1,   // strideWidth
-        1,   // strideHeight
-        0,   // padW
-        0    // padH
-    );
-    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
-        2,
-        2,
-        1,
-        1
-    );
-    ACTIVATION;
-
     net.Add<mlpack::ConvolutionType<CONVT>>(
         64,  // maps
-        9,   // kernelWidth
-        9,   // kernelHeight
+        2,   // kernelWidth
+        2,   // kernelHeight
+        2,   // strideWidth
+        2    // strideHeight
+    );
+    ACTIVATION;
+
+    DROPOUT;
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        128, // maps
+        2,   // kernelWidth
+        2,   // kernelHeight
         1,   // strideWidth
-        1,   // strideHeight
-        0,   // padW
-        0    // padH
+        1    // strideHeight
     );
-    net.Add<mlpack::MeanPoolingType<MAT_TYPE>>(
-        2,
-        2,
-        1,
-        1
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        64,  // maps
+        2,   // kernelWidth
+        2,   // kernelHeight
+        2,   // strideWidth
+        2    // strideHeight
     );
     ACTIVATION;
 
     DROPOUT;
-    LINEAR(512);
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        128, // maps
+        2,   // kernelWidth
+        2,   // kernelHeight
+        1,   // strideWidth
+        1    // strideHeight
+    );
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        64,  // maps
+        2,   // kernelWidth
+        2,   // kernelHeight
+        2,   // strideWidth
+        2    // strideHeight
+    );
     ACTIVATION;
 
     DROPOUT;
-    LINEAR(512);
+    LINEAR(1024);
+    ACTIVATION;
+
+    DROPOUT;
+    LINEAR(1024);
     ACTIVATION;
 
     DROPOUT;
@@ -127,6 +126,7 @@ void PhonemeModel::initOptimizer() {
 
     optim.BatchSize() = hp.batchSize();
     optim.StepSize() = hp.stepSize();
+    optim.Shuffle() = true;
 }
 
 void PhonemeModel::save(int checkpoint) {

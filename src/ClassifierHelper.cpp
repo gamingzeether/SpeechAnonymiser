@@ -77,12 +77,14 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     }
     frame.volume = max;
 
-    // Get mel spectrum
+    // Do FFT
     fftwf_execute(fftwPlan);
     for (size_t i = 0; i < FFT_REAL_SAMPLES; i++) {
         fftwf_complex& complex = fftwOut[i];
         fftAmplitudes[i] = (complex[0] * complex[0] + complex[1] * complex[1]);
     }
+
+    // To mel spectrum
     for (size_t melIdx = 0; melIdx < MEL_BINS; melIdx++) {
         melFrequencies[melIdx] = 0;
         for (size_t fftIdx = melStart[melIdx]; fftIdx < melEnd[melIdx]; fftIdx++) {
@@ -91,9 +93,9 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
         }
     }
 
-    // Do DCT
+    // Do DCT of logs
     for (size_t i = 0; i < MEL_BINS; i++) {
-        dctIn[i] = log10(std::max(melFrequencies[i], 1e-6f));
+        dctIn[i] = log10(std::max(melFrequencies[i], 1e-12f));
     }
     fftwf_execute(dctPlan);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
@@ -112,6 +114,11 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
             windowAvg[j] += allFrames[rindex].real[j] * mult;
         }
     }
+    for (int j = 0; j < FRAME_SIZE; j++) {
+        windowAvg[j] /= AVG_FRAMES;
+    }
+    
+    // Write data
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         frame.avg[i] = windowAvg[i];
         frame.delta[i] = frame.avg[i] - prevFrame.avg[i];

@@ -49,10 +49,10 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
-    hp.dropout() = 0.25;
-    hp.l2() = 0.001;
+    hp.dropout() = 0.15;
+    hp.l2() = 0.01;
     hp.batchSize() = 32;
-    hp.stepSize() = 1e-4;
+    hp.stepSize() = 5e-4;
     model.setHyperparameters(hp);
     model.useLogger(logger);
 
@@ -84,7 +84,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     std::thread trainThread;
     bool isTraining = false;
-    Dataset train(sampleRate, path);
+    // This client has a lot of entries and is has american english
+    // Use to test single speaker accuracy
+    //std::string clientFilter = "b419faab633f2099c6405ff157b4d9fb5675219570f2683a4d08cbadeac4431e9d9b30dfa9b04f79aad9d8e3f75fda964809f3aa72ae9d0a4a025c59417f3dd1";
+    std::string clientFilter = "";
+    Dataset train(sampleRate, path, clientFilter);
     Dataset validate(sampleRate, path);
     Dataset test(sampleRate, path);
     train.setSubtype(Dataset::TRAIN);
@@ -95,8 +99,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     while (true) {
         train.start(inputSize, outputSize, examples, true);
-        test.start(inputSize, outputSize, examples / 5);
-        validate.start(inputSize, outputSize, examples / 4);
+        test.start(inputSize, outputSize, examples / 10);
+        validate.start(inputSize, outputSize, examples / 10);
 
         if (trainThread.joinable()) {
             trainThread.join();
@@ -138,6 +142,16 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             CONVERT(validateLabel);
 
             model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
+
+            //std::cout << trainData.max() << "\n";
+            //std::cout << trainData.min() << "\n";
+            //std::string str;
+            //std::getline(std::cin, str);
+            //for (size_t i = 0; i < trainData.n_cols; i++) {
+            //    std::cout << trainData.col(i).as_row() << "\n";
+            //    std::cout << trainLabel.col(i) << "\n";
+            //    std::getline(std::cin, str);
+            //}
 
             model.optimizer().StepSize() = model.rate(1);
             logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);

@@ -87,6 +87,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "armadillo": "cpp"
+        "armadillo": "cpp",
+        "hash_map": "cpp"
     }
 }

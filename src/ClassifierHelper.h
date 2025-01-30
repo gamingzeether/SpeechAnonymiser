@@ -32,6 +32,9 @@ public:
                 colPtr[(0 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.avg[i];
                 colPtr[(1 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.delta[i];
                 colPtr[(2 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.accel[i];
+                //*(colPtr++) = readFrame.avg[i];
+                //*(colPtr++) = readFrame.delta[i];
+                //*(colPtr++) = readFrame.accel[i];
             }
         }
         return true;
