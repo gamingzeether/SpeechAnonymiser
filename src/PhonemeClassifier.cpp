@@ -1,4 +1,4 @@
-﻿#include "PhonemeClassifier.h"
+#include "PhonemeClassifier.h"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -45,8 +45,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     initalized = true;
 
     sampleRate = sr;
-
-    ClassifierHelper::instance().initalize(sr);
 
     PhonemeModel::Hyperparameters hp = PhonemeModel::Hyperparameters();
     hp.dropout() = 0.15;
@@ -143,17 +141,26 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
             model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
 
-            //std::cout << trainData.max() << "\n";
-            //std::cout << trainData.min() << "\n";
-            //std::string str;
-            //std::getline(std::cin, str);
-            //for (size_t i = 0; i < trainData.n_cols; i++) {
-            //    std::cout << trainData.col(i).as_row() << "\n";
-            //    std::cout << trainLabel.col(i) << "\n";
-            //    std::getline(std::cin, str);
-            //}
+            if (!true) {
+                std::vector<std::string> imageNames;
+                for (size_t i = 0; i < trainData.n_cols; i++) {
+                    imageNames.push_back(std::format("debug/data/{}.png", i));
+                }
+                data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
+                MAT_TYPE images = trainData * 100;
+                data::Save(imageNames, images, imageInfo);
 
-            model.optimizer().StepSize() = model.rate(1);
+                std::cout << trainData.max() << "\n";
+                std::cout << trainData.min() << "\n";
+                std::string str;
+                std::getline(std::cin, str);
+                for (size_t i = 0; i < trainData.n_cols; i++) {
+                    std::cout << trainData.col(i) << "\n";
+                    std::cout << trainLabel.col(i) << "\n";
+                    std::getline(std::cin, str);
+                }
+            }
+
             logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);
             model.network().Train(CNAME(trainData),
                 CNAME(trainLabel),

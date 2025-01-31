@@ -259,7 +259,8 @@ void startFFT(InputData& inputData) {
 
         //std::printf("Maximum time per frame: %fms\n", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
 
-        ClassifierHelper& helper = ClassifierHelper::instance();
+        ClassifierHelper helper;
+        helper.initalize(sampleRate);
         SpeechFrame speechFrame;
         const size_t silencePhoneme = G_PS.fromString(L"æ");
         speechFrame.phoneme = silencePhoneme;
@@ -736,11 +737,6 @@ void initClassifier(int argc, char* argv[]) {
         double backwardMsec = 1000.0 * (backwardSamples / sampleRate);
         logger.log(std::format("Forward context: {}ms; Backward context: {}ms", forwardMsec, backwardMsec), Logger::INFO);
     }
-
-    float gain = 1;
-    requestInput("Set gain", gain);
-    logger.log(std::format("Set gain: {}", gain), Logger::VERBOSE);
-    ClassifierHelper::instance().setGain(gain);
 }
 
 int main(int argc, char* argv[]) {

@@ -10,31 +10,28 @@
 
 class ClassifierHelper {
 public:
-    static ClassifierHelper& instance() {
-        static ClassifierHelper s;
-        return s;
-    };
-
     void initalize(size_t sr);
     void processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame);
 
     template <typename MatType>
     bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
         for (size_t f = 0; f < FFT_FRAMES; f++) {
-            const Frame& readFrame = frames[(lastWritten - f) % frames.size()];
+            const Frame& readFrame = frames[(frames.size() + lastWritten - f) % frames.size()];
             if (readFrame.invalid)
                 return false;
         }
+        const size_t width = FFT_FRAMES;
+        const size_t height = FRAME_SIZE;
+        const size_t channels = 3;
         auto colPtr = data.colptr(col);
         for (size_t f = 0; f < FFT_FRAMES; f++) {
-            const Frame& readFrame = frames[(lastWritten - f) % frames.size()];
+            const Frame& readFrame = frames[(frames.size() + lastWritten - f) % frames.size()];
             for (size_t i = 0; i < FRAME_SIZE; i++) {
-                colPtr[(0 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.avg[i];
-                colPtr[(1 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.delta[i];
-                colPtr[(2 * (FFT_FRAMES * FRAME_SIZE)) + (i * FFT_FRAMES) + f] = readFrame.accel[i];
-                //*(colPtr++) = readFrame.avg[i];
-                //*(colPtr++) = readFrame.delta[i];
-                //*(colPtr++) = readFrame.accel[i];
+                size_t x = f;
+                size_t y = i;
+                colPtr[y * (width * channels) + x * channels + 0] = readFrame.avg[i];
+                colPtr[y * (width * channels) + x * channels + 1] = readFrame.delta[i];
+                colPtr[y * (width * channels) + x * channels + 2] = readFrame.accel[i];
             }
         }
         return true;
@@ -42,7 +39,7 @@ public:
 
     inline void setGain(float g) { gain = g; };
 private:
-    float gain;
+    float gain = 1;
     float* window;
     float* fftwIn;
     fftwf_complex* fftwOut;
@@ -58,6 +55,4 @@ private:
     float* fftAmplitudes = new float[FFT_REAL_SAMPLES];
     float* melFrequencies = new float[MEL_BINS];
     float* windowAvg = new float[FFT_REAL_SAMPLES];
-
-    ClassifierHelper() {};
 };

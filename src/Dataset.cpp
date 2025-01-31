@@ -661,7 +661,10 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
     
     std::vector<Phone> phones;
     std::vector<Frame> frames;
+    ClassifierHelper helper;
+    helper.initalize(sampleRate);
     while (Dataset::keepLoading(data.minExamples, data, _end)) {
+        // Find a clip
         {
             auto lock = data.lock();
             if (type == COMMON_VOICE) {
@@ -708,21 +711,27 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
             }
         }
 
+        // Load the audio
         clip.load(sampleRate);
+        for (Frame& frame : frames) {
+            frame.reset();
+        }
         if (clip.loaded) {
             data.totalClips++;
 
+            // Convert to data used by classifier
             size_t frameCounter = 0;
             {
                 size_t fftStart = 0;
                 // Load all frames
                 while (fftStart + FFT_REAL_SAMPLES < clip.size) {
                     if (frames.size() <= frameCounter) {
-                        frames.push_back(Frame());
+                        frames.emplace_back();
+                        Frame& newFrame = frames.back();
+                        newFrame.reset();
                     }
                     Frame& currentFrame = frames[frameCounter];
-                    currentFrame.reset();
-                    ClassifierHelper::instance().processFrame(clip.buffer, fftStart, clip.size, frames, frameCounter);
+                    helper.processFrame(clip.buffer, fftStart, clip.size, frames, frameCounter);
                     currentFrame.invalid = Dataset::frameHasNan(currentFrame);
 
                     size_t maxOverlap = 0;
@@ -763,7 +772,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                             continue;
                         }
                     }
-                    if (ClassifierHelper::instance().writeInput<CPU_MAT_TYPE>(frames, i, data.exampleData[currentPhone], writeCol)) {
+                    if (helper.writeInput<CPU_MAT_TYPE>(frames, i, data.exampleData[currentPhone], writeCol)) {
                         phonemeCounter++;
                     }
                 }

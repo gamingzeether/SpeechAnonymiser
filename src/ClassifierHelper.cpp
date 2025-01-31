@@ -1,6 +1,7 @@
-﻿#include "ClassifierHelper.h"
+#include "ClassifierHelper.h"
 
 #include <math.h>
+#include "Global.h"
 
 void ClassifierHelper::initalize(size_t sr) {
     window = new float[FFT_FRAME_SAMPLES];
@@ -57,11 +58,12 @@ void ClassifierHelper::initalize(size_t sr) {
     }
 #pragma endregion
 
-    fftwIn = (float*)fftw_malloc(sizeof(float) * FFT_FRAME_SAMPLES);
-    fftwOut = (fftwf_complex*)fftw_malloc(sizeof(fftwf_complex) * FFT_REAL_SAMPLES);
+    auto fftwLock = Global::get().fftwLock();
+    fftwIn = fftwf_alloc_real(FFT_FRAME_SAMPLES);
+    fftwOut = fftwf_alloc_complex(FFT_REAL_SAMPLES);
     fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE | FFTW_DESTROY_INPUT);
-    dctIn = (float*)fftw_malloc(sizeof(float) * MEL_BINS);
-    dctOut = (float*)fftw_malloc(sizeof(float) * MEL_BINS);
+    dctIn = fftwf_alloc_real(MEL_BINS);
+    dctOut = fftwf_alloc_real(MEL_BINS);
     dctPlan = fftwf_plan_r2r_1d(MEL_BINS, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
 }
 
