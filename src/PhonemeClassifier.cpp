@@ -1,4 +1,4 @@
-#include "PhonemeClassifier.h"
+﻿#include "PhonemeClassifier.h"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -143,13 +143,27 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
             if (!true) {
                 std::vector<std::string> imageNames;
-                for (size_t i = 0; i < trainData.n_cols; i++) {
-                    imageNames.push_back(std::format("debug/data/{}.png", i));
-                }
-                data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
-                MAT_TYPE images = trainData * 100;
-                data::Save(imageNames, images, imageInfo);
+                CPU_MAT_TYPE images = trainData;
+                for (size_t i = 0; i < images.n_cols; i++) {
+                    size_t phone = trainLabel[i];
+                    std::string folder = std::format("debug/data/{}/", phone);
+                    if (!std::filesystem::exists(folder))
+                        std::filesystem::create_directories(folder);
+                    imageNames.push_back(std::format("{}/{}.png", folder, i));
 
+                    auto col = images.col(i);
+                    float min = col.min();
+                    //float max = col.max();
+                    //float range = max - min;
+                    //col -= min;
+                    //col *= 255.0f / range;
+                }
+                // The saved image is actually flipped both horizontally and vertically
+                data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
+                data::Save(imageNames, images, imageInfo);
+            }
+
+            if (!true) {
                 std::cout << trainData.max() << "\n";
                 std::cout << trainData.min() << "\n";
                 std::string str;
@@ -171,7 +185,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     [&](const MAT_TYPE& /* param */)
                     {
                         logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
-                        model.network().SetNetworkMode(false);
                         // Compare training and test accuracy to check for overfitting
                         if (epoch++ % 10 == 0) {
                             printConfusionMatrix(trainData, trainLabel);
@@ -187,7 +200,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                             logger.log("Saving new best model", Logger::INFO);
                             model.save(999);
                         }
-                        model.network().SetNetworkMode(true);
                         return validationLoss;
                     }, 20));
 

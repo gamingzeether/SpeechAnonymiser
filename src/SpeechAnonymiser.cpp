@@ -166,9 +166,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
         std::cout << "Stream underflow detected!\n";
     }
 
-    if (!outputPassthrough) {
-        speechEngine->writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
-    } else {
+    if (outputPassthrough) {
         InputData* iData = oData->input;
         size_t startSample = oData->lastSample;
         double scale = oData->scale;
@@ -187,6 +185,8 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
         }
         oData->lastSample = (startSample + nBufferFrames) % totalFrames;
         iData->lastProcessed = (int)(oData->lastSample / scale);
+    } else {
+        speechEngine->writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
     }
 
     return 0;
@@ -202,7 +202,7 @@ int oneshotOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
     size_t size = container.audio.size();
     size_t& ptr = container.pointer;
     for (size_t i = 0; i < nBufferFrames; i++) {
-        float data = (ptr + i < size) ? container.audio[ptr++] : 0;
+        float data = (ptr < size) ? container.audio[ptr++] : 0;
         for (size_t j = 0; j < 2; j++) {
             *buffer++ = data;
         }

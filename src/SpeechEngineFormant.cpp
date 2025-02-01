@@ -306,7 +306,7 @@ void SpeechEngineFormant::_init() {
     tablePeriods = new size_t[numFrequencies];
     for (size_t i = 0; i < numFrequencies; i++) {
         double frequency = (double)(i * freqStep);
-        size_t length = sampleRate / frequency + 1;
+        size_t length = (i == 0) ? 1 : sampleRate / frequency + 1;
         double phaseStep = (2.0 * 3.14159) / length;
         OUTPUT_TYPE* sineTable = new OUTPUT_TYPE[length];
         for (size_t j = 0; j < length; j++) {

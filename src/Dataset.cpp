@@ -721,9 +721,9 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
 
             // Convert to data used by classifier
             size_t frameCounter = 0;
+            // Load all frames
             {
                 size_t fftStart = 0;
-                // Load all frames
                 while (fftStart + FFT_REAL_SAMPLES < clip.size) {
                     if (frames.size() <= frameCounter) {
                         frames.emplace_back();
@@ -752,6 +752,41 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                 }
             }
 
+            // Find correct starts and ends of phones
+            {
+                std::vector<std::tuple<size_t, size_t>> ranges;
+                std::vector<float> volumes;
+                size_t lastPhone = frames[0].phone;
+                size_t rangeStart = 0;
+                // Gather information about the frames
+                for (size_t i = 0; i < frames.size(); i++) {
+                    const Frame& f = frames[i];
+                    if (f.phone != lastPhone || i == frames.size() - 1) {
+                        ranges.emplace_back(rangeStart, i - 1);
+                        rangeStart = i;
+                        lastPhone = f.phone;
+                    }
+                    volumes.push_back(f.volume);
+                }
+                // Can use this to find how load or quiet the clip is overall
+                std::sort(volumes.begin(), volumes.end());
+                float range = volumes.back() - volumes[0];
+                float silentVolume = volumes[volumes.size() / 4];
+                // Iterate over the frames in each phone
+                for (const auto& range : ranges) {
+                    size_t start = std::get<0>(range);
+                    size_t end = std::get<1>(range);
+                    for (size_t i = start; i <= end; i++) {
+                        Frame& frame = frames[i];
+                        if (frame.volume < silentVolume) {
+                            // Treat it as silence
+                            frame.phone = G_PS.fromString("");
+                        }
+                    }
+                }
+            }
+
+            // Write data into matrix
             {
                 auto lock = data.lock();
                 for (size_t i = FFT_FRAMES; i < frameCounter; i++) {

@@ -14,14 +14,14 @@
 class PhonemeModel {
 public:
 	struct Hyperparameters {
-		float& dropout() { return e[0]; };
-		float& l2() { return e[1]; };
-		float& batchSize() { return e[2]; };
-		float& stepSize() { return e[3]; };
-		float& warmup() { return e[4]; };
+		double& dropout() { return e[0]; };
+		double& l2() { return e[1]; };
+		double& batchSize() { return e[2]; };
+		double& stepSize() { return e[3]; };
+		double& warmup() { return e[4]; };
 
 		static const int size = 5;
-		float e[size];
+		double e[size];
 	};
 
 	int& getInputSize() { return inputSize; };

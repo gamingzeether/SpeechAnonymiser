@@ -18,7 +18,8 @@
 
 #define LINEARNB(neurons) net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
-#define ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
+#define TANH_ACTIVATION net.Add<mlpack::TanHType<MAT_TYPE>>()
+#define RELU_ACTIVATION net.Add<mlpack::PReLUType<MAT_TYPE>>()
 #define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
@@ -42,7 +43,7 @@ void PhonemeModel::initModel() {
         2,   // strideWidth
         2    // strideHeight
     );
-    ACTIVATION;
+    RELU_ACTIVATION;
 
     DROPOUT;
     net.Add<mlpack::ConvolutionType<CONVT>>(
@@ -59,7 +60,7 @@ void PhonemeModel::initModel() {
         2,   // strideWidth
         2    // strideHeight
     );
-    ACTIVATION;
+    RELU_ACTIVATION;
 
     DROPOUT;
     net.Add<mlpack::ConvolutionType<CONVT>>(
@@ -76,15 +77,15 @@ void PhonemeModel::initModel() {
         2,   // strideWidth
         2    // strideHeight
     );
-    ACTIVATION;
+    RELU_ACTIVATION;
 
     DROPOUT;
-    LINEAR(1024);
-    ACTIVATION;
+    LINEAR(512);
+    RELU_ACTIVATION;
 
     DROPOUT;
-    LINEAR(1024);
-    ACTIVATION;
+    LINEAR(512);
+    RELU_ACTIVATION;
 
     DROPOUT;
     LINEAR(outputSize);
@@ -159,7 +160,7 @@ void PhonemeModel::save(int checkpoint) {
 }
 
 bool PhonemeModel::load() {
-    bool loaded = true;
+    bool loaded = false;
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
@@ -187,6 +188,7 @@ bool PhonemeModel::load() {
         }
         delete[] buf;
         zip_discard(archive);
+        loaded = true;
     } else if (logger.has_value()) {
         logger->log(std::format("{} does not exist", ARCHIVE_FILE), Logger::WARNING);
     }

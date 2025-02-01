@@ -1,4 +1,4 @@
-#include "ClassifierHelper.h"
+﻿#include "ClassifierHelper.h"
 
 #include <math.h>
 #include "Global.h"
@@ -61,23 +61,20 @@ void ClassifierHelper::initalize(size_t sr) {
     auto fftwLock = Global::get().fftwLock();
     fftwIn = fftwf_alloc_real(FFT_FRAME_SAMPLES);
     fftwOut = fftwf_alloc_complex(FFT_REAL_SAMPLES);
-    fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE | FFTW_DESTROY_INPUT);
+    fftwPlan = fftwf_plan_dft_r2c_1d(FFT_FRAME_SAMPLES, fftwIn, fftwOut, FFTW_MEASURE);
     dctIn = fftwf_alloc_real(MEL_BINS);
-    dctOut = fftwf_alloc_real(MEL_BINS);
-    dctPlan = fftwf_plan_r2r_1d(MEL_BINS, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE | FFTW_PRESERVE_INPUT);
+    dctOut = fftwf_alloc_real(DCT_BINS);
+    dctPlan = fftwf_plan_r2r_1d(MEL_BINS, dctIn, dctOut, FFTW_REDFT10, FFTW_MEASURE);
 }
 
 void ClassifierHelper::processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame) {
     Frame& frame = allFrames[currentFrame];
     Frame& prevFrame = (currentFrame > 0) ? allFrames[currentFrame - 1] : frame;
-    float max = 0.0;
     for (size_t i = 0; i < FFT_FRAME_SAMPLES; i++) {
         size_t readLocation = (start + i) % totalSize;
         const float value = audio[readLocation] * gain;
-        max = fmaxf(max, value);
         fftwIn[i] = value * window[i];
     }
-    frame.volume = max;
 
     // Do FFT
     fftwf_execute(fftwPlan);
@@ -97,32 +94,20 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
 
     // Do DCT of logs
     for (size_t i = 0; i < MEL_BINS; i++) {
-        dctIn[i] = log10(std::max(melFrequencies[i], 1e-12f));
+        float val = melFrequencies[i];
+        dctIn[i] = (val > 0) ? log10(val) : 0;
     }
     fftwf_execute(dctPlan);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
         frame.real[i] = dctOut[i];
+        //frame.real[i] = melFrequencies[i];
     }
 
-    // Average
-    for (int i = 0; i < FRAME_SIZE; i++) {
-        windowAvg[i] = 0;
-    }
-    size_t nFrames = std::min(allFrames.size(), (size_t)FFT_FRAMES);
-    for (int i = 0; i < AVG_FRAMES; i++) {
-        size_t rindex = (currentFrame + nFrames - i) % nFrames;
-        double mult = 0.5 / (i + 1);
-        for (int j = 0; j < FRAME_SIZE; j++) {
-            windowAvg[j] += allFrames[rindex].real[j] * mult;
-        }
-    }
-    for (int j = 0; j < FRAME_SIZE; j++) {
-        windowAvg[j] /= AVG_FRAMES;
-    }
+    frame.volume = dctOut[0];
     
     // Write data
     for (size_t i = 0; i < FRAME_SIZE; i++) {
-        frame.avg[i] = windowAvg[i];
+        frame.avg[i] = frame.real[i];
         frame.delta[i] = frame.avg[i] - prevFrame.avg[i];
         frame.accel[i] = frame.delta[i] - prevFrame.delta[i];
     }
