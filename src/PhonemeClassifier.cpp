@@ -1,4 +1,4 @@
-﻿#include "PhonemeClassifier.h"
+#include "PhonemeClassifier.h"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -71,6 +71,12 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
     //tuneHyperparam(path, 100);
 
+    size_t bs = model.optimizer().BatchSize();
+    size_t realExamples = (examples / bs) * bs; // Round down to the next multiple of bs
+    if (realExamples != examples) {
+        logger.log(std::format("Changing examples per phoneme to {} (multiple of {})", realExamples, bs), Logger::INFO);
+    }
+
     std::vector<Phone> phones;
     
     int inputSize = model.getInputSize();
@@ -96,9 +102,9 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     double bestLoss = 9e+99;
 
     while (true) {
-        train.start(inputSize, outputSize, examples, true);
-        test.start(inputSize, outputSize, examples / 10);
-        validate.start(inputSize, outputSize, examples / 10);
+        train.start(inputSize, outputSize, realExamples, true);
+        test.start(inputSize, outputSize, realExamples / 10);
+        validate.start(inputSize, outputSize, realExamples / 10);
 
         if (trainThread.joinable()) {
             trainThread.join();
