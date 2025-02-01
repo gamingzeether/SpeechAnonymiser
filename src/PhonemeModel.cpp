@@ -10,7 +10,7 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION -13
+#define CURRENT_VERSION 1
 
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
@@ -30,57 +30,22 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        128, // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
+        32,  // maps
+        3,   // kernelWidth
+        3,   // kernelHeight
         1,   // strideWidth
         1    // strideHeight
-    );
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
-        2,   // strideWidth
-        2    // strideHeight
     );
     RELU_ACTIVATION;
 
     DROPOUT;
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        128, // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
+        32,  // maps
+        3,   // kernelWidth
+        3,   // kernelHeight
         1,   // strideWidth
         1    // strideHeight
     );
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
-        2,   // strideWidth
-        2    // strideHeight
-    );
-    RELU_ACTIVATION;
-
-    DROPOUT;
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        128, // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
-        1,   // strideWidth
-        1    // strideHeight
-    );
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        2,   // kernelWidth
-        2,   // kernelHeight
-        2,   // strideWidth
-        2    // strideHeight
-    );
-    RELU_ACTIVATION;
-
-    DROPOUT;
-    LINEAR(512);
     RELU_ACTIVATION;
 
     DROPOUT;
