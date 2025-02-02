@@ -30,7 +30,7 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
 
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        32,  // maps
+        64,  // maps
         3,   // kernelWidth
         3,   // kernelHeight
         1,   // strideWidth
@@ -40,12 +40,26 @@ void PhonemeModel::initModel() {
 
     DROPOUT;
     net.Add<mlpack::ConvolutionType<CONVT>>(
-        32,  // maps
+        64,  // maps
         3,   // kernelWidth
         3,   // kernelHeight
         1,   // strideWidth
         1    // strideHeight
     );
+    RELU_ACTIVATION;
+
+    DROPOUT;
+    net.Add<mlpack::ConvolutionType<CONVT>>(
+        64,  // maps
+        3,   // kernelWidth
+        3,   // kernelHeight
+        1,   // strideWidth
+        1    // strideHeight
+    );
+    RELU_ACTIVATION;
+
+    DROPOUT;
+    LINEAR(1024);
     RELU_ACTIVATION;
 
     DROPOUT;
