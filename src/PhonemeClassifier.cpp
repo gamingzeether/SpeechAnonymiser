@@ -1,4 +1,4 @@
-﻿#include "PhonemeClassifier.h"
+﻿#include "PhonemeClassifier.hpp"
 
 #ifdef __GNUC__
 #define TYPE1 long long unsigned int
@@ -17,10 +17,10 @@
 #endif
 
 #include <filesystem>
-#include "ModelSerializer.h"
-#include "Dataset.h"
-#include "ClassifierHelper.h"
-#include "Global.h"
+#include "ModelSerializer.hpp"
+#include "Dataset.hpp"
+#include "ClassifierHelper.hpp"
+#include "Global.hpp"
 
 using namespace mlpack;
 

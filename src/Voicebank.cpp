@@ -1,4 +1,4 @@
-#include "Voicebank.h"
+#include "Voicebank.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -6,10 +6,10 @@
 #include <format>
 #include <dr_wav.h>
 #include <samplerate.h>
-#include "ClassifierHelper.h"
-#include "Logger.h"
-#include "Global.h"
-#include "Util.h"
+#include "ClassifierHelper.hpp"
+#include "Logger.hpp"
+#include "Global.hpp"
+#include "Util.hpp"
 
 #define CACHE_VERSION 1
 #define DICT_WIDTH 5

@@ -1,4 +1,4 @@
-#include "SpeechEngineArticulator.h"
+#include "SpeechEngineArticulator.hpp"
 
 #include <type_traits>
 #include <assert.h>
@@ -6,8 +6,8 @@
 #include <numbers>
 #include <iostream>
 #include <thread>
-#include "ClassifierHelper.h"
-#include "Global.h"
+#include "ClassifierHelper.hpp"
+#include "Global.hpp"
 
 #define ENGINE_STEP_FRAMES 256
 #define ENGINE_TIMESTEP ((double)ENGINE_STEP_FRAMES / sampleRate)

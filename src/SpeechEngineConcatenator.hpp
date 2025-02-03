@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SpeechEngine.h"
-#include "Voicebank.h"
+#include "SpeechEngine.hpp"
+#include "Voicebank.hpp"
 
 // Concatenator based speech synthesiser
 

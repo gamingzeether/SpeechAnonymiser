@@ -1,4 +1,4 @@
-#include "TSVReader.h"
+#include "TSVReader.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
-#include "structs.h"
+#include "structs.hpp"
 
 void TSVReader::dropIdx(size_t index, bool decrement) {
 	lines[index] = lines.back();

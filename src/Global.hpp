@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
 #include "mutex"
-#include "PhonemeSet.h"
-#include "Logger.h"
+#include "PhonemeSet.hpp"
+#include "Logger.hpp"
 
 class Global {
 public:

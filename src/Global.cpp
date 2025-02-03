@@ -1,8 +1,8 @@
-#include "Global.h"
+#include "Global.hpp"
 
-#include "ClassifierHelper.h"
-#include "JSONHelper.h"
-#include "Util.h"
+#include "ClassifierHelper.hpp"
+#include "JSONHelper.hpp"
+#include "Util.hpp"
 
 Global::Global() {
 	logger.addStream(Logger::Stream(std::cout)

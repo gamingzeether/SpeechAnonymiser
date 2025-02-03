@@ -1,14 +1,14 @@
-#include "common_inc.h"
+#include "common_inc.hpp"
 
 #define ARMA_DONT_PRINT_FAST_MATH_WARNING
 
 #include <thread>
 #include <armadillo>
 #include <filesystem>
-#include "TSVReader.h"
-#include "ParallelWorker.h"
-#include "TimitIterator.h"
-#include "structs.h"
+#include "TSVReader.hpp"
+#include "ParallelWorker.hpp"
+#include "TimitIterator.hpp"
+#include "structs.hpp"
 
 class Dataset {
 public:

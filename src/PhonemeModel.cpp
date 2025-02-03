@@ -1,8 +1,8 @@
-#include "PhonemeModel.h"
+#include "PhonemeModel.hpp"
 
 #include <filesystem>
 #include <fstream>
-#include "Global.h"
+#include "Global.hpp"
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"
@@ -27,7 +27,6 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
     
-    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
     int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
 
     // Default architecture defined in PhonemeModel::setDefaultModel()
@@ -173,6 +172,7 @@ bool PhonemeModel::load() {
         }
     }
     cleanUnpacked();
+    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
     if (!loaded)
         initModel();
     initOptimizer();

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
-#include "include_mlpack.h"
-#include "ClassifierHelper.h"
-#include "Config.h"
-#include "Logger.h"
-#include "ModelSerializer.h"
+#include "include_mlpack.hpp"
+#include "ClassifierHelper.hpp"
+#include "Config.hpp"
+#include "Logger.hpp"
+#include "ModelSerializer.hpp"
 #include <zip.h>
 
 class PhonemeModel {

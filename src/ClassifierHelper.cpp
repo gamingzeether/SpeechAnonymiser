@@ -1,7 +1,7 @@
-﻿#include "ClassifierHelper.h"
+﻿#include "ClassifierHelper.hpp"
 
 #include <math.h>
-#include "Global.h"
+#include "Global.hpp"
 
 void ClassifierHelper::initalize(size_t sr) {
     window = new float[FFT_FRAME_SAMPLES];

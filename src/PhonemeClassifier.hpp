@@ -1,14 +1,14 @@
 #pragma once
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
-#include "include_mlpack.h"
-#include "TSVReader.h"
-#include "Logger.h"
-#include "PhonemeModel.h"
-#include "structs.h"
-#include "define.h"
-#include "Config.h"
+#include "include_mlpack.hpp"
+#include "TSVReader.hpp"
+#include "Logger.hpp"
+#include "PhonemeModel.hpp"
+#include "structs.hpp"
+#include "define.hpp"
+#include "Config.hpp"
 
 class PhonemeClassifier
 {

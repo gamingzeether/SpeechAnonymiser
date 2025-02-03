@@ -1,8 +1,8 @@
 #pragma once
 
-#include "SpeechEngine.h"
+#include "SpeechEngine.hpp"
 
-#include "Animator.h"
+#include "Animator.hpp"
 
 // Articulator based speech synthesiser
 // Still work in progress

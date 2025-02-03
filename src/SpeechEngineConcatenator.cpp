@@ -1,4 +1,4 @@
-#include "SpeechEngineConcatenator.h"
+#include "SpeechEngineConcatenator.hpp"
 
 SpeechEngineConcatenator& SpeechEngineConcatenator::configure(std::string file) {
 	std::vector<std::string> subdirs = { "B3_Soft/", "B4_Power/", "D#4_Natural/", "G3_Soft/", "G4_Natural/" };

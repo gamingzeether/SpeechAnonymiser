@@ -1,6 +1,6 @@
-#include "SpeechEngineFormant.h"
+#include "SpeechEngineFormant.hpp"
 
-#include "Global.h"
+#include "Global.hpp"
 
 // Number of writes to fade in / out over
 // 1 write = nFrames samples = nFrames / sampleRate seconds
@@ -10,7 +10,7 @@
 //#define TRACKING
 // Generates formants json by tracking provided audio
 #ifdef TRACKING
-#include "Dataset.h"
+#include "Dataset.hpp"
 #include <fftw3.h>
 
 #define TRACK_WINDOW 2048

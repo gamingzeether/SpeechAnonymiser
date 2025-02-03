@@ -1,7 +1,7 @@
 #pragma once
-#include "define.h"
+#include "define.hpp"
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
 // https://github.com/heitaoflower/vulkan-tutorial/blob/master/Tutorial24
 

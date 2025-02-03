@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
-#include "JSONHelper.h"
+#include "JSONHelper.hpp"
 
 class Config {
 public:

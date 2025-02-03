@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SpeechEngine.h"
+#include "SpeechEngine.hpp"
 
 // Formant based speech synthesiser
 

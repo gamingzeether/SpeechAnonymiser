@@ -1,4 +1,4 @@
-#include "TimitIterator.h"
+#include "TimitIterator.hpp"
 
 void TimitIterator::open(const std::string& path) {
     std::filesystem::recursive_directory_iterator iter(path);

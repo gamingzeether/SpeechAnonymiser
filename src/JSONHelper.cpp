@@ -1,4 +1,4 @@
-#include "JSONHelper.h"
+#include "JSONHelper.hpp"
 
 JSONHelper::Type JSONHelper::JSONObj::get_type() const {
     if (yyjson_mut_is_int(val)) {

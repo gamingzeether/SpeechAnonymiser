@@ -1,6 +1,6 @@
-#include "define.h"
+#include "define.hpp"
 
-#include "common_inc.h"
+#include "common_inc.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -12,17 +12,17 @@
 #include <format>
 #include <optional>
 #include <cargs.h>
-#include "Visualizer.h"
-#include "TSVReader.h"
-#include "structs.h"
-#include "PhonemeClassifier.h"
-#include "ClassifierHelper.h"
-#include "Dataset.h"
-#include "Logger.h"
-#include "SpeechEngineConcatenator.h"
-#include "SpeechEngineFormant.h"
-#include "Global.h"
-#include "Util.h"
+#include "Visualizer.hpp"
+#include "TSVReader.hpp"
+#include "structs.hpp"
+#include "PhonemeClassifier.hpp"
+#include "ClassifierHelper.hpp"
+#include "Dataset.hpp"
+#include "Logger.hpp"
+#include "SpeechEngineConcatenator.hpp"
+#include "SpeechEngineFormant.hpp"
+#include "Global.hpp"
+#include "Util.hpp"
 #ifdef AUDIO
 #include <rtaudio/RtAudio.h>
 #endif

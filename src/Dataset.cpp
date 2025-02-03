@@ -1,4 +1,4 @@
-#include "Dataset.h"
+#include "Dataset.hpp"
 
 #define DR_MP3_IMPLEMENTATION
 #define DR_WAV_IMPLEMENTATION
@@ -12,9 +12,9 @@
 #include <dr_mp3.h>
 #include <dr_wav.h>
 #include <samplerate.h>
-#include "ClassifierHelper.h"
-#include "Util.h"
-#include "Global.h"
+#include "ClassifierHelper.hpp"
+#include "Util.hpp"
+#include "Global.hpp"
 
 void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels) {
     auto lock = sharedData.lock();

@@ -1,6 +1,6 @@
-#include "PhonemeSet.h"
+#include "PhonemeSet.hpp"
 
-#include "Util.h"
+#include "Util.hpp"
 
 size_t PhonemeSet::fromString(const std::string& str) const {
 	return fromString(Util::utf8_to_utf16(str));
