@@ -1,5 +1,7 @@
 #include "Config.h"
 
+#include <filesystem>
+
 Config::Config(const std::string& path, int version) {
 	this->path = path;
 	this->version = version;
@@ -12,6 +14,9 @@ bool Config::matchesDefault() {
 
 bool Config::_matches(const JSONHelper::JSONObj& o1, const JSONHelper::JSONObj& o2, bool loose) {
 	JSONHelper::Type type = o1.get_type();
+	if (type != o2.get_type())
+		return false;
+	
 	bool match = true;
 	switch (type) {
 	case JSONHelper::INVALID:
@@ -47,8 +52,9 @@ bool Config::_matches(const JSONHelper::JSONObj& o1, const JSONHelper::JSONObj& 
 		break;
 	case JSONHelper::OBJECT:
 	{
-		for (int i = 0; i < defaultKeys.size(); i++) {
-			const char* key = defaultKeys[i];
+		std::vector<std::string> keys = o1.get_keys();
+		for (int i = 0; i < keys.size(); i++) {
+			const char* key = keys[i].c_str();
 			if (!Config::_matches(o1[key], o2[key])) {
 				match = false;
 				break;
@@ -66,4 +72,16 @@ void Config::save() {
 
 void Config::load() {
 	json.open(path, version);
+}
+
+bool Config::loadDefault(const std::string& defaultPath) {
+	if (std::filesystem::exists(defaultPath)) {
+		return defaultCfg.open(defaultPath, version);
+	}
+	return false;
+}
+
+void Config::saveDefault(const std::string& defaultPath) {
+	defaultCfg.filepath() = defaultPath;
+	defaultCfg.save();
 }

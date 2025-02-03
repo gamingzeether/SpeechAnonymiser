@@ -6,10 +6,8 @@
 #include "ClassifierHelper.h"
 #include "Config.h"
 #include "Logger.h"
+#include "ModelSerializer.h"
 #include <zip.h>
-
-#define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::HeInitialization, MAT_TYPE>
-#define OPTIMIZER_TYPE ens::AdaBelief
 
 class PhonemeModel {
 public:
@@ -43,6 +41,9 @@ private:
 	void logZipError(int error);
 	void logZipError(zip_t* archive);
 	void logZipError(zip_error_t* error);
+	void setDefaultModel();
+	void addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY);
+	void addLinear(JSONHelper::JSONObj& layers, int neurons);
 
 	NETWORK_TYPE net;
 	OPTIMIZER_TYPE optim;

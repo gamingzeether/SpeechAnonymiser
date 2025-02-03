@@ -9,6 +9,8 @@
 #define _DISABLE_STRING_ANNOTATION
 #endif
 
+#define QUOTE(v) #v
+
 //#define USE_GPU
 
 #define CPU_MAT_TYPE arma::fmat

@@ -12,15 +12,17 @@ public:
 	template <typename T>
 	Config& setDefault(const char* key, T val) {
 		defaultCfg[key] = val;
-		defaultKeys.push_back(key);
 		return *this;
 	};
 	bool matchesDefault();
 
+	JSONHelper& defaultObject() { return defaultCfg; };
 	JSONHelper& object() { return json; };
 
 	void save();
 	void load();
+	bool loadDefault(const std::string& defaultPath);
+	void saveDefault(const std::string& defaultPath);
 	void useDefault() {
 		defaultCfg.filepath() = json.filepath();
 		json.close();
@@ -34,5 +36,4 @@ private:
 	int version;
 	JSONHelper json;
 	JSONHelper defaultCfg;
-	std::vector<const char*> defaultKeys;
 };

@@ -27,9 +27,18 @@ public:
 		// Getters
 		int get_int() const { return yyjson_mut_get_int(val); };
 		double get_real() const { return yyjson_mut_get_real(val); };
-		std::string get_string() const { return yyjson_mut_get_str(val); };
+		std::string get_string() const { return std::string(yyjson_mut_get_str(val)); };
 		size_t get_array_size() const { return yyjson_mut_arr_size(val); };
 		bool get_bool() const { return yyjson_mut_get_bool(val); };
+		std::vector<std::string> get_keys() const {
+			std::vector<std::string> keys;
+			auto iterator = yyjson_mut_obj_iter_with(val);
+			yyjson_mut_val* key;
+			while (key = yyjson_mut_obj_iter_next(&iterator)) {
+				keys.push_back(yyjson_mut_get_str(key));
+			}
+			return keys;
+		};
 
 		Type get_type() const;
 		bool exists(const std::string& key) const { return (NULL != yyjson_mut_obj_get(val, key.c_str())); };
@@ -37,7 +46,13 @@ public:
 		// Setters
 		void operator=(int value) { yyjson_mut_set_int(val, value); };
 		void operator=(double value) { yyjson_mut_set_real(val, value); };
-		void operator=(const std::string& value) { yyjson_mut_set_str(val, value.c_str()); };
+		void operator=(const std::string& value) {
+			// Results in unfreed memory but allows writing even after value is freed
+			// There is a better way to do this but I would have to rewrite a lot of things
+			char* copy = (char*)malloc(sizeof(char) * value.length());
+			strcpy(copy, value.c_str());
+			yyjson_mut_set_str(val, copy);
+		};
 		void operator=(bool value) { yyjson_mut_set_bool(val, value); };
 		JSONObj add_arr(const char* key) {
 			yyjson_mut_val* item = yyjson_mut_obj_add_arr(_doc, val, key);

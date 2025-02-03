@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include "ModelSerializer.h"
 #include "Global.h"
 
 #define ARCHIVE_FILE "classifier.zip"
@@ -10,14 +9,13 @@
 #define CONFIG_FILE "classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
-#define CURRENT_VERSION 1
-
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
 #define CONVT _VC, _FC, _VC, MAT_TYPE
 
 #define LINEARNB(neurons) net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
+#define CONVOLUTION(maps, width, height, strideX, strideY) net.Add<mlpack::ConvolutionType<CONVT>>(maps, width, height, strideX, strideY);
 #define TANH_ACTIVATION net.Add<mlpack::TanHType<MAT_TYPE>>()
 #define RELU_ACTIVATION net.Add<mlpack::PReLUType<MAT_TYPE>>()
 #define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
@@ -28,82 +26,55 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 
 void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
+    
+    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
+    int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
 
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        3,   // kernelWidth
-        3,   // kernelHeight
-        1,   // strideWidth
-        1    // strideHeight
-    );
-    RELU_ACTIVATION;
+    // Default architecture defined in PhonemeModel::setDefaultModel()
+    JSONHelper::JSONObj layers = config.object()["layers"];
+    size_t numLayers = layers.get_array_size();
+    for (size_t i = 0; i < numLayers; i++) {
+        JSONHelper::JSONObj layer = layers[i];
 
-    DROPOUT;
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        3,   // kernelWidth
-        3,   // kernelHeight
-        1,   // strideWidth
-        1    // strideHeight
-    );
-    RELU_ACTIVATION;
+        // Add dropout before a layer
+        DROPOUT;
 
-    DROPOUT;
-    net.Add<mlpack::ConvolutionType<CONVT>>(
-        64,  // maps
-        3,   // kernelWidth
-        3,   // kernelHeight
-        1,   // strideWidth
-        1    // strideHeight
-    );
-    RELU_ACTIVATION;
+        // Add the layer
+        std::string type = layer["type"].get_string();
+        if (type == "CONVOLUTION2D") {
+            int maps = layer["maps"].get_int();
+            int width = layer["width"].get_int();
+            int height = layer["height"].get_int();
+            int strideX = layer["strideX"].get_int();
+            int strideY = layer["strideY"].get_int();
 
-    DROPOUT;
-    LINEAR(1024);
-    RELU_ACTIVATION;
+            CONVOLUTION(maps, width, height, strideX, strideY);
 
-    DROPOUT;
-    LINEAR(512);
-    RELU_ACTIVATION;
+            x = (x - width) / strideX;
+            y = (y - height) / strideY;
+            z = maps;
+        } else if (type == "LINEAR") {
+            int neurons = layer["neurons"].get_int();
 
+            LINEAR(neurons);
+            x = neurons;
+            y = 1;
+            z = 1;
+        }
+        if (logger.has_value())
+            logger->log(std::format("Layer {} output dimensions: \t{}\t{}\t{}\t({} features)", i, x, y, z, x * y * z), Logger::INFO);
+
+        // Add activation function
+        RELU_ACTIVATION;
+    }
+
+    // Add final output layers
     DROPOUT;
     LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
-
-    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
 }
 
 void PhonemeModel::initOptimizer() {
-    /* Adam initalization
-    optim = OPTIMIZER_TYPE(
-        0,      // Step size of the optimizer.
-        0,      // Batch size. Number of data points that are used in each iteration.
-        0.9,    // Exponential decay rate for the first moment estimates.
-        0.999,  // Exponential decay rate for the weighted infinity norm estimates.
-        1e-8,   // Value used to initialise the mean squared gradient parameter.
-        0,      // Max number of iterations.
-        1e-8,   // Tolerance.
-        true);
-    //*/
-    //* AdaBelief initalization
-    optim = OPTIMIZER_TYPE(
-        0,      // Step size for each iteration.
-        0,      // Number of points to process in a single step.
-        0.9,    // The exponential decay rate for the 1st moment estimates.
-        0.999,  // The exponential decay rate for the 2nd moment estimates.
-        1e-8,   // A small constant for numerical stability.
-        0,      // Maximum number of iterations allowed (0 means no limit).
-        1e-8,   // Maximum absolute tolerance to terminate algorithm.
-        true);
-    //*/
-    /* StandardSGD initalization
-    optim = OPTIMIZER_TYPE(
-        0,      // Step size for each iteration.
-        0,      // Number of points to process in a single step.
-        1e-8,   // Maximum absolute tolerance to terminate algorithm.
-        true);
-    //*/
-
     optim.BatchSize() = hp.batchSize();
     optim.StepSize() = hp.stepSize();
     optim.Shuffle() = true;
@@ -139,7 +110,7 @@ void PhonemeModel::save(int checkpoint) {
 }
 
 bool PhonemeModel::load() {
-    bool loaded = false;
+    bool loaded = true;
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
@@ -174,15 +145,23 @@ bool PhonemeModel::load() {
 
     outputSize = G_PS.size();
 
-    config = Config(CONFIG_FILE, CURRENT_VERSION);
-    config.setDefault("input_features", inputSize)
-        .setDefault("output_features", outputSize)
-        .setDefault("sample_rate", sampleRate);
+    config = Config(CONFIG_FILE, -1);
+    if (config.loadDefault("default_classifier.json")) {
+        if (logger.has_value()) {
+            logger->log("Using classifier config from file 'default_classifier.json'", Logger::INFO);
+        }
+    } else {
+        config.setDefault("input_features", inputSize)
+            .setDefault("output_features", outputSize)
+            .setDefault("sample_rate", sampleRate);
+        setDefaultModel();
+        config.saveDefault("default_classifier.json");
+    }
     config.load();
 
     if (!config.matchesDefault()) {
-        config.useDefault();
         loaded = false;
+        config.useDefault();
         if (logger.has_value()) {
             logger->log("Config does not match", Logger::WARNING);
         }
@@ -194,6 +173,9 @@ bool PhonemeModel::load() {
         }
     }
     cleanUnpacked();
+    if (!loaded)
+        initModel();
+    initOptimizer();
     return loaded;
 }
 
@@ -220,4 +202,33 @@ void PhonemeModel::logZipError(zip_error_t* error) {
         logger.value().log(errString, Logger::ERR);
     }
     zip_error_fini(error);
+}
+
+void PhonemeModel::setDefaultModel() {
+    JSONHelper::JSONObj configRoot = config.defaultObject().getRoot();
+    JSONHelper::JSONObj layers = configRoot.add_arr("layers");
+
+    addConv(layers, 64, 2, 2, 1, 1);
+    addConv(layers, 64, 2, 2, 1, 1);
+    addConv(layers, 64, 2, 2, 1, 1);
+    addLinear(layers, 1024);
+    addLinear(layers, 512);
+}
+
+void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY) {
+    JSONHelper::JSONObj layer = layers.append();
+    layer["type"] = std::string("CONVOLUTION2D");
+
+    layer["maps"] = maps;
+    layer["width"] = width;
+    layer["height"] = height;
+    layer["strideX"] = strideX;
+    layer["strideY"] = strideY;
+}
+
+void PhonemeModel::addLinear(JSONHelper::JSONObj& layers, int neurons) {
+    JSONHelper::JSONObj layer = layers.append();
+    layer["type"] = std::string("LINEAR");
+
+    layer["neurons"] = neurons;
 }

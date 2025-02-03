@@ -57,10 +57,8 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     model.getSampleRate() = sampleRate;
 
     if (!model.load()) {
-        logger.log("Model not loaded", Logger::WARNING, Logger::YELLOW);
-        model.initModel();
+        logger.log("Model not loaded, initalizing new model", Logger::WARNING, Logger::YELLOW);
     }
-    model.initOptimizer();
 
     logger.log(std::format("Model initalized with {} input features and {} output features", model.getInputSize(), model.getOutputSize()), Logger::INFO);
 
