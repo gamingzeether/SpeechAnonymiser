@@ -172,10 +172,11 @@ bool PhonemeModel::load() {
         }
     }
     cleanUnpacked();
-    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
     if (!loaded)
         initModel();
+    net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
     initOptimizer();
+    
     return loaded;
 }
 
