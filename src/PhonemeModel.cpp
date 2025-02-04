@@ -2,11 +2,13 @@
 
 #include <filesystem>
 #include <fstream>
+#include <format>
 #include "Global.hpp"
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"
 #define CONFIG_FILE "classifier.json"
+#define DEFAULT_CONFIG_FILE "default_classifier.json"
 #define ZIP_FILES { MODEL_FILE, CONFIG_FILE }
 
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
@@ -40,19 +42,19 @@ void PhonemeModel::initModel() {
 
         // Add the layer
         std::string type = layer["type"].get_string();
-        if (type == "CONVOLUTION2D") {
+        if (type == "conv2d") {
             int maps = layer["maps"].get_int();
             int width = layer["width"].get_int();
             int height = layer["height"].get_int();
-            int strideX = layer["strideX"].get_int();
-            int strideY = layer["strideY"].get_int();
+            int strideX = layer["stride_x"].get_int();
+            int strideY = layer["stride_y"].get_int();
 
             CONVOLUTION(maps, width, height, strideX, strideY);
 
             x = (x - width) / strideX;
             y = (y - height) / strideY;
             z = maps;
-        } else if (type == "LINEAR") {
+        } else if (type == "linear") {
             int neurons = layer["neurons"].get_int();
 
             LINEAR(neurons);
@@ -110,6 +112,7 @@ void PhonemeModel::save(int checkpoint) {
 
 bool PhonemeModel::load() {
     bool loaded = true;
+    // Try open classifier.zip
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
         zip_t* archive = zip_open(ARCHIVE_FILE, ZIP_CHECKCONS, &error);
@@ -144,20 +147,25 @@ bool PhonemeModel::load() {
 
     outputSize = G_PS.size();
 
-    config = Config(CONFIG_FILE, -1);
-    if (config.loadDefault("default_classifier.json")) {
+    // Load config file
+    config = Config(CONFIG_FILE, 0);
+    if (config.loadDefault(DEFAULT_CONFIG_FILE)) {
         if (logger.has_value()) {
-            logger->log("Using classifier config from file 'default_classifier.json'", Logger::INFO);
+            logger->log(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
         }
     } else {
+        if (logger.has_value()) {
+            logger->log(std::format("Generating new classifier config ", DEFAULT_CONFIG_FILE), Logger::INFO);
+        }
         config.setDefault("input_features", inputSize)
             .setDefault("output_features", outputSize)
             .setDefault("sample_rate", sampleRate);
         setDefaultModel();
-        config.saveDefault("default_classifier.json");
+        config.saveDefault(DEFAULT_CONFIG_FILE);
     }
     config.load();
 
+    // Load or initalize model network and optimizer
     if (!config.matchesDefault()) {
         loaded = false;
         config.useDefault();
@@ -176,7 +184,7 @@ bool PhonemeModel::load() {
         initModel();
     net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
     initOptimizer();
-    
+
     return loaded;
 }
 
@@ -218,18 +226,18 @@ void PhonemeModel::setDefaultModel() {
 
 void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY) {
     JSONHelper::JSONObj layer = layers.append();
-    layer["type"] = std::string("CONVOLUTION2D");
+    layer["type"] = std::string("conv2d");
 
     layer["maps"] = maps;
     layer["width"] = width;
     layer["height"] = height;
-    layer["strideX"] = strideX;
-    layer["strideY"] = strideY;
+    layer["stride_x"] = strideX;
+    layer["stride_y"] = strideY;
 }
 
 void PhonemeModel::addLinear(JSONHelper::JSONObj& layers, int neurons) {
     JSONHelper::JSONObj layer = layers.append();
-    layer["type"] = std::string("LINEAR");
+    layer["type"] = std::string("linear");
 
     layer["neurons"] = neurons;
 }
