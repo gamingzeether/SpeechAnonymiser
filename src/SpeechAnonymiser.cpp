@@ -372,8 +372,7 @@ int commandPreprocess(const std::string& path, const std::string& workDir, const
     char* condaEnv = getenv("CONDA_DEFAULT_ENV");
     if (condaEnv == NULL || strcmp(condaEnv, "aligner") != 0) {
         std::string errorMessage = "Aligner not detected, make sure MFA is installed and activated before starting this program";
-        logger.log(errorMessage, Logger::FATAL);
-        return -1;
+        logger.log(errorMessage, Logger::WARNING);
     }
 
     int batchSize = 1500;
