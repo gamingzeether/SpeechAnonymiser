@@ -24,7 +24,7 @@ public:
 
     Type getType() { return sharedData.type; };
 	void get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels);
-    void start(size_t inputSize, size_t outputSize, size_t examples, bool print = false);
+    void start(size_t inputSize, size_t outputSize, size_t examples, size_t batchSize = 1, bool print = false);
 	bool join();
     bool done();
     void end();
@@ -117,7 +117,7 @@ private:
     CPU_MAT_TYPE cachedData;
     CPU_MAT_TYPE cachedLabels;
 
-    void _start(size_t inputSize, size_t outputSize, size_t examples, bool print);
+    void _start(size_t inputSize, size_t outputSize, size_t examples, size_t batchSize, bool print);
 	static std::vector<Phone> parseTextgrid(const std::string& path, int sampleRate);
     static std::vector<Phone> parseTIMIT(const std::string& path, int sampleRate);
     static void loadNextClip(const std::string& clipPath, TSVReader::TSVLine tabSeperated, OUT Clip& clip, int sampleRate);

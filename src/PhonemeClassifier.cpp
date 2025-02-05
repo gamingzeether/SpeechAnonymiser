@@ -69,153 +69,134 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
     //tuneHyperparam(path, 100);
 
-    size_t bs = model.optimizer().BatchSize();
-    size_t realExamples = (examples / bs) * bs; // Round down to the next multiple of bs
-    if (realExamples != examples) {
-        logger.log(std::format("Changing examples per phoneme to {} (multiple of {})", realExamples, bs), Logger::INFO);
+    // Set number of examples to be a multiple of batch size
+    size_t realExamples;
+    {
+        size_t bs = model.optimizer().BatchSize();
+        size_t nSteps = std::max((size_t)1, examples / bs);
+        realExamples = (examples / bs) * bs;
+        if (realExamples != examples) {
+            logger.log(std::format("Changing examples per phoneme to {} (multiple of {})", realExamples, bs), Logger::INFO);
+        }
     }
-
-    std::vector<Phone> phones;
     
     int inputSize = model.getInputSize();
     int outputSize = model.getOutputSize();
-    size_t* phonemeTracker = new size_t[outputSize];
-    for (size_t i = 0; i < outputSize; i++) {
-        phonemeTracker[i] = 1;
-    }
 
-    std::thread trainThread;
-    bool isTraining = false;
-    // This client has a lot of entries and is has american english
-    // Use to test single speaker accuracy
-    //std::string clientFilter = "b419faab633f2099c6405ff157b4d9fb5675219570f2683a4d08cbadeac4431e9d9b30dfa9b04f79aad9d8e3f75fda964809f3aa72ae9d0a4a025c59417f3dd1";
-    std::string clientFilter = "";
+    const bool trainGeneral = false;
+    std::string clientFilter = (trainGeneral) ? "" :
+        // Train model on specific speaker
+        // This client has a lot of entries and is has american english which is what the aligner used
+        "b419faab633f2099c6405ff157b4d9fb5675219570f2683a4d08cbadeac4431e9d9b30dfa9b04f79aad9d8e3f75fda964809f3aa72ae9d0a4a025c59417f3dd1";
     Dataset train(sampleRate, path, clientFilter);
     Dataset validate(sampleRate, path);
     Dataset test(sampleRate, path);
     train.setSubtype(Dataset::TRAIN);
     validate.setSubtype(Dataset::VALIDATE);
     test.setSubtype(Dataset::TEST);
-    size_t loops = 0;
     double bestLoss = 9e+99;
 
-    while (true) {
-        train.start(inputSize, outputSize, realExamples, true);
-        test.start(inputSize, outputSize, realExamples / 10);
-        validate.start(inputSize, outputSize, realExamples / 10);
+    // Start loading data
+    train.start(inputSize, outputSize, realExamples, model.optimizer().BatchSize(), true);
+    test.start(inputSize, outputSize, realExamples / 10);
+    validate.start(inputSize, outputSize, realExamples / 10);
 
-        if (trainThread.joinable()) {
-            trainThread.join();
+    // Wait to finish loading
+    while (!train.done() || !test.done() || !validate.done()) {
+        std::string status = std::format("Train: {}, Test: {}, Validate: {}\r",
+                train.getMinCount(),
+                test.getMinCount(),
+                validate.getMinCount());
+        std::cout << status << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    train.join();
+    test.join();
+    validate.join();
+
+    // Prepare data for training
+    CPU_MAT_TYPE testData, testLabel;
+    test.get(testData, testLabel);
+    CPU_MAT_TYPE trainData, trainLabel;
+    train.get(trainData, trainLabel);
+    CPU_MAT_TYPE validateData, validateLabel;
+    validate.get(validateData, validateLabel);
+    int epoch = 0;
+
+    CONVERT(trainData);
+    CONVERT(trainLabel);
+    CONVERT(validateData);
+    CONVERT(validateLabel);
+
+    model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
+
+    /* Dataset debugging code
+    {
+        std::vector<std::string> imageNames;
+        CPU_MAT_TYPE images = trainData;
+        for (size_t i = 0; i < images.n_cols; i++) {
+            size_t phone = trainLabel[i];
+            std::string folder = std::format("debug/data/{}/", phone);
+            if (!std::filesystem::exists(folder))
+                std::filesystem::create_directories(folder);
+            imageNames.push_back(std::format("{}/{}.png", folder, i));
+
+            auto col = images.col(i);
+            float min = col.min();
+            //float max = col.max();
+            //float range = max - min;
+            //col -= min;
+            //col *= 255.0f / range;
         }
+        // The saved image is actually flipped both horizontally and vertically
+        data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
+        data::Save(imageNames, images, imageInfo);
+    }
 
-        // Start training thread
-        bool copyDone = false;
-        trainThread = std::thread([&]{
-            train.end();
-            test.end();
-            validate.end();
-
-            // Print status
-            while (!train.done() || !test.done() || !validate.done()) {
-                std::string status = std::format("Train: {}, Test: {}, Validate: {}\r",
-                        train.getMinCount(),
-                        test.getMinCount(),
-                        validate.getMinCount());
-                std::cout << status << std::flush;
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
-            train.join();
-            test.join();
-            validate.join();
-
-            CPU_MAT_TYPE testData, testLabel;
-            test.get(testData, testLabel);
-            CPU_MAT_TYPE trainData, trainLabel;
-            train.get(trainData, trainLabel);
-            CPU_MAT_TYPE validateData, validateLabel;
-            validate.get(validateData, validateLabel);
-            copyDone = true;
-            int epoch = 0;
-
-            CONVERT(trainData);
-            CONVERT(trainLabel);
-            CONVERT(validateData);
-            CONVERT(validateLabel);
-
-            model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
-
-            if (!true) {
-                std::vector<std::string> imageNames;
-                CPU_MAT_TYPE images = trainData;
-                for (size_t i = 0; i < images.n_cols; i++) {
-                    size_t phone = trainLabel[i];
-                    std::string folder = std::format("debug/data/{}/", phone);
-                    if (!std::filesystem::exists(folder))
-                        std::filesystem::create_directories(folder);
-                    imageNames.push_back(std::format("{}/{}.png", folder, i));
-
-                    auto col = images.col(i);
-                    float min = col.min();
-                    //float max = col.max();
-                    //float range = max - min;
-                    //col -= min;
-                    //col *= 255.0f / range;
-                }
-                // The saved image is actually flipped both horizontally and vertically
-                data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
-                data::Save(imageNames, images, imageInfo);
-            }
-
-            if (!true) {
-                std::cout << trainData.max() << "\n";
-                std::cout << trainData.min() << "\n";
-                std::string str;
-                std::getline(std::cin, str);
-                for (size_t i = 0; i < trainData.n_cols; i++) {
-                    std::cout << trainData.col(i) << "\n";
-                    std::cout << trainLabel.col(i) << "\n";
-                    std::getline(std::cin, str);
-                }
-            }
-
-            logger.log(std::format("Starting training loop {}", loops++), Logger::INFO);
-            model.network().Train(CNAME(trainData),
-                CNAME(trainLabel),
-                model.optimizer(),
-                ens::PrintLoss(),
-                ens::ProgressBar(50),
-                ens::EarlyStopAtMinLossType<MAT_TYPE>(
-                    [&](const MAT_TYPE& /* param */)
-                    {
-                        logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
-                        // Compare training and test accuracy to check for overfitting
-                        if (epoch++ % 10 == 0) {
-                            printConfusionMatrix(trainData, trainLabel);
-                            printConfusionMatrix(testData, testLabel);
-                        }
-
-                        // Validation
-                        double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));
-                        validationLoss /= validateLabel.n_cols;
-                        logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
-                        if (validationLoss < bestLoss && epoch > 0) {
-                            bestLoss = validationLoss;
-                            logger.log("Saving new best model", Logger::INFO);
-                            model.save(999);
-                        }
-                        return validationLoss;
-                    }, 20));
-
-            model.save(loops);
-            logger.log(std::format("Ended with best loss {}", bestLoss), Logger::INFO);
-            });
-        
-        // Wait to finish copying data into new mat
-        while (!copyDone) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    {
+        std::cout << trainData.max() << "\n";
+        std::cout << trainData.min() << "\n";
+        std::string str;
+        std::getline(std::cin, str);
+        for (size_t i = 0; i < trainData.n_cols; i++) {
+            std::cout << trainData.col(i) << "\n";
+            std::cout << trainLabel.col(i) << "\n";
+            std::getline(std::cin, str);
         }
     }
+    */
+
+    // Start training model
+    logger.log("Starting training", Logger::INFO);
+    model.network().Train(
+        std::move(CNAME(trainData)),
+        std::move(CNAME(trainLabel)),
+        model.optimizer(),
+        ens::PrintLoss(),
+        ens::ProgressBar(50),
+        ens::EarlyStopAtMinLossType<MAT_TYPE>(
+            [&](const MAT_TYPE& /* param */)
+            {
+                logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
+                // Compare training and test accuracy to check for overfitting
+                if (epoch++ % 10 == 0) {
+                    printConfusionMatrix(trainData, trainLabel);
+                    printConfusionMatrix(testData, testLabel);
+                }
+
+                // Validation
+                double validationLoss = model.network().Evaluate(CNAME(validateData), CNAME(validateLabel));
+                validationLoss /= validateLabel.n_cols;
+                logger.log(std::format("Validation loss: {}", validationLoss), Logger::INFO);
+                if (validationLoss < bestLoss && epoch > 0) {
+                    bestLoss = validationLoss;
+                    logger.log("New best model", Logger::INFO);
+                }
+                model.save(epoch);
+                return validationLoss;
+            }, 20));
+
+    logger.log(std::format("Training ended with best loss {}", bestLoss), Logger::INFO);
 }
 
 size_t PhonemeClassifier::classify(const MAT_TYPE& data) {

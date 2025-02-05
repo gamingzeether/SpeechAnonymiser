@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <assert.h>
 #include <dr_mp3.h>
 #include <dr_wav.h>
 #include <samplerate.h>
@@ -45,7 +46,7 @@ void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels) {
     }
 }
 
-void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
+void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
     if (cached) {
         return;
     }
@@ -79,8 +80,8 @@ void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, bool print) 
         worker->doWork();
     }
 
-    loaderThread = std::thread([this, inputSize, outputSize, ex, print] {
-        _start(inputSize, outputSize, ex, print);
+    loaderThread = std::thread([this, inputSize, outputSize, ex, batchSize, print] {
+        _start(inputSize, outputSize, ex, batchSize, print);
     });
 }
 
@@ -144,12 +145,17 @@ size_t Dataset::getMinCount() {
     return sharedData.minExamples;
 }
 
-void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, bool print) {
+void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
     size_t realEx = ex;
 
     for (auto& worker : workers) {
         worker->join();
     }
+    ex = std::min(realEx, sharedData.minExamples);
+    size_t steps = ex / batchSize;
+    assert(steps > 0);
+    ex = batchSize * steps;
+    sharedData.examples = ex;
 
     if (sharedData.examples < realEx) {
         saveCache();
