@@ -105,7 +105,10 @@ struct AudioContainer {
 template <typename T>
 bool requestString(const std::string& request, std::string& out, T& value) {
     std::cout << request << std::endl << "(Default " << value << ") ";
-    std::getline(std::cin, out);
+    bool isInteractive = getenv("NONINTERACTIVE") == NULL;
+    if (isInteractive) {
+        std::getline(std::cin, out);
+    }
     std::cout << std::endl;
     return out != "";
 }
