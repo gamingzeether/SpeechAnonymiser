@@ -39,6 +39,7 @@ RUN git clone https://github.com/gamingzeether/SpeechAnonymiser &&\
     cmake -B out \
         -DCMAKE_BUILD_TYPE=Release \
         -DAUDIO=OFF \
+        -DOMP=ON \
         -DVCPKG_TARGET_TRIPLET=x64-linux-release
 
 # Pull if there is a new commit
@@ -100,6 +101,7 @@ COPY --from=build \
     /lib/x86_64-linux-gnu/libdl.so.2 \
     /lib/x86_64-linux-gnu/librt.so.1 \
     /lib/x86_64-linux-gnu/libgcc_s.so.1 \
+    /lib/x86_64-linux-gnu/libgomp.so.1 \
     /lib/x86_64-linux-gnu/
 COPY --from=build \
     /lib64/ld-linux-x86-64.so.2 \

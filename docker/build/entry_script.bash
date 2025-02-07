@@ -71,7 +71,7 @@ train() {
     require_write_permission $DATASET_DIR
     echo "Training..."
     cd $SA_DIR
-    ./SpeechAnonymiser -t $DATASET_DIR
+    OMP_DYNAMIC=true ./SpeechAnonymiser -t $DATASET_DIR
     mv $SA_DIR/classifier.zip* $DATASET_DIR
 }
 
