@@ -83,7 +83,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     int inputSize = model.getInputSize();
     int outputSize = model.getOutputSize();
 
-    const bool trainGeneral = false;
+    const bool trainGeneral = true;
     std::string clientFilter = (trainGeneral) ? "" :
         // Train model on specific speaker
         // This client has a lot of entries and is has american english which is what the aligner used
