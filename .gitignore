@@ -406,3 +406,9 @@ enc_temp_folder/*
 *.bin
 build/*
 classifier.json
+
+# docker
+docker/dataset
+docker/processed-audio
+docker/raw-audio
+docker/default_classifier.json

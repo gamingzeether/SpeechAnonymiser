@@ -71,6 +71,8 @@ sudo apt-get install -y \
     libglu1-mesa-dev
 ```
 
+For more information, [the Dockerfile](docker/Dockerfile) may be useful
+
 # Building
 Run
 ```
