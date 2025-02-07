@@ -169,8 +169,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     // Start training model
     logger.log("Starting training", Logger::INFO);
     model.network().Train(
-        std::move(CNAME(trainData)),
-        std::move(CNAME(trainLabel)),
+        CNAME(trainData),
+        CNAME(trainLabel),
         model.optimizer(),
         ens::PrintLoss(),
         ens::ProgressBar(50),
@@ -178,6 +178,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             [&](const MAT_TYPE& /* param */)
             {
                 logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
+                model.network().SetNetworkMode(false);
                 // Compare training and test accuracy to check for overfitting
                 if (epoch++ % 10 == 0) {
                     printConfusionMatrix(trainData, trainLabel);
@@ -193,6 +194,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
                     logger.log("New best model", Logger::INFO);
                 }
                 model.save(epoch);
+                model.network().SetNetworkMode(true);
                 return validationLoss;
             }, 20));
 
@@ -223,7 +225,6 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_MAT_TYPE& testData, const
     int inputSize = model.getInputSize();
     int outputSize = model.getOutputSize();
 
-    model.network().SetNetworkMode(false);
     size_t testCount = testLabel.n_cols;
     size_t correctCount = 0;
     size_t* correctPhonemes = new size_t[outputSize];
