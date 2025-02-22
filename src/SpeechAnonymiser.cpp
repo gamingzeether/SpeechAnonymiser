@@ -27,14 +27,14 @@
 #include <rtaudio/RtAudio.h>
 #endif
 
-const bool outputPassthrough = true;
+const bool outputPassthrough = false;
 
 auto programStart = std::chrono::system_clock::now();
 int sampleRate = 16000;
 
 PhonemeClassifier classifier;
 
-std::unique_ptr<SpeechEngine> speechEngine;
+std::unique_ptr<SpeechEngine> speechEngine = nullptr;
 
 Logger logger;
 
@@ -188,7 +188,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
         }
         oData->lastSample = (startSample + nBufferFrames) % totalFrames;
         iData->lastProcessed = (int)(oData->lastSample / scale);
-    } else {
+    } else if (speechEngine) {
         speechEngine->writeBuffer((OUTPUT_TYPE*)outputBuffer, nBufferFrames);
     }
 
@@ -319,7 +319,8 @@ void startFFT(InputData& inputData) {
             } else {
                 speechFrame.phoneme = silencePhoneme;
             }
-            speechEngine->pushFrame(speechFrame);
+            if (speechEngine)
+                speechEngine->pushFrame(speechFrame);
             currentFrame = (currentFrame + 1) % frameCount;
         }
         });
@@ -513,12 +514,14 @@ int commandDefault() {
         .setVolume(0.05)
         .configure("AERIS CV-VC ENG Kire 2.0/");
     */
+    /*
     auto tmpEngine = SpeechEngineFormant();
     tmpEngine.setSampleRate(outputSampleRate)
         .setChannels(2)
         .setVolume(0.001)
         .configure("configs/formants/formants.json");
     speechEngine = std::unique_ptr<SpeechEngine>(&tmpEngine);
+    */
 
     if (inputAudio.startStream()) {
         std::cout << inputAudio.getErrorText() << '\n';
