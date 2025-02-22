@@ -79,8 +79,8 @@ print_help() {
     echo -e "Options"
     echo -e "-h, --help             Print this help menu"
     echo -e "-r, --align-raw        Generate alignments for raw audio"
-    echo -e "-d, --align-dataset    Print help menu"
-    echo -e "-b                     Get an interactive tty inside the container"
+    echo -e "-d, --align-dataset    Generate alignments for Common Voice dataset"
+    echo -e "-b                     Get an interactive shell inside the container"
     echo -e "-t, --train            Train model and output to dataset directory"
 }
 

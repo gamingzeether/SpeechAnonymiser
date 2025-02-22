@@ -74,9 +74,14 @@ sudo apt-get install -y \
 
 For more information, check out [the Dockerfile](docker/Dockerfile)
 
+### Windows
+Should have the required libraries but I haven't tested this
+
 # Building
 Run
 ```
+git clone https://github.com/gamingzeether/SpeechAnonymiser
+cd SpeechAnonymiser
 mkdir out
 cmake -B out -DCMAKE_BUILD_TYPE=Release {OPTIONS}
 cmake --build out
@@ -110,6 +115,10 @@ If using TIMIT:
 # Training
 
 1. Train with `-t [path to dataset]`
+
+# Docker
+
+To simplify preparing datasets and training, there is the option to use docker. It contains scripts that processes unlabeled recordings into a usable dataset. It can also be used to train the phoneme classifier. Check out the [readme](docker/README.md) for instructions on how to use it.
 
 # Want to contribute? / Have questions? / Something doesn't work?
 
