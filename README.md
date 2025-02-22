@@ -63,6 +63,7 @@ The below commands *should* install all of the required libraries.
 ### Debian/Ubuntu
 ```
 sudo apt-get install -y \
+    gfortran \
     curl \
     pkg-config \
     libxinerama-dev \
