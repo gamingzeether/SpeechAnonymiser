@@ -149,7 +149,12 @@ bool PhonemeModel::load() {
 
     // Load config file
     config = Config(CONFIG_FILE, 0);
-    if (config.loadDefault(DEFAULT_CONFIG_FILE)) {
+    bool configLoaded = config.loadDefault(DEFAULT_CONFIG_FILE);
+    auto& defObj = config.defaultObject();
+    bool configMatches = defObj["input_features"].get_int() == inputSize &&
+        defObj["output_features"].get_int() == outputSize &&
+        defObj["sample_rate"].get_int() == sampleRate;
+    if (configLoaded && configMatches) {
         if (logger.has_value()) {
             logger->log(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
         }
@@ -215,12 +220,16 @@ void PhonemeModel::logZipError(zip_error_t* error) {
 
 void PhonemeModel::setDefaultModel() {
     JSONHelper::JSONObj configRoot = config.defaultObject().getRoot();
-    JSONHelper::JSONObj layers = configRoot.add_arr("layers");
-
+    JSONHelper::JSONObj layers;
+    if (configRoot.exists("layers")) {
+        layers = configRoot["layers"];
+        layers.clear_arr();
+    } else {
+        layers = configRoot.add_arr("layers");
+    }
+    
     addConv(layers, 64, 2, 2, 1, 1);
     addConv(layers, 64, 2, 2, 1, 1);
-    addConv(layers, 64, 2, 2, 1, 1);
-    addLinear(layers, 1024);
     addLinear(layers, 512);
 }
 

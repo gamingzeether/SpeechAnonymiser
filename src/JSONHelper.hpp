@@ -63,6 +63,9 @@ public:
 			yyjson_mut_val* item = yyjson_mut_arr_add_obj(_doc, val);
 			return JSONObj(_doc, item);
 		};
+		void clear_arr() {
+			yyjson_mut_arr_clear(val);
+		};
 
 		JSONObj(yyjson_mut_doc* doc, yyjson_mut_val* value);
 		JSONObj() {};
