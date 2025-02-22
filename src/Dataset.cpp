@@ -13,6 +13,7 @@
 #include <dr_mp3.h>
 #include <dr_wav.h>
 #include <samplerate.h>
+#include <mlpack/core/math/shuffle_data.hpp>
 #include "ClassifierHelper.hpp"
 #include "Util.hpp"
 #include "Global.hpp"
@@ -44,6 +45,7 @@ void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels) {
             sharedData.exampleLabel.pop_back();
         }
     }
+    mlpack::ShuffleData(data, labels, data, labels);
 }
 
 void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
@@ -336,7 +338,7 @@ void Dataset::Clip::load(int targetSampleRate) {
             max = val;
         }
     }
-    float targetMax = 0.8f;
+    float targetMax = 1.0f;
     float factor = targetMax / max;
     for (size_t i = 0; i < size; i++) {
         buffer[i] *= factor;
@@ -759,6 +761,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
             }
 
             // Find correct starts and ends of phones
+            /*
             {
                 std::vector<std::tuple<size_t, size_t>> ranges;
                 std::vector<float> volumes;
@@ -791,6 +794,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     }
                 }
             }
+            */
 
             // Write data into matrix
             {
