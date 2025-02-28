@@ -338,7 +338,8 @@ void Dataset::Clip::load(int targetSampleRate) {
             max = val;
         }
     }
-    float targetMax = 1.0f;
+    float random = (float)rand() / RAND_MAX;
+    float targetMax = 1.0f - 0.2 * (random);
     float factor = targetMax / max;
     for (size_t i = 0; i < size; i++) {
         buffer[i] *= factor;

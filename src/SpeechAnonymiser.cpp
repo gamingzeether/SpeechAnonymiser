@@ -12,7 +12,6 @@
 #include <format>
 #include <optional>
 #include <cargs.h>
-#include "Visualizer.hpp"
 #include "TSVReader.hpp"
 #include "structs.hpp"
 #include "PhonemeClassifier.hpp"
@@ -25,6 +24,9 @@
 #include "Util.hpp"
 #ifdef AUDIO
 #include <rtaudio/RtAudio.h>
+#endif
+#ifdef GUI
+#include "Visualizer.hpp"
 #endif
 
 const bool outputPassthrough = false;
@@ -220,6 +222,7 @@ void cleanupRtAudio(RtAudio audio) {
 }
 #endif
 
+#ifdef GUI
 void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
     if (classifier.ready) {
@@ -231,7 +234,6 @@ void startFFT(InputData& inputData) {
     }
 
     Visualizer app;
-    app.initWindow();
     logger.log("Starting visualizer", Logger::INFO);
     const size_t frameCount = FFT_FRAMES * 2;
     app.fftData.frames = frameCount;
@@ -263,6 +265,7 @@ void startFFT(InputData& inputData) {
         //std::printf("Maximum time per frame: %fms\n", (1000.0 * FFT_FRAME_SPACING) / classifier.getSampleRate());
 
         ClassifierHelper helper;
+        app.classifierHelper = &helper;
         helper.initalize(sampleRate);
         SpeechFrame speechFrame;
         const size_t silencePhoneme = G_PS.fromString(L"æ");
@@ -288,8 +291,9 @@ void startFFT(InputData& inputData) {
             // Write FFT output to visualizer
             memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FRAME_SIZE);
             app.fftData.currentFrame = currentFrame;
+            app.updateSpectrogram();
 
-            // Pass data to neural network
+            // Check if volume is greater than the activation threshold
             bool activity = false;
             for (int i = 0; i < ACTIVITY_WIDTH; i++) {
                 Frame& activityFrame = frames[(currentFrame + frameCount - i) % frameCount];
@@ -325,17 +329,18 @@ void startFFT(InputData& inputData) {
         }
         });
 
-#ifdef _CONSOLE
-#ifdef HIDE_CONSOLE
+  #ifdef _CONSOLE
+    #ifdef HIDE_CONSOLE
     ShowWindow(GetConsoleWindow(), SW_HIDE);
-#else
+    #else
     ShowWindow(GetConsoleWindow(), SW_SHOW);
-#endif
-#endif
+    #endif
+  #endif
 
     app.run();
     fft.join();
 }
+#endif
 
 int commandHelp() {
     printf("Usage: SpeechAnonymiser [OPTION]...\n\n");
@@ -389,6 +394,7 @@ int commandPreprocess(const std::string& path, const std::string& workDir, const
 }
 
 #ifdef AUDIO
+  #ifdef GUI
 int commandDefault() {
 #pragma region Input and output selector
     RtAudio audioQuery;
@@ -542,6 +548,7 @@ int commandDefault() {
 
     return 0;
 }
+  #endif
 
 // For development - listening to and comparing sound clips/phonemes
 int commandInteractive(const std::string& path) {
@@ -832,7 +839,12 @@ int main(int argc, char* argv[]) {
             error = commandEvaluate(eVal);
         } else {
 #ifdef AUDIO
+  #ifdef GUI
             error = commandDefault();
+  #else
+            logger.log("Compiled without GUI support, exiting", Logger::FATAL);
+            error = -1;
+  #endif
 #else
             logger.log("Compiled without audio support, exiting", Logger::FATAL);
             error = -1;

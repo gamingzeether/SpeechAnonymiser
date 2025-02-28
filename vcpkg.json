@@ -3,12 +3,9 @@
         "cargs",
         "drlibs",
         "fftw3",
-        "glfw3",
-        "glm",
         "libsamplerate",
         "bandicoot",
         "mlpack",
-        "vulkan",
         "yyjson",
         "libzip"
     ],
@@ -30,6 +27,17 @@
                 {
                     "name": "intel-mkl",
                     "platform": "(windows | linux | osx) & x64"
+                }
+            ]
+        },
+        "gui": {
+            "description": "Compile with support for a GUI",
+            "dependencies": [
+                {
+                    "name": "qt5",
+                    "default-features": false,
+                    "features": [
+                    ]
                 }
             ]
         }

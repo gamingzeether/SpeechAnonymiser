@@ -13,6 +13,7 @@ option(OMP "Compile with OpenMP." OFF)
 option(AUDIO "Compile with audio in/output." ON)
 option(MKL "Compile with Intel MKL." OFF)
 option(LTO "Compile with LTO on release builds." ON)
+option(GUI "Compile with a GUI." ON)
 if (ASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
@@ -23,6 +24,10 @@ if (AUDIO)
 endif()
 if (MKL)
     list(APPEND VCPKG_MANIFEST_FEATURES "mkl")
+endif()
+if (GUI)
+    list(APPEND VCPKG_MANIFEST_FEATURES "gui")
+    add_definitions(-DGUI=${GUI})
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
@@ -197,6 +202,13 @@ if (MKL)
     target_link_libraries(${PROJECT_NAME} PRIVATE MKL::MKL)
 endif()
 
+if (GUI)
+    find_package(Qt5Core REQUIRED)
+    find_package(Qt5Gui REQUIRED)
+    find_package(Qt5Widgets REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
+endif()
+
 find_package(Cargs CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE cargs)
 
@@ -209,12 +221,6 @@ find_package(FFTW3f CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3)
 target_link_libraries(${PROJECT_NAME} PRIVATE FFTW3::fftw3f)
 
-find_package(glfw3 CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-
-find_package(glm CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
-
 find_package(SampleRate CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE SampleRate::samplerate)
 
@@ -226,9 +232,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE armadillo)
 
 find_path(MLPACK_INCLUDE_DIRS "mlpack.hpp")
 target_include_directories(${PROJECT_NAME} PRIVATE ${MLPACK_INCLUDE_DIRS})
-
-find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 
 find_package(yyjson CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE yyjson::yyjson)

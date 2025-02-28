@@ -88,6 +88,9 @@
         "variant": "cpp",
         "*.ipp": "cpp",
         "armadillo": "cpp",
-        "hash_map": "cpp"
+        "hash_map": "cpp",
+        "qbitmap": "cpp",
+        "qpainter": "cpp",
+        "qlabel": "cpp"
     }
 }
