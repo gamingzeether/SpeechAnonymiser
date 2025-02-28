@@ -1,7 +1,7 @@
 # Build
 Make sure you are in this directory and then:
 
-`sudo build docker -t speech-anonymiser .`
+`sudo docker build -t speech-anonymiser .`
 
 # Run
 

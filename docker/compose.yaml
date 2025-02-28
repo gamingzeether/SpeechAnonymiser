@@ -5,7 +5,7 @@ services:
       - "/tmp/speechanonymiser/:uid=1000"
     volumes:
 #      - "./dataset:/volumes/dataset/"
-      - "./processed-audio:/volumes/dataset/"
+#      - "./processed-audio:/volumes/dataset/"
 #      - "./default_classifier.json:/SpeechAnonymiser/default_classifier.json"
-      - "./processed-audio:/volumes/processed-audio/"
-      - "./raw-audio:/volumes/raw-audio/"
+#      - "./processed-audio:/volumes/processed-audio/"
+#      - "./raw-audio:/volumes/raw-audio/"

@@ -14,7 +14,8 @@ RUN apt-get update &&\
         zip \
         unzip \
         tar \
-        build-essential
+        build-essential \
+        pkg-config
 
 # Install vcpkg
 WORKDIR /git/
@@ -22,14 +23,6 @@ RUN git clone https://github.com/microsoft/vcpkg.git &&\
     cd vcpkg &&\
     sh bootstrap-vcpkg.sh -disableMetrics
 ENV VCPKG_ROOT=/git/vcpkg
-
-# Additional vcpkg dependancies
-RUN apt-get install -y \
-        pkg-config \
-        libxinerama-dev \
-        libxcursor-dev \
-        xorg-dev \
-        libglu1-mesa-dev
 
 # Configure speech anonymiser project
 WORKDIR /git/
@@ -39,6 +32,7 @@ RUN git clone https://github.com/gamingzeether/SpeechAnonymiser &&\
     cmake -B out \
         -DCMAKE_BUILD_TYPE=Release \
         -DAUDIO=OFF \
+        -DGUI=OFF \
         -DOMP=ON \
         -DVCPKG_TARGET_TRIPLET=x64-linux-release
 
@@ -55,24 +49,26 @@ FROM condaforge/mambaforge as deploy
 
 RUN useradd -ms /bin/bash speechanonymiser
 
-# Install MFA
-ENV MFA_ROOT_DIR=/mfa
-RUN mkdir -p /mfa &&\
-    mamba create -y -p /env -c conda-forge montreal-forced-aligner &&\
-    conda clean -afy &&\
-    chown -R speechanonymiser /mfa &&\
-    chown -R speechanonymiser /env
-
 # Add external files into image
 WORKDIR /SpeechAnonymiser/
 RUN wget https://github.com/MontrealCorpusTools/mfa-models/releases/download/dictionary-english_us_mfa-v3.1.0/english_us_mfa.dict &&\
     wget https://github.com/MontrealCorpusTools/mfa-models/releases/download/acoustic-english_mfa-v3.1.0/english_mfa.zip
 
+# Install MFA
+ENV MFA_ROOT_DIR=/mfa
+RUN mkdir -p /mfa &&\
+    mamba create -y -p /env -c conda-forge montreal-forced-aligner &&\
+    mamba install -y mkl &&\
+    conda clean -afy &&\
+    chown -R speechanonymiser /mfa &&\
+    chown -R speechanonymiser /env
+
 USER speechanonymiser
 
 # Prepaire environments
 # Init mamba
-RUN conda run -p /env mfa server init &&\
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/lib/ &&\
+    conda run -p /env mfa server init &&\
     echo "source activate /env" > ~/.bashrc
 ENV PATH /env/bin:$PATH
 
