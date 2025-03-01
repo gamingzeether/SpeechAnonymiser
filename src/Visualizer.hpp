@@ -31,18 +31,18 @@ public:
 	ClassifierHelper* classifierHelper;
 
 	void run();
-
 	void updateSpectrogram();
-
 	void setSpectrogramPixel(int x, int y, float val);
 private:
 	QLabel* peakAmountLabel;
 	QLabel* spectrogramLabel;
 	QPixmap* spectrogramPixmap;
 	bool drawSpectrogram = false;
+	std::vector<QColor> colormap;
 
 	void initWindow(QWidget& qtWindow);
-
 	void cleanup();
+	void genColormap();
+	const QColor& getColor(float value);
 };
 #endif
