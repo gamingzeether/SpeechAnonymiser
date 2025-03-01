@@ -268,7 +268,7 @@ void startFFT(InputData& inputData) {
         app.classifierHelper = &helper;
         helper.initalize(sampleRate);
         SpeechFrame speechFrame;
-        const size_t silencePhoneme = G_PS.fromString(L"æ");
+        const size_t silencePhoneme = G_PS.fromString(L"");
         speechFrame.phoneme = silencePhoneme;
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
@@ -291,7 +291,7 @@ void startFFT(InputData& inputData) {
             // Write FFT output to visualizer
             memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FRAME_SIZE);
             app.fftData.currentFrame = currentFrame;
-            app.updateSpectrogram();
+            app.updateWaterfall();
 
             // Check if volume is greater than the activation threshold
             bool activity = false;

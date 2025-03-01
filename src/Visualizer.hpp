@@ -31,13 +31,13 @@ public:
 	ClassifierHelper* classifierHelper;
 
 	void run();
-	void updateSpectrogram();
+	void updateWaterfall();
 	void setSpectrogramPixel(int x, int y, float val);
 private:
 	QLabel* peakAmountLabel;
-	QLabel* spectrogramLabel;
-	QPixmap* spectrogramPixmap;
-	bool drawSpectrogram = false;
+	QLabel* waterfallLabel;
+	QPixmap* waterfallPixmap;
+	bool drawWaterfall = false;
 	std::vector<QColor> colormap;
 
 	void initWindow(QWidget& qtWindow);

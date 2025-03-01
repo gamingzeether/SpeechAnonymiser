@@ -41,14 +41,14 @@ void Visualizer::run() {
 	isOpen = false;
 }
 
-void Visualizer::updateSpectrogram() {
-	if (!isOpen || !drawSpectrogram || spectrogramPixmap->isNull())
+void Visualizer::updateWaterfall() {
+	if (!isOpen || !drawWaterfall || waterfallPixmap->isNull())
 		return;
 	QPainter painter;
-	painter.begin(spectrogramPixmap);
+	painter.begin(waterfallPixmap);
 
 	// Shift everything over by 1 pixel
-	painter.drawTiledPixmap(-1, 0, SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT, *spectrogramPixmap);
+	painter.drawTiledPixmap(-1, 0, SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT, *waterfallPixmap);
 	// Draw new frame
 	float* currentFrame = fftData.frequencies[fftData.currentFrame];
 	for (int y = 0; y < FRAME_SIZE; y++) {
@@ -61,7 +61,7 @@ void Visualizer::updateSpectrogram() {
 	}
 
 	painter.end();
-	spectrogramLabel->setPixmap(*spectrogramPixmap);
+	waterfallLabel->setPixmap(*waterfallPixmap);
 }
 
 void Visualizer::initWindow(QWidget& qtWindow) {
@@ -106,19 +106,19 @@ void Visualizer::initWindow(QWidget& qtWindow) {
 	// ==================== Spectrogram ====================
 	QCheckBox* spectrogramCheckbox = new QCheckBox(&qtWindow);
     spectrogramCheckbox->move(10, 70);
-	spectrogramCheckbox->setText("Draw spectrogram");
+	spectrogramCheckbox->setText("Draw waterfall plot");
 	QObject::connect(spectrogramCheckbox, &QCheckBox::stateChanged, this, [&](int state){
-		drawSpectrogram = (state == 2);
+		drawWaterfall = (state == 2);
 	});
     spectrogramCheckbox->show();
 
-	spectrogramPixmap = new QPixmap(SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT);
-	spectrogramPixmap->fill(Qt::black);
+	waterfallPixmap = new QPixmap(SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT);
+	waterfallPixmap->fill(Qt::black);
 
-	spectrogramLabel = new QLabel(&qtWindow);
-    spectrogramLabel->move(10, 100);
-	spectrogramLabel->setPixmap(*spectrogramPixmap);
-    spectrogramLabel->show();
+	waterfallLabel = new QLabel(&qtWindow);
+    waterfallLabel->move(10, 100);
+	waterfallLabel->setPixmap(*waterfallPixmap);
+    waterfallLabel->show();
 
 }
 
