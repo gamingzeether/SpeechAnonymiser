@@ -71,7 +71,7 @@ void PhonemeModel::initModel() {
 
     // Add final output layers
     DROPOUT;
-    LINEAR(outputSize);
+    LINEARNB(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
 }
 
@@ -228,9 +228,12 @@ void PhonemeModel::setDefaultModel() {
         layers = configRoot.add_arr("layers");
     }
     
-    addConv(layers, 64, 2, 2, 1, 1);
-    addConv(layers, 64, 2, 2, 1, 1);
-    addLinear(layers, 512);
+    addConv(layers, 32, 2, 2, 1, 1);
+    addConv(layers, 32, 2, 2, 1, 1);
+    addConv(layers, 32, 2, 2, 1, 1);
+    addConv(layers, 32, 2, 2, 1, 1);
+    addLinear(layers, 256);
+    addLinear(layers, 128);
 }
 
 void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY) {
