@@ -4,7 +4,6 @@
         "drlibs",
         "fftw3",
         "libsamplerate",
-        "bandicoot",
         "mlpack",
         "yyjson",
         "libzip"
@@ -38,7 +37,21 @@
                     "default-features": false,
                     "features": [
                     ]
+                },
+                {
+                    "name": "qt5",
+                    "default-features": false,
+                    "platform": "linux",
+                    "features": [
+                        "wayland"
+                    ]
                 }
+            ]
+        },
+        "gpu": {
+            "description": "Compile with GPU support for training",
+            "dependencies": [
+                "bandicoot"
             ]
         }
     }
