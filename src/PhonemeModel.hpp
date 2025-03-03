@@ -44,6 +44,7 @@ private:
 	void setDefaultModel();
 	void addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY);
 	void addLinear(JSONHelper::JSONObj& layers, int neurons);
+	std::string getTempPath();
 
 	NETWORK_TYPE net;
 	OPTIMIZER_TYPE optim;

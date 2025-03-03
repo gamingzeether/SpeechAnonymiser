@@ -82,7 +82,8 @@ void PhonemeModel::initOptimizer() {
 }
 
 void PhonemeModel::save(int checkpoint) {
-    ModelSerializer::saveNetwork(MODEL_FILE, &net);
+    auto tempPath = getTempPath();
+    ModelSerializer::saveNetwork(tempPath + MODEL_FILE, &net);
     config.save();
 
     int error = 0;
@@ -91,9 +92,9 @@ void PhonemeModel::save(int checkpoint) {
         logZipError(error);
         return;
     }
-    for (const char* string : ZIP_FILES) {
-        zip_source_t* source = zip_source_file(archive, string, 0, ZIP_LENGTH_TO_END);
-        zip_int64_t index = zip_file_add(archive, string, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+    for (std::string string : ZIP_FILES) {
+        zip_source_t* source = zip_source_file(archive, (tempPath + string).c_str(), 0, ZIP_LENGTH_TO_END);
+        zip_int64_t index = zip_file_add(archive, string.c_str(), source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
         if (index < 0)
             logZipError(archive);
     }
@@ -111,6 +112,7 @@ void PhonemeModel::save(int checkpoint) {
 }
 
 bool PhonemeModel::load() {
+    auto tempPath = getTempPath();
     bool loaded = true;
     // Try open classifier.zip
     if (std::filesystem::exists(ARCHIVE_FILE)) {
@@ -122,11 +124,11 @@ bool PhonemeModel::load() {
         }
         size_t bufferSize = 16 * 1024 * 1024;
         char* buf = new char[bufferSize];
-        for (const char* string : ZIP_FILES) {
-            zip_file_t* file = zip_fopen(archive, string, ZIP_FL_UNCHANGED);
+        for (std::string string : ZIP_FILES) {
+            zip_file_t* file = zip_fopen(archive, string.c_str(), ZIP_FL_UNCHANGED);
             if (file == NULL)
                 logZipError(archive);
-            std::ofstream out = std::ofstream(string, std::ios::binary | std::ios::trunc);
+            std::ofstream out = std::ofstream(tempPath + string, std::ios::binary | std::ios::trunc);
             while (true) {
                 zip_int64_t readBytes = zip_fread(file, buf, bufferSize);
                 if (readBytes <= 0)
@@ -148,7 +150,7 @@ bool PhonemeModel::load() {
     outputSize = G_PS.size();
 
     // Load config file
-    config = Config(CONFIG_FILE, 0);
+    config = Config(tempPath + CONFIG_FILE, 0);
     bool configLoaded = config.loadDefault(DEFAULT_CONFIG_FILE);
     auto& defObj = config.defaultObject();
     bool configMatches = defObj["input_features"].get_int() == inputSize &&
@@ -178,10 +180,10 @@ bool PhonemeModel::load() {
             logger->log("Config does not match", Logger::WARNING);
         }
     }
-    if (loaded && !ModelSerializer::loadNetwork(MODEL_FILE, &net)) {
+    if (loaded && !ModelSerializer::loadNetwork(tempPath + MODEL_FILE, &net)) {
         loaded = false;
         if (logger.has_value()) {
-            logger->log(std::format("Failed to load model {}", MODEL_FILE), Logger::WARNING);
+            logger->log(std::format("Failed to load model {}", tempPath + MODEL_FILE), Logger::WARNING);
         }
     }
     cleanUnpacked();
@@ -194,8 +196,9 @@ bool PhonemeModel::load() {
 }
 
 void PhonemeModel::cleanUnpacked() {
+    auto tempPath = getTempPath();
     for (const char* string : ZIP_FILES) {
-        std::filesystem::remove(string);
+        std::filesystem::remove(tempPath + string);
     }
 }
 
@@ -252,4 +255,15 @@ void PhonemeModel::addLinear(JSONHelper::JSONObj& layers, int neurons) {
     layer["type"] = std::string("linear");
 
     layer["neurons"] = neurons;
+}
+
+std::string PhonemeModel::getTempPath() {
+    std::string tempPath = std::filesystem::temp_directory_path().string();
+    // Ensure tempPath has a trailing slash
+    if (tempPath.back() != '\\' && tempPath.back() != '/')
+        tempPath += '/';
+    tempPath += "SpeechAnonymiser/";
+    if (!std::filesystem::exists(tempPath))
+        std::filesystem::create_directories(tempPath);
+    return tempPath;
 }
