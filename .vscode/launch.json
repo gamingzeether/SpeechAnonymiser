@@ -21,6 +21,10 @@
                     // it gets resolved by CMake Tools:
                     "name": "PATH",
                     "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
+                },
+                {
+                    "name": "OMP_DYNAMIC",
+                    "value": "true"
                 }
             ],
             "externalConsole": false,

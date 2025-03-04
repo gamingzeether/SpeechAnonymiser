@@ -1,4 +1,7 @@
 {
+    "cmake.configureSettings": {
+        "OMP": "ON"
+    },
     "files.associations": {
         "cctype": "cpp",
         "clocale": "cpp",

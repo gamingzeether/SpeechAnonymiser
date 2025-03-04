@@ -11,8 +11,6 @@
 
 #define QUOTE(v) #v
 
-//#define USE_GPU
-
 #define CPU_MAT_TYPE arma::fmat
 #ifdef USE_GPU
 #define MAT_TYPE coot::fmat

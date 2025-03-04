@@ -32,7 +32,7 @@ if (GUI)
 endif()
 if (GPU)
     list(APPEND VCPKG_MANIFEST_FEATURES "gpu")
-    add_definitions(-DGPU=${GPU})
+    add_definitions(-DUSE_GPU -DGPU=${GPU})
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
