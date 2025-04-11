@@ -4,6 +4,10 @@
 #include "JSONHelper.hpp"
 #include "Util.hpp"
 
+size_t Global::silencePhone() {
+	return silPhone;
+}
+
 Global::Global() {
 	logger.addStream(Logger::Stream(std::cout)
 		.outputTo(Logger::INFO)
@@ -19,6 +23,7 @@ Global::Global() {
 		.outputTo(Logger::FATAL));
 
 	initPhonemeSet();
+	silPhone = ps.fromString("");
 }
 
 void Global::initPhonemeSet() {

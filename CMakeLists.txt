@@ -138,6 +138,8 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/ModelSerializer.hpp"
     "${PROJECT_SOURCE_DIR}/PhonemeClassifier.hpp"
     "${PROJECT_SOURCE_DIR}/JSONHelper.hpp"
+    "${PROJECT_SOURCE_DIR}/DatasetTypes.hpp"
+    "${PROJECT_SOURCE_DIR}/Clip.hpp"
     "${PROJECT_SOURCE_DIR}/Dataset.hpp"
     "${PROJECT_SOURCE_DIR}/ClassifierHelper.hpp"
     "${PROJECT_SOURCE_DIR}/Logger.hpp"
@@ -155,6 +157,9 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/Util.hpp"
     "${PROJECT_SOURCE_DIR}/ParallelWorker.hpp"
     "${PROJECT_SOURCE_DIR}/TimitIterator.hpp"
+    "${PROJECT_SOURCE_DIR}/TrainingExec.hpp"
+    "${PROJECT_SOURCE_DIR}/negative_log_likelihood_w.hpp"
+    "${PROJECT_SOURCE_DIR}/negative_log_likelihood_w_impl.hpp"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -165,6 +170,7 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/ModelSerializer.cpp"
     "${PROJECT_SOURCE_DIR}/PhonemeClassifier.cpp"
     "${PROJECT_SOURCE_DIR}/JSONHelper.cpp"
+    "${PROJECT_SOURCE_DIR}/Clip.cpp"
     "${PROJECT_SOURCE_DIR}/Dataset.cpp"
     "${PROJECT_SOURCE_DIR}/ClassifierHelper.cpp"
     "${PROJECT_SOURCE_DIR}/Logger.cpp"

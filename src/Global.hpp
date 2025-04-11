@@ -14,6 +14,7 @@ public:
 	};
 
 	const PhonemeSet& phonemeSet() { return ps; };
+	size_t silencePhone();
 	// Global lock to prevent multiple fftw functions being executed at the same time eg. planning
 	std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
 private:
@@ -24,4 +25,5 @@ private:
 	PhonemeSet ps;
 	Logger logger;
 	std::mutex fftwMutex;
+	size_t silPhone;
 };

@@ -17,9 +17,9 @@ public:
 
     void initalize(const size_t& sr);
     void train(const std::string& path, const size_t& examples, const size_t& epochs);
-    size_t classify(const MAT_TYPE& data);
+    size_t classify(const CUBE_TYPE& data);
     std::string getPhonemeString(const size_t& in);
-    void printConfusionMatrix(const CPU_MAT_TYPE& testData, const CPU_MAT_TYPE& testLabel);
+    void printConfusionMatrix(const CPU_CUBE_TYPE& testData, const CPU_CUBE_TYPE& testLabel, const arma::urowvec& lengths);
     void tuneHyperparam(const std::string& path, int iterations);
     void evaluate(const std::string& path);
 

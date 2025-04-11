@@ -1,8 +1,5 @@
 #include "Dataset.hpp"
 
-#define DR_MP3_IMPLEMENTATION
-#define DR_WAV_IMPLEMENTATION
-
 #if 1
 #define DO_NAN_CHECK
 #endif
@@ -10,62 +7,39 @@
 #include <algorithm>
 #include <iostream>
 #include <assert.h>
-#include <dr_mp3.h>
 #include <dr_wav.h>
-#include <samplerate.h>
 #include <mlpack/core/math/shuffle_data.hpp>
 #include "ClassifierHelper.hpp"
 #include "Util.hpp"
 #include "Global.hpp"
 
-void Dataset::get(OUT CPU_MAT_TYPE& data, OUT CPU_MAT_TYPE& labels) {
+#define CLIP_DURATION 12 // Max clip Duration
+
+void Dataset::get(OUT CPU_CUBE_TYPE& data, OUT CPU_CUBE_TYPE& labels, arma::urowvec& sequenceLengths) {
+    if (!done())
+        return;
     auto lock = sharedData.lock();
     size_t outputSize = sharedData.exampleData.size();
-    size_t inputSize = sharedData.exampleData[0].n_rows;
+    size_t inputSize = sharedData.exampleData.n_rows;
 
-    if (cached) {
-        data = cachedData;
-        labels = cachedLabels;
-    } else {
-        data = CPU_MAT_TYPE(inputSize, 0);
-        labels = CPU_MAT_TYPE(1, 0);
-        for (size_t i = 0; i < outputSize; i++) {
-            size_t offset = sharedData.examples * i;
-            const CPU_MAT_TYPE& dataMat = sharedData.exampleData.back();
-            const CPU_MAT_TYPE& labelMat = sharedData.exampleLabel.back();
-            data.resize(inputSize, data.n_cols + sharedData.examples);
-            labels.resize(1, labels.n_cols + sharedData.examples);
-            for (size_t c = 0; c < sharedData.examples; c++) {
-                for (size_t r = 0; r < inputSize; r++) {
-                    data(r, offset + c) = dataMat(r, c);
-                }
-                labels(0, offset + c) = i;
-            }
-            sharedData.exampleData.pop_back();
-            sharedData.exampleLabel.pop_back();
-        }
-    }
+    data = sharedData.exampleData;
+    labels = sharedData.exampleLabel;
+    sequenceLengths = sharedData.sequenceLengths;
     mlpack::ShuffleData(data, labels, data, labels);
 }
 
 void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
-    if (cached) {
-        return;
-    }
     ex = std::max((size_t)1, ex);
 
     // Set up shared data
-    sharedData.exampleData = std::vector<CPU_MAT_TYPE>(outputSize);
-    sharedData.exampleLabel = std::vector<CPU_MAT_TYPE>(outputSize);
-	sharedData.exampleCount = std::vector<size_t>(outputSize);
-    sharedData.examples = ex;
-    for (size_t i = 0; i < outputSize; i++) {
-        sharedData.exampleData[i] = CPU_MAT_TYPE(inputSize, ex);
-        sharedData.exampleLabel[i] = CPU_MAT_TYPE(1, ex);
-        sharedData.exampleLabel[i].fill(i);
-        sharedData.exampleCount[i] = 0;
-    }
-    sharedData.minExamples = 0;
+    size_t audioSamples = sharedData.sampleRate * CLIP_DURATION;
+    size_t nSlices = (audioSamples) / FFT_FRAME_SPACING;
+    sharedData.nSlices = nSlices;
+    sharedData.sequenceLengths.zeros(ex);
+    sharedData.exampleData = CPU_CUBE_TYPE(inputSize, ex, nSlices);
+    sharedData.exampleLabel = CPU_CUBE_TYPE(1, ex, nSlices);
+    sharedData.exampleLabel.fill(0);
+    sharedData.targetClips = ex;
     sharedData.totalClips = 0;
     sharedData.testedClips = 0;
     sharedData.transcriptsPath = sharedData.path + "/transcript/";
@@ -88,9 +62,6 @@ void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batch
 }
 
 bool Dataset::join() {
-    if (cached) {
-        return true;
-    }
     if (loaderThread.joinable())
         loaderThread.join();
 
@@ -111,7 +82,7 @@ void Dataset::end() {
     }
 }
 
-void Dataset::setSubtype(Dataset::Subtype t) {
+void Dataset::setSubtype(Subtype t) {
     auto lock = sharedData.lock();
     if (sharedData.type == COMMON_VOICE) {
         std::string tsv = sharedData.path;
@@ -142,9 +113,9 @@ void Dataset::setSubtype(Dataset::Subtype t) {
     }
 }
 
-size_t Dataset::getMinCount() {
+size_t Dataset::getLoadedClips() {
     auto lock = sharedData.lock();
-    return sharedData.minExamples;
+    return sharedData.totalClips;
 }
 
 void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
@@ -153,17 +124,12 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batc
     for (auto& worker : workers) {
         worker->join();
     }
-    ex = std::min(realEx, sharedData.minExamples);
+    ex = std::min(realEx, sharedData.totalClips);
     size_t steps = ex / batchSize;
     assert(steps > 0);
     ex = batchSize * steps;
-    sharedData.examples = ex;
+    sharedData.totalClips = ex;
 
-    if (sharedData.examples < realEx) {
-        saveCache();
-    }
-
-    std::printf("Finished loading clips from %s with %zd examples (actual: %zd)\n", sharedData.reader.path().c_str(), sharedData.minExamples, std::min(realEx, sharedData.minExamples));
     std::printf("Loaded from %zd clips considering %zd total\n", sharedData.totalClips, sharedData.testedClips);
 }
 
@@ -266,204 +232,8 @@ void Dataset::loadNextClip(const std::string& clipPath, OUT Clip& clip, int samp
     }
 }
 
-void Dataset::Clip::load(int targetSampleRate) {
-    // Read mp3 file from tsv
-    //printf("Loading MP3: %s\n", tsvElements[TSVReader::Indices::PATH].c_str());
-
-    size_t clipSamples, clipSampleRate;
-    float* floatBuffer = NULL;
-
-    std::string clipFullPath = getFilePath();
-    if (clipFullPath == "")
-        return;
-
-    switch (type) {
-    case COMMON_VOICE:
-        floatBuffer = loadMP3(clipSamples, clipSampleRate, clipFullPath);
-        break;
-    case TIMIT:
-        floatBuffer = loadWAV(clipSamples, clipSampleRate, clipFullPath);
-        break;
-    }
-    if (floatBuffer == NULL) {
-        printf("Failed to open file: %s\n", clipFullPath.c_str());
-        return;
-    }
-
-    float length = (double)clipSamples / clipSampleRate;
-    float newLength = length + 0.1f;
-    if (newLength > allocatedLength) {
-        // Not very efficient but should slow/stop after a certain point
-        delete[] buffer;
-        buffer = new float[(size_t)(targetSampleRate * newLength)];
-        allocatedLength = newLength;
-    }
-
-    // Convert sample rate
-    if (clipSampleRate == targetSampleRate) {
-        memcpy(buffer, floatBuffer, sizeof(float) * clipSamples);
-        size = clipSamples;
-        sampleRate = clipSampleRate;
-    } else if (clipSampleRate % targetSampleRate == 0 && clipSampleRate > targetSampleRate) {
-        // Integer down sample rate conversion
-        int factor = clipSampleRate / targetSampleRate;
-        size = clipSamples / factor;
-        for (size_t i = 0; i < size; i++) {
-            buffer[i] = floatBuffer[i * factor];
-        }
-        sampleRate = targetSampleRate;
-    } else {
-        SRC_DATA upsampleData = SRC_DATA();
-        upsampleData.data_in = floatBuffer;
-        upsampleData.input_frames = clipSamples;
-        double ratio = (double)targetSampleRate / clipSampleRate;
-        long outSize = (long)(ratio * clipSamples);
-        upsampleData.src_ratio = ratio;
-        upsampleData.data_out = buffer;
-        upsampleData.output_frames = outSize;
-        int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, 1);
-        if (error) {
-            std::cout << "Error while resampling: " << src_strerror(error) << '\n';
-        }
-        sampleRate = targetSampleRate;
-        size = outSize;
-    }
-    free(floatBuffer);
-
-    // Normalize volume
-    float max = 0;
-    for (size_t i = 0; i < size; i++) {
-        const float& val = buffer[i];
-        if (val > max) {
-            max = val;
-        }
-    }
-    float random = (float)rand() / RAND_MAX;
-    float targetMax = 1.0f - 0.2 * (random);
-    float factor = targetMax / max;
-    for (size_t i = 0; i < size; i++) {
-        buffer[i] *= factor;
-    }
-
-    loaded = true;
-}
-
-float* Dataset::Clip::loadMP3(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path) {
-    drmp3_config cfg;
-    drmp3_uint64 scount;
-    float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &cfg, &scount, NULL);
-
-    if (cfg.channels <= 0) {
-        printf("%s has invalid channel count (%d)\n", path.c_str(), cfg.channels);
-        return NULL;
-    }
-    if (cfg.sampleRate <= 0) {
-        printf("%s has invalid sample rate (%d)\n", path.c_str(), cfg.sampleRate);
-        return NULL;
-    }
-
-    samples = scount;
-    convertMono(floatBuffer, samples, cfg.channels);
-    sampleRate = cfg.sampleRate;
-    return floatBuffer;
-}
-
-float* Dataset::Clip::loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const std::string& path) {
-    unsigned int channels, sr;
-    drwav_uint64 clipSamples;
-    float* floatBuffer = drwav_open_file_and_read_pcm_frames_f32(path.c_str(), &channels, &sr, &clipSamples, NULL);
-
-    if (channels <= 0) {
-        printf("%s has invalid channel count (%d)\n", path.c_str(), channels);
-        return NULL;
-    }
-    if (sr <= 0) {
-        printf("%s has invalid sample rate (%d)\n", path.c_str(), sr);
-        return NULL;
-    }
-
-    samples = clipSamples;
-    convertMono(floatBuffer, samples, channels);
-    sampleRate = sr;
-    return floatBuffer;
-}
-
-std::string Dataset::Clip::getFilePath() {
-    std::string path;
-    switch (type) {
-    case COMMON_VOICE:
-        path = clipPath + tsvElements.PATH;
-        break;
-    case TIMIT:
-        path = clipPath;
-        break;
-    default:
-        throw("Invalid type");
-        break;
-    }
-    if (!std::filesystem::exists(path)) {
-        printf("%s does not exist\n", path.c_str());
-        return "";
-    }
-    return path;
-}
-
-void Dataset::Clip::convertMono(float* buffer, OUT size_t& length, int channels) {
-    if (channels <= 1)
-        return;
-    
-    length /= channels;
-    for (size_t i = 0; i < length; i++) {
-        float sum = 0;
-        size_t off = i * channels;
-        for (int j = 0; j < channels; j++) {
-            sum += buffer[off + j];
-        }
-        buffer[i] = sum / channels;
-    }
-}
-
 void Dataset::preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir, size_t batchSize) {
     auto lock = sharedData.lock();
-    // Generate phoneme list
-    /*
-    TSVReader dictReader;
-    dictReader.open(path + "/english_us_mfa.dict");
-    std::vector<std::string> phonemeList = std::vector<std::string>();
-    TSVReader::TSVLine tabSeperated = TSVReader::convert(*dictReader.read_line());
-    while (tabSeperated.CLIENT_ID != "") {
-        std::string& phonemes = tabSeperated.PATH; // TSV is not dataset, get index 1
-        int start = 0;
-        int end = 0;
-        std::string p;
-        while (end != -1) {
-            end = phonemes.find_first_of(' ', start);
-            p = phonemes.substr(start, end - start);
-            start = end + 1;
-
-            bool exists = false;
-            for (size_t i = 0; i < phonemeList.size(); i++) {
-                if (phonemeList[i] == p) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists) {
-                phonemeList.push_back(p);
-            }
-        }
-        tabSeperated = TSVReader::convert(*dictReader.read_line());
-    }
-    std::sort(phonemeList.begin(), phonemeList.end());
-    std::fstream out = std::fstream("F:/Data/phonemes.txt", std::fstream::out);
-    const char* newLine = "\n";
-    for (size_t i = 0; i < phonemeList.size(); i++) {
-        std::string& p = phonemeList[i];
-        out.write(p.data(), p.size());
-        out.write(newLine, 1);
-    }
-    out.close();
-    */
 
     // Generate phoneme alignments
     const std::vector<std::string> tables = {
@@ -484,7 +254,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             int counter = 0;
             Clip clip = Clip();
             clip.type = COMMON_VOICE;
-            clip.initSampleRate(sharedData.sampleRate);
+            clip.init(sharedData.sampleRate, CLIP_DURATION);
             TSVReader::CompactTSVLine* compact = tsv.read_line();
 
             std::string audioWorkDir = workDir + "/audio";
@@ -571,8 +341,8 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
     const std::string transcriptsPath = path + "/transcript/";
     Clip clip;
     clip.type = COMMON_VOICE;
-    clip.initSampleRate(samplerate);
-    std::vector<float> audio = std::vector<float>();
+    clip.init(samplerate, CLIP_DURATION);
+    std::vector<float> audio = std::vector<float>(samplerate * CLIP_DURATION);
     TSVReader::CompactTSVLine* line;
     while (true) {
         TSVReader::CompactTSVLine* line = sharedData.reader.read_line();
@@ -592,6 +362,9 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
         }
         phones = parseTextgrid(transcriptionPath, sharedData.sampleRate);
 
+        if (clipTooLong(phones))
+            continue;
+
         // Check if the clip should be loaded
         bool shouldLoad = false;
         for (size_t i = 0; i < phones.size(); i++) {
@@ -604,8 +377,8 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
         if (!shouldLoad) {
             continue;
         }
-        loadNextClip(clipPath, tsv, clip, samplerate);
-        audio.resize(clip.size);
+        loadNextClip(clipPath, tsv, clip, -1);
+        clip.load(samplerate);
         for (size_t i = 0; i < clip.size; i++) {
             audio[i] = clip.buffer[i];
         }
@@ -614,15 +387,13 @@ std::vector<float> Dataset::_findAndLoad(const std::string& path, size_t target,
     return audio;
 }
 
-inline bool Dataset::keepLoading(size_t minExamples, DatasetWorker::DatasetData& data, bool endFlag) {
-    auto lock = data.lock();
-    return (minExamples < data.examples || !endFlag) && 
-            (minExamples < data.examples * MMAX_EXAMPLE_F); 
+bool Dataset::clipTooLong(const std::vector<Phone>& phones) {
+    return phones.back().max > CLIP_DURATION;
 }
 
-void Dataset::saveCache() {
-    get(cachedData, cachedLabels);
-    cached = true;
+bool Dataset::keepLoading(DatasetWorker::DatasetData& data, bool endFlag) {
+    auto lock = data.lock();
+    return (data.totalClips < data.targetClips && !endFlag);
 }
 
 bool Dataset::frameHasNan(const Frame& frame) {
@@ -637,22 +408,10 @@ bool Dataset::frameHasNan(const Frame& frame) {
     return false;
 }
 
-bool Dataset::wantClip(const std::vector<Phone>& phones, const std::vector<size_t>& exampleCount, size_t examples) {
-    bool shouldLoad = false;
-    for (size_t i = 0; i < phones.size(); i++) {
-        size_t binCount = exampleCount[phones[i].phonetic];
-        if (binCount < examples * MMAX_EXAMPLE_F) {
-            shouldLoad = true;
-            break;
-        }
-    }
-    return shouldLoad;
-}
-
 void Dataset::DatasetWorker::work(SharedData* _d) {
     DatasetData& data = *(DatasetData*)_d;
 
-    Dataset::Type type;
+    Type type;
     Clip clip;
     int sampleRate;
     std::string path, clipPath;
@@ -660,7 +419,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
         auto lock = data.lock();
         type = data.type;
         sampleRate = data.sampleRate;
-        clip.initSampleRate(data.sampleRate);
+        clip.init(data.sampleRate, CLIP_DURATION);
         clip.type = type;
         path = data.path;
         clipPath = data.path + "/clips/";
@@ -672,7 +431,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
     std::vector<Frame> frames;
     ClassifierHelper helper;
     helper.initalize(sampleRate);
-    while (Dataset::keepLoading(data.minExamples, data, _end)) {
+    while (Dataset::keepLoading(data, _end)) {
         // Find a clip
         {
             auto lock = data.lock();
@@ -691,13 +450,11 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     continue;
                 }
                 std::vector<Phone> tempPhones = Dataset::parseTextgrid(transcriptionPath, sampleRate);
+                if (Dataset::clipTooLong(tempPhones))
+                    continue;
 
                 // Check if the clip should be loaded
-                bool shouldLoad = Dataset::wantClip(tempPhones, data.exampleCount, data.examples);
                 data.testedClips++;
-                if (!shouldLoad) {
-                    continue;
-                }
                 phones = std::move(tempPhones);
                 loadNextClip(clipPath, nextClip, clip, -1);
             } else if (type == TIMIT) {
@@ -705,15 +462,13 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     break;
                 auto path = data.timitIter.next();
                 auto fname = path.filename();
-                std::vector<Phone> tempPhones = parseTIMIT(path.string(), sampleRate);
+                std::vector<Phone> tempPhones = Dataset::parseTIMIT(path.string(), sampleRate);
+                if (Dataset::clipTooLong(tempPhones))
+                    continue;
                 data.testedClips++;
-                bool shouldLoad = wantClip(tempPhones, data.exampleCount, data.examples);
                 std::string cpath = path.string();
                 cpath = cpath.substr(0, cpath.size() - 4);
                 cpath += "_.wav";
-
-                if (!shouldLoad)
-                    continue;
 
                 phones = std::move(tempPhones);
                 loadNextClip(cpath, clip, -1);
@@ -733,6 +488,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
             // Load all frames
             {
                 size_t fftStart = 0;
+                bool hasInvalid = false;
                 while (fftStart + FFT_REAL_SAMPLES < clip.size) {
                     if (frames.size() <= frameCounter) {
                         frames.emplace_back();
@@ -740,12 +496,17 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                         newFrame.reset();
                     }
                     Frame& currentFrame = frames[frameCounter];
-                    helper.processFrame(clip.buffer, fftStart, clip.size, frames, frameCounter);
-                    currentFrame.invalid = Dataset::frameHasNan(currentFrame);
+                    helper.processFrame(clip.buffer.data(), fftStart, clip.size, frames, frameCounter);
+                    if (Dataset::frameHasNan(currentFrame)) {
+                        currentFrame.invalid = true;
+                        hasInvalid = true;
+                        break;
+                    }
 
                     size_t maxOverlap = 0;
                     size_t maxIdx = 0;
                     // Assign phoneme ID to frame
+                    currentFrame.phone = Global::get().silencePhone(); // Default silence
                     for (int i = 0; i < phones.size(); i++) {
                         const Phone& p = phones[i];
 
@@ -759,6 +520,8 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     fftStart += FFT_FRAME_SPACING;
                     frameCounter++;
                 }
+                if (hasInvalid)
+                    continue;
             }
 
             // Find correct starts and ends of phones
@@ -800,38 +563,19 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
             // Write data into matrix
             {
                 auto lock = data.lock();
+                size_t writeCol = data.totalClips;
+                if (writeCol >= data.exampleData.n_cols)
+                    writeCol = rand() % data.exampleData.n_cols;
+                size_t nSlices = 0;
                 for (size_t i = FFT_FRAMES; i < frameCounter; i++) {
                     Frame& frame = frames[i - CONTEXT_BACKWARD];
-                    const size_t& currentPhone = frame.phone;
-                    auto& phonemeCounter = data.exampleCount[currentPhone];
 
                     // Write data
-                    size_t writeCol;
-                    if (phonemeCounter < data.examples) {
-                        writeCol = phonemeCounter;
-                    } else {
-                        double rnd = (double)rand() / RAND_MAX;
-                        double flr = (double)data.examples / phonemeCounter;
-                        if (rnd < flr) {
-                            writeCol = rand() % data.examples;
-                        } else {
-                            continue;
-                        }
-                    }
-                    if (helper.writeInput<CPU_MAT_TYPE>(frames, i, data.exampleData[currentPhone], writeCol)) {
-                        phonemeCounter++;
-                    }
+                    helper.writeInput(frames, i, data.exampleData, writeCol, nSlices);
+                    data.exampleLabel(0, writeCol, nSlices) = frame.phone;
+                    nSlices++;
                 }
-
-                // Count how many examples have been collected
-                data.minExamples = data.exampleCount[0];
-                size_t minIdx = 0;
-                for (size_t i = 1; i < data.exampleCount.size(); i++) {
-                    if (data.exampleCount[i] < data.minExamples) {
-                        data.minExamples = data.exampleCount[i];
-                        minIdx = i;
-                    }
-                }
+                data.sequenceLengths(writeCol) = nSlices;
             }
 
             /*

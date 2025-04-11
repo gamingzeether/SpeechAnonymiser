@@ -14,7 +14,7 @@ public:
     void processFrame(const float* audio, const size_t& start, const size_t& totalSize, std::vector<Frame>& allFrames, size_t currentFrame);
 
     template <typename MatType>
-    bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col) {
+    bool writeInput(const std::vector<Frame>& frames, const size_t& lastWritten, MatType& data, size_t col, size_t slice) {
         for (size_t f = 0; f < FFT_FRAMES; f++) {
             const Frame& readFrame = frames[(frames.size() + lastWritten - f) % frames.size()];
             if (readFrame.invalid)
@@ -23,7 +23,7 @@ public:
         const size_t width = FFT_FRAMES;
         const size_t height = FRAME_SIZE;
         const size_t channels = 3;
-        auto colPtr = data.colptr(col);
+        auto colPtr = data.slice(slice).colptr(col);
         for (size_t f = 0; f < FFT_FRAMES; f++) {
             const Frame& readFrame = frames[(frames.size() + lastWritten - f) % frames.size()];
             for (size_t i = 0; i < FRAME_SIZE; i++) {

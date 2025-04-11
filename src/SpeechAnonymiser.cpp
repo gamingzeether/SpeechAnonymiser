@@ -247,8 +247,8 @@ void startFFT(InputData& inputData) {
     }
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
-        CPU_MAT_TYPE data(classifier.getInputSize(), 1);
-        CPU_MAT_TYPE out(1, 1);
+        CPU_CUBE_TYPE data(classifier.getInputSize(), 1, 1);
+        CPU_CUBE_TYPE out(1, 1, 1);
 
         // Wait for visualization to open
         while (!app.isOpen) {
@@ -308,7 +308,7 @@ void startFFT(InputData& inputData) {
                 count++;
                 if (count > INFERENCE_FRAMES) {
                     count = 0;
-                    if (helper.writeInput<CPU_MAT_TYPE>(frames, currentFrame, data, 0)) {
+                    if (helper.writeInput(frames, currentFrame, data, 0, 0)) {
                         //auto classifyStart = std::chrono::high_resolution_clock::now();
                         size_t phoneme = classifier.classify(data);
                         speechFrame.phoneme = phoneme;
@@ -352,7 +352,7 @@ int commandTrain(const std::string& path) {
     logger.log("Training mode", Logger::INFO);
 
     int examples = 10000;
-    requestInput("Set examples per phoneme", examples);
+    requestInput("Set examples", examples);
     logger.log(std::format("Set examples count: {}", examples), Logger::VERBOSE);
     if (examples <= 0) {
         throw("Out of range");
@@ -627,7 +627,7 @@ int commandInteractive(const std::string& path) {
     speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
 
     Dataset ds = Dataset(outputSampleRate, path);
-    ds.setSubtype(Dataset::TEST);
+    ds.setSubtype(Subtype::TEST);
 
     if (outputAudio.startStream()) {
         std::cout << outputAudio.getErrorText() << '\n';

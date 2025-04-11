@@ -4,8 +4,8 @@
 
 #include <string>
 
-#define NETWORK_TYPE mlpack::FFN<mlpack::NegativeLogLikelihoodType<MAT_TYPE>, mlpack::HeInitialization, MAT_TYPE>
-#define OPTIMIZER_TYPE ens::AdaBelief
+#define NETWORK_TYPE mlpack::RNN<mlpack::NegativeLogLikelihoodWType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE>
+#define OPTIMIZER_TYPE ens::RMSProp
 
 class ModelSerializer
 {

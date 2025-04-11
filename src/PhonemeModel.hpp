@@ -33,6 +33,7 @@ public:
 	void initModel();
 	void initOptimizer();
 	void useLogger(Logger& l) { logger = l; };
+	mlpack::NegativeLogLikelihoodWType<MAT_TYPE>& outputLayer() { return net.OutputLayer(); };
 
 	void save(int checkpoint = -1);
 	bool load();
@@ -43,7 +44,9 @@ private:
 	void logZipError(zip_error_t* error);
 	void setDefaultModel();
 	void addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY);
+	void addPooling(JSONHelper::JSONObj& layers, int width, int height, int strideX, int strideY);
 	void addLinear(JSONHelper::JSONObj& layers, int neurons);
+	void addLstm(JSONHelper::JSONObj& layers, int neurons);
 	std::string getTempPath();
 
 	NETWORK_TYPE net;

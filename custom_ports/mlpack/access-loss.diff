@@ -1,0 +1,28 @@
+diff --git a/src/mlpack/methods/ann/ffn.hpp b/src/mlpack/methods/ann/ffn.hpp
+index f4ca7ea..46b6cea 100644
+--- a/src/mlpack/methods/ann/ffn.hpp
++++ b/src/mlpack/methods/ann/ffn.hpp
+@@ -239,6 +239,9 @@ class FFN
+   //! time a forward pass is done.
+   MatType& Parameters() { return parameters; }
+ 
++  //! Return the output layer of the network
++  OutputLayerType& OutputLayer() { return outputLayer; };
++
+   /**
+    * Reset the stored data of the network entirely.  This resets all weights of
+    * each layer using `InitializationRuleType`, and prepares the network to
+diff --git a/src/mlpack/methods/ann/rnn.hpp b/src/mlpack/methods/ann/rnn.hpp
+index 954a7c6..493a51d 100644
+--- a/src/mlpack/methods/ann/rnn.hpp
++++ b/src/mlpack/methods/ann/rnn.hpp
+@@ -179,6 +179,9 @@ class RNN
+   // Return the nujmber of weights in the model.
+   size_t WeightSize() { return network.WeightSize(); }
+ 
++  //! Return the output layer of the network
++  OutputLayerType& OutputLayer() { return network.OutputLayer(); };
++
+   /**
+    * Set the logical dimensions of the input.  `Train()` and `Predict()` expect
+    * data to be passed such that one point corresponds to one column, but this

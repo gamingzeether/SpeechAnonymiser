@@ -99,7 +99,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     }
     fftwf_execute(dctPlan);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
-        frame.real[i] = dctOut[i + 1];
+        frame.real[i] = dctOut[i];
         //frame.real[i] = melFrequencies[i];
     }
 

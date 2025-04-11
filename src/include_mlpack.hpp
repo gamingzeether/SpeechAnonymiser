@@ -5,3 +5,4 @@
 
 #define ARMA_DONT_PRINT_FAST_MATH_WARNING
 #include <mlpack.hpp>
+#include "negative_log_likelihood_w.hpp"

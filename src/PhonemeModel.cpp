@@ -17,9 +17,11 @@
 
 #define LINEARNB(neurons) net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
+#define LSTM(neurons) net.Add<mlpack::LSTMType<MAT_TYPE>>(neurons)
 #define CONVOLUTION(maps, width, height, strideX, strideY) net.Add<mlpack::ConvolutionType<CONVT>>(maps, width, height, strideX, strideY);
+#define POOLING(width, height, strideX, strideY) net.Add<mlpack::MaxPoolingType<MAT_TYPE>>(width, height, strideX, strideY);
 #define TANH_ACTIVATION net.Add<mlpack::TanHType<MAT_TYPE>>()
-#define RELU_ACTIVATION net.Add<mlpack::PReLUType<MAT_TYPE>>()
+#define RELU_ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
 #define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
@@ -30,11 +32,14 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
     
     int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
+    if (logger.has_value())
+        logger->log(std::format("Input dimensions: \t{}\t{}\t{}\t({} features)", x, y, z, x * y * z), Logger::INFO);
 
     // Default architecture defined in PhonemeModel::setDefaultModel()
     JSONHelper::JSONObj layers = config.object()["layers"];
     size_t numLayers = layers.get_array_size();
     for (size_t i = 0; i < numLayers; i++) {
+
         JSONHelper::JSONObj layer = layers[i];
 
         // Add dropout before a layer
@@ -51,13 +56,31 @@ void PhonemeModel::initModel() {
 
             CONVOLUTION(maps, width, height, strideX, strideY);
 
-            x = (x - width) / strideX;
-            y = (y - height) / strideY;
+            x = (x - width) / strideX + 1;
+            y = (y - height) / strideY + 1;
             z = maps;
+        } else if (type == "pool2d") {
+            int width = layer["width"].get_int();
+            int height = layer["height"].get_int();
+            int strideX = layer["stride_x"].get_int();
+            int strideY = layer["stride_y"].get_int();
+
+            POOLING(width, height, strideX, strideY);
+            
+            x = (x - width) / strideX + 1;
+            y = (y - height) / strideY + 1;
+            z = z;
         } else if (type == "linear") {
             int neurons = layer["neurons"].get_int();
 
             LINEAR(neurons);
+            x = neurons;
+            y = 1;
+            z = 1;
+        } else if (type == "lstm") {
+            int neurons = layer["neurons"].get_int();
+
+            LSTM(neurons);
             x = neurons;
             y = 1;
             z = 1;
@@ -71,7 +94,7 @@ void PhonemeModel::initModel() {
 
     // Add final output layers
     DROPOUT;
-    LINEARNB(outputSize);
+    LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
 }
 
@@ -231,11 +254,11 @@ void PhonemeModel::setDefaultModel() {
         layers = configRoot.add_arr("layers");
     }
     
-    addConv(layers, 32, 2, 2, 1, 1);
-    addConv(layers, 32, 2, 2, 1, 1);
-    addConv(layers, 32, 2, 2, 1, 1);
-    addConv(layers, 32, 2, 2, 1, 1);
-    addLinear(layers, 256);
+    addConv(layers, 32, 3, 3, 1, 1);
+    addConv(layers, 32, 3, 3, 1, 1);
+    addConv(layers, 32, 3, 3, 1, 1);
+    addLstm(layers, 256);
+    addLinear(layers, 128);
     addLinear(layers, 128);
 }
 
@@ -250,9 +273,26 @@ void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int
     layer["stride_y"] = strideY;
 }
 
+void addPooling(JSONHelper::JSONObj& layers, int width, int height, int strideX, int strideY) {
+    JSONHelper::JSONObj layer = layers.append();
+    layer["type"] = std::string("pool2d");
+
+    layer["width"] = width;
+    layer["height"] = height;
+    layer["stride_x"] = strideX;
+    layer["stride_y"] = strideY;
+}
+
 void PhonemeModel::addLinear(JSONHelper::JSONObj& layers, int neurons) {
     JSONHelper::JSONObj layer = layers.append();
     layer["type"] = std::string("linear");
+
+    layer["neurons"] = neurons;
+}
+
+void PhonemeModel::addLstm(JSONHelper::JSONObj& layers, int neurons) {
+    JSONHelper::JSONObj layer = layers.append();
+    layer["type"] = std::string("lstm");
 
     layer["neurons"] = neurons;
 }

@@ -1,0 +1,16 @@
+diff --git a/src/mlpack/methods/ann/layer/lstm.hpp b/src/mlpack/methods/ann/layer/lstm.hpp
+index a56e501..c2362c0 100644
+--- a/src/mlpack/methods/ann/layer/lstm.hpp
++++ b/src/mlpack/methods/ann/layer/lstm.hpp
+@@ -147,8 +147,9 @@ class LSTMType : public RecurrentLayer<MatType>
+   //! Given a properly set InputDimensions(), compute the output dimensions.
+   void ComputeOutputDimensions()
+   {
+-    inSize = std::accumulate(this->inputDimensions.begin(),
+-        this->inputDimensions.end(), 0);
++    inSize = this->inputDimensions[0];
++    for (size_t i = 1; i < this->inputDimensions.size(); ++i)
++      inSize *= this->inputDimensions[i];
+     this->outputDimensions = std::vector<size_t>(this->inputDimensions.size(),
+         1);
+ 
