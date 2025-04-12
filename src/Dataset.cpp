@@ -481,8 +481,6 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
             frame.reset();
         }
         if (clip.loaded) {
-            data.totalClips++;
-
             // Convert to data used by classifier
             size_t frameCounter = 0;
             // Load all frames
@@ -576,6 +574,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     nSlices++;
                 }
                 data.sequenceLengths(writeCol) = nSlices;
+                data.totalClips++;
             }
 
             /*
