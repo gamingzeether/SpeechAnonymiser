@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../common_inc.hpp"
 
 #include <string>
 #include <vector>
 #include <map>
-#include "structs.hpp"
-#include "Config.hpp"
+#include "../structs.hpp"
+#include "../Utils/Config.hpp"
 
 class Voicebank {
 public:

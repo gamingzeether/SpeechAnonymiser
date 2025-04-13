@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../common_inc.hpp"
 
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <fftw3.h>
-#include "structs.hpp"
+#include "../structs.hpp"
 
 class ClassifierHelper {
 public:

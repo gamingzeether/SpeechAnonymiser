@@ -9,8 +9,8 @@
 #include <assert.h>
 #include <dr_wav.h>
 #include <mlpack/core/math/shuffle_data.hpp>
-#include "Util.hpp"
-#include "Global.hpp"
+#include "../../Utils/Util.hpp"
+#include "../../Utils/Global.hpp"
 
 #define CLIP_DURATION 12 // Max clip Duration
 // Return codes for loading clips

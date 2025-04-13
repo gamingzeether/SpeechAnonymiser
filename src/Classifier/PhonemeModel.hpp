@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../common_inc.hpp"
 
-#include "include_mlpack.hpp"
-#include "ClassifierHelper.hpp"
-#include "Config.hpp"
-#include "Logger.hpp"
-#include "ModelSerializer.hpp"
 #include <zip.h>
+#include "ModelSerializer.hpp"
+#include "../Utils/ClassifierHelper.hpp"
+#include "../Utils/Config.hpp"
+#include "../Utils/Logger.hpp"
+#include "../include_mlpack.hpp"
 
 class PhonemeModel {
 public:

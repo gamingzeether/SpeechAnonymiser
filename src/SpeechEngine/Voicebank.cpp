@@ -6,10 +6,10 @@
 #include <format>
 #include <dr_wav.h>
 #include <samplerate.h>
-#include "ClassifierHelper.hpp"
-#include "Logger.hpp"
-#include "Global.hpp"
-#include "Util.hpp"
+#include "../Utils/ClassifierHelper.hpp"
+#include "../Utils/Logger.hpp"
+#include "../Utils/Global.hpp"
+#include "../Utils/Util.hpp"
 
 #define CACHE_VERSION 1
 #define DICT_WIDTH 5

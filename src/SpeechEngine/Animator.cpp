@@ -1,7 +1,7 @@
 #include "Animator.hpp"
 
 #include <assert.h>
-#include "ClassifierHelper.hpp"
+#include "../Utils/ClassifierHelper.hpp"
 
 float Animator::CubicBezierCurve::pos(float t) {
 	assert(0 <= t && t <= 1);

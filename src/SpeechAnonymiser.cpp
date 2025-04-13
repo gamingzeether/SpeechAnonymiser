@@ -12,16 +12,16 @@
 #include <format>
 #include <optional>
 #include <cargs.h>
-#include "TSVReader.hpp"
+#include "Classifier/PhonemeClassifier.hpp"
+#include "Classifier/Train/Dataset.hpp"
+#include "Classifier/Train/TSVReader.hpp"
+#include "Utils/ClassifierHelper.hpp"
+#include "Utils/Global.hpp"
+#include "Utils/Logger.hpp"
+#include "Utils/Util.hpp"
+#include "SpeechEngine/SpeechEngineConcatenator.hpp"
+#include "SpeechEngine/SpeechEngineFormant.hpp"
 #include "structs.hpp"
-#include "PhonemeClassifier.hpp"
-#include "ClassifierHelper.hpp"
-#include "Dataset.hpp"
-#include "Logger.hpp"
-#include "SpeechEngineConcatenator.hpp"
-#include "SpeechEngineFormant.hpp"
-#include "Global.hpp"
-#include "Util.hpp"
 #ifdef AUDIO
 #include <rtaudio/RtAudio.h>
 #endif

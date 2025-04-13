@@ -2,7 +2,7 @@
 
 #define MLPACK_ENABLE_ANN_SERIALIZATION 
 #include <filesystem>
-#include "include_mlpack.hpp"
+#include "../include_mlpack.hpp"
 CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
 //CEREAL_REGISTER_TYPE(mlpack::NegativeLogLikelihoodW);
 CEREAL_REGISTER_TYPE(mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>);

@@ -6,8 +6,8 @@
 #include <numbers>
 #include <iostream>
 #include <thread>
-#include "ClassifierHelper.hpp"
-#include "Global.hpp"
+#include "../Utils/ClassifierHelper.hpp"
+#include "../Utils/Global.hpp"
 
 #define ENGINE_STEP_FRAMES 256
 #define ENGINE_TIMESTEP ((double)ENGINE_STEP_FRAMES / sampleRate)

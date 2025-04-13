@@ -1,16 +1,16 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../common_inc.hpp"
 
 #include <chrono>
 #include <random>
 #include <unordered_map>
 #include <string>
 #include <mutex>
-#include "structs.hpp"
-#include "define.hpp"
-#include "Logger.hpp"
-#include "JSONHelper.hpp"
+#include "../Utils/JSONHelper.hpp"
+#include "../Utils/Logger.hpp"
+#include "../define.hpp"
+#include "../structs.hpp"
 
 /* Defines a base speech engine
  * Do not use this

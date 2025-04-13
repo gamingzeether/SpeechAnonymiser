@@ -1,19 +1,19 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../../common_inc.hpp"
 
 #define ARMA_DONT_PRINT_FAST_MATH_WARNING
 
 #include <thread>
 #include <armadillo>
 #include <filesystem>
-#include "TSVReader.hpp"
-#include "ParallelWorker.hpp"
-#include "TimitIterator.hpp"
 #include "Clip.hpp"
 #include "DatasetTypes.hpp"
-#include "ClassifierHelper.hpp"
-#include "structs.hpp"
+#include "TimitIterator.hpp"
+#include "TSVReader.hpp"
+#include "../../Utils/ClassifierHelper.hpp"
+#include "../../Utils/ParallelWorker.hpp"
+#include "../../structs.hpp"
 
 class Dataset {
 public:

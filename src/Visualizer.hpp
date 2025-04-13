@@ -15,7 +15,7 @@
 #include <QPixmap>
 #include <QLabel>
 
-#include "ClassifierHelper.hpp"
+#include "Utils/ClassifierHelper.hpp"
 
 class Visualizer : QObject{
 public:

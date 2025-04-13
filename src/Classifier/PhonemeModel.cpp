@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <format>
-#include "Global.hpp"
+#include "../Utils/Global.hpp"
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"

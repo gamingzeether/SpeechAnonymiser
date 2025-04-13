@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common_inc.hpp"
+#include "../common_inc.hpp"
 
 #include <string>
 #include <vector>
 #include <cmath>
 #include <optional>
-#include "JSONHelper.hpp"
+#include "../Utils/JSONHelper.hpp"
 
 // Class for animating articulators in a SpeechEngine
 class Animator {

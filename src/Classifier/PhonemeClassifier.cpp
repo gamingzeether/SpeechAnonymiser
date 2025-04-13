@@ -18,10 +18,10 @@
 
 #include <filesystem>
 #include "ModelSerializer.hpp"
-#include "Dataset.hpp"
-#include "ClassifierHelper.hpp"
 #include "TrainingExec.hpp"
-#include "Global.hpp"
+#include "Train/Dataset.hpp"
+#include "../Utils/ClassifierHelper.hpp"
+#include "../Utils/Global.hpp"
 
 using namespace mlpack;
 
