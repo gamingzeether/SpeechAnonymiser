@@ -193,7 +193,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         CNAME(trainLabel),
         trainLengths,
         model.optimizer(),
-        ens::PrintLoss(),
         ens::ProgressBar(50),
         TrainingExecType<MAT_TYPE>(
             [&](size_t epoch) {

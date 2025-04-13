@@ -12,6 +12,7 @@
 #include "TimitIterator.hpp"
 #include "Clip.hpp"
 #include "DatasetTypes.hpp"
+#include "ClassifierHelper.hpp"
 #include "structs.hpp"
 
 class Dataset {
@@ -23,7 +24,7 @@ public:
     bool done();
     void end();
     void preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir, size_t batchSize);
-    std::vector<float> _findAndLoad(const std::string& path, size_t target, int samplerate, TSVReader::TSVLine& tsv, std::vector<Phone>& phones, const std::string& filter = "");
+    std::vector<float> _findAndLoad(const std::string& path, size_t target, int samplerate, std::string& fileName, std::vector<Phone>& phones, const std::string& filter = "");
     void setSubtype(Subtype t);
     size_t getLoadedClips();
 
@@ -41,6 +42,7 @@ public:
             sharedData.type = COMMON_VOICE;
         } else {
             sharedData.type = TIMIT;
+            sharedData.timitIter.open(sharedData.path);
         }
     };
 private:
@@ -83,4 +85,9 @@ private:
     static bool clipTooLong(const std::vector<Phone>& phones);
     static bool keepLoading(DatasetWorker::DatasetData& data, bool endFlag);
     static bool frameHasNan(const Frame& frame);
+    // Return codes at top of cpp file
+    static int getNextClipCV(Clip& clip, Dataset::DatasetWorker::DatasetData& data, std::vector<Phone>& phones);
+    static int getNextClipCV(Clip& clip, Dataset::DatasetWorker::DatasetData& data, std::vector<Phone>& phones, TSVReader::TSVLine& clipTsv);
+    static int getNextClipTIMIT(Clip& clip, Dataset::DatasetWorker::DatasetData& data, std::vector<Phone>& phones);
+    static int clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>& frames, ClassifierHelper& helper, const std::vector<Phone>& phones);
 };

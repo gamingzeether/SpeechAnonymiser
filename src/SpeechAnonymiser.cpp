@@ -689,10 +689,10 @@ int commandInteractive(const std::string& path) {
         } else if (command != "" && prefix == "dataset") {
             size_t targetPhoneme = std::stoull(command);
             if (targetPhoneme < G_PS.size()) {
-                TSVReader::TSVLine tsv;
-                clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, tsv, clipPhones);
+                std::string fileName;
+                clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, fileName, clipPhones);
                 prefix = "clip";
-                std::printf("%s\n", tsv.PATH.c_str());
+                std::printf("%s\n", fileName.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
                     const Phone& p = clipPhones[i];
                     std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS.xSampa(p.phonetic).c_str(), p.min, p.max);
