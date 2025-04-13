@@ -213,6 +213,7 @@ bool PhonemeModel::load() {
     if (!loaded)
         initModel();
     net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
+    net.MemoryInit();
     initOptimizer();
 
     return loaded;

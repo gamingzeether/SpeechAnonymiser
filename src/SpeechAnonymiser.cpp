@@ -248,7 +248,6 @@ void startFFT(InputData& inputData) {
     std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
         // Setup classifier
         CPU_CUBE_TYPE data(classifier.getInputSize(), 1, 1);
-        CPU_CUBE_TYPE out(1, 1, 1);
 
         // Wait for visualization to open
         while (!app.isOpen) {

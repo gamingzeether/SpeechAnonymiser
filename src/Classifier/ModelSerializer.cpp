@@ -4,10 +4,8 @@
 #include <filesystem>
 #include "../include_mlpack.hpp"
 CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
-//CEREAL_REGISTER_TYPE(mlpack::NegativeLogLikelihoodW);
 CEREAL_REGISTER_TYPE(mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>);
 CEREAL_REGISTER_TYPE(mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>);
-//CEREAL_REGISTER_TYPE(mlpack::NegativeLogLikelihoodWType<MAT_TYPE>);
 
 void ModelSerializer::saveNetwork(const std::string& filename, const void* network) {
 	const NETWORK_TYPE& netRef = *(NETWORK_TYPE*)network;

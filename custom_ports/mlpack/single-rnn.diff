@@ -2,12 +2,14 @@ diff --git a/src/mlpack/methods/ann/rnn.hpp b/src/mlpack/methods/ann/rnn.hpp
 index ee97d6f..b91950a 100644
 --- a/src/mlpack/methods/ann/rnn.hpp
 +++ b/src/mlpack/methods/ann/rnn.hpp
-@@ -258,6 +258,9 @@ class RNN
+@@ -258,6 +258,11 @@ class RNN
                 arma::Cube<typename MatType::elem_type>& results,
                 const arma::urowvec& sequenceLengths);
  
 +  void PredictSingle(const arma::Cube<typename MatType::elem_type>& predictors,
 +               arma::Cube<typename MatType::elem_type>& results);
++
++  void MemoryInit() { ResetMemoryState(0, 1); };
 +
    // Return the nujmber of weights in the model.
    size_t WeightSize() { return network.WeightSize(); }
@@ -16,7 +18,7 @@ diff --git a/src/mlpack/methods/ann/rnn_impl.hpp b/src/mlpack/methods/ann/rnn_im
 index 6ebb32f..afe0f33 100644
 --- a/src/mlpack/methods/ann/rnn_impl.hpp
 +++ b/src/mlpack/methods/ann/rnn_impl.hpp
-@@ -348,6 +348,53 @@ void RNN<
+@@ -348,6 +348,48 @@ void RNN<
    }
  }
  
@@ -33,38 +35,33 @@ index 6ebb32f..afe0f33 100644
 +    const arma::Cube<typename MatType::elem_type>& predictors,
 +    arma::Cube<typename MatType::elem_type>& results)
 +{
-+    // Ensure that the network is configured correctly.
-+    network.CheckNetwork("CustomRNN::Predict()", predictors.n_rows, true, false);
++  // Ensure that the network is configured correctly.
++  network.CheckNetwork("RNN::Predict()", predictors.n_rows, true, false);
 +
-+    results.set_size(network.network.OutputSize(), predictors.n_cols, 1);
++  results.set_size(network.network.OutputSize(), predictors.n_cols,
++      single ? 1 : predictors.n_slices);
 +
-+    MatType inputAlias, outputAlias;
-+    // This only works as expected if there is only 1 column
-+    //for (size_t i = 0; i < predictors.n_cols; i += batchSize)
-+    //{
-+        //const size_t effectiveBatchSize = std::min(batchSize,
-+        //    size_t(predictors.n_cols) - i);
-+        const size_t effectiveBatchSize = 1;
++  MatType inputAlias, outputAlias;
++  for (size_t i = 0; i < predictors.n_cols; i++)
++  {
++    // Since we aren't doing a backward pass, we don't actually need to store
++    // the state for each time step---we can fit it all in one buffer.
++    //ResetMemoryState(0, 1);
 +
-+        // Since we aren't doing a backward pass, we don't actually need to store
-+        // the state for each time step---we can fit it all in one buffer.
-+        //ResetMemoryState(0, effectiveBatchSize);
++    for (size_t t = 0; t < 1; ++t)
++    {
++      SetCurrentStep(t, false);
 +
-+        // Iterate over all time steps.
-+        for (size_t t = 0; t < predictors.n_slices; ++t)
-+        {
-+            //SetCurrentStep(t, (t == predictors.n_slices - 1));
++      // Create aliases for the input and output.  If we are in single mode, we
++      // always output into the same slice.
++      MakeAlias(inputAlias, predictors.slice(t), predictors.n_rows, 1,
++          i * predictors.n_rows);
++      MakeAlias(outputAlias, results.slice(single ? 0 : t), results.n_rows, 1,
++          i * results.n_rows);
 +
-+            // Create aliases for the input and output.  If we are in single mode, we
-+            // always output into the same slice.
-+            MakeAlias(inputAlias, predictors.slice(t), predictors.n_rows,
-+                effectiveBatchSize, predictors.n_rows);
-+            MakeAlias(outputAlias, results.slice(single ? 0 : t), results.n_rows,
-+                effectiveBatchSize, results.n_rows);
-+
-+            network.Forward(inputAlias, outputAlias);
-+        }
-+    //}
++      network.Forward(inputAlias, outputAlias);
++    }
++  }
 +}
 +
  template<
