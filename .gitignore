@@ -32,7 +32,6 @@ bld/
 [Ll]og/
 [Ll]ogs/
 out/
-*.spv
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -405,7 +404,6 @@ vcpkg_installed/*
 enc_temp_folder/*
 *.bin
 build/*
-classifier.json
 
 # docker
 docker/dataset
