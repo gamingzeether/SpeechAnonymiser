@@ -12,7 +12,7 @@
 #include "../../Utils/Util.hpp"
 #include "../../Utils/Global.hpp"
 
-#define CLIP_DURATION 12 // Max clip Duration
+#define CLIP_DURATION 8 // Max clip Duration
 // Return codes for loading clips
 #define CLIP_DONE -1
 #define CLIP_GOOD 0

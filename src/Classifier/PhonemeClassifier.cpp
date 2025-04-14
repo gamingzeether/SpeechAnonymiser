@@ -186,6 +186,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     }
 
     // Start training model
+    int numPoints = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
+    logger.log(std::format("Total number of training points: {}", numPoints), Logger::INFO);
     logger.log("Starting training", Logger::INFO);
     model.network().BPTTSteps() = trainData.n_slices;
     model.network().Train(

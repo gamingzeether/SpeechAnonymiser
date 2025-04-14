@@ -350,7 +350,7 @@ int commandHelp() {
 int commandTrain(const std::string& path) {
     logger.log("Training mode", Logger::INFO);
 
-    int examples = 10000;
+    int examples = 1000;
     requestInput("Set examples", examples);
     logger.log(std::format("Set examples count: {}", examples), Logger::VERBOSE);
     if (examples <= 0) {
@@ -737,7 +737,8 @@ void initClassifier(int argc, char* argv[]) {
 
     srand(static_cast <unsigned> (time(0)));
 
-    requestInput("Select sample rate", sampleRate);
+    //requestInput("Select sample rate", sampleRate);
+    sampleRate = 16000;
     classifier.initalize(sampleRate);
     logger.log(std::format("Set sample rate: {}", sampleRate), Logger::VERBOSE);
 
