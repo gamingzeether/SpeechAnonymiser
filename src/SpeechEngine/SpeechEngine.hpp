@@ -8,7 +8,6 @@
 #include <string>
 #include <mutex>
 #include "../Utils/JSONHelper.hpp"
-#include "../Utils/Logger.hpp"
 #include "../define.hpp"
 #include "../structs.hpp"
 
@@ -45,26 +44,6 @@ protected:
 		return randomDist(randomEngine);
 	};
 	virtual void _init() = 0;
-	void initLogger() {
-		logger = Logger();
-		logger.addStream(Logger::Stream("speech_engine.log").
-			outputTo(Logger::VERBOSE).
-			outputTo(Logger::INFO).
-			outputTo(Logger::WARNING).
-			outputTo(Logger::ERR).
-			outputTo(Logger::FATAL));
-		logger.addStream(Logger::Stream(std::cout).
-			outputTo(Logger::INFO).
-			outputTo(Logger::WARNING).
-			outputTo(Logger::ERR).
-			outputTo(Logger::FATAL));
-	
-		logger.log("Starting", Logger::VERBOSE);
-		logger.log(std::format("Sample rate: {}", sampleRate), Logger::VERBOSE);
-		logger.log(std::format("Channels: {}", channels), Logger::VERBOSE);
-	}
-
-	Logger logger;
 
 	int sampleRate = 16000;
 	int channels = 1;

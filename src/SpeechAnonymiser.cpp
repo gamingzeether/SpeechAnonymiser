@@ -17,7 +17,6 @@
 #include "Classifier/Train/TSVReader.hpp"
 #include "Utils/ClassifierHelper.hpp"
 #include "Utils/Global.hpp"
-#include "Utils/Logger.hpp"
 #include "Utils/Util.hpp"
 #include "SpeechEngine/SpeechEngineConcatenator.hpp"
 #include "SpeechEngine/SpeechEngineFormant.hpp"
@@ -37,8 +36,6 @@ int sampleRate = 16000;
 PhonemeClassifier classifier;
 
 std::unique_ptr<SpeechEngine> speechEngine = nullptr;
-
-Logger logger;
 
 static struct cag_option options[] = {
   {
@@ -226,15 +223,15 @@ void cleanupRtAudio(RtAudio audio) {
 void startFFT(InputData& inputData) {
     float activationThreshold = 0.01;
     if (classifier.ready) {
-        logger.log("Model successfully loaded", Logger::INFO);
+        G_LG("Model successfully loaded", Logger::INFO);
         requestInput("Set activation threshold", activationThreshold);
     } else {
-        logger.log("Model could not be loaded, disabling classification", Logger::WARNING);
+        G_LG("Model could not be loaded, disabling classification", Logger::WARN);
         //activationThreshold = std::numeric_limits<float>::max();
     }
 
     Visualizer app;
-    logger.log("Starting visualizer", Logger::INFO);
+    G_LG("Starting visualizer", Logger::INFO);
     const size_t frameCount = FFT_FRAMES * 2;
     app.fftData.frames = frameCount;
     app.fftData.currentFrame = 0;
@@ -253,7 +250,7 @@ void startFFT(InputData& inputData) {
         while (!app.isOpen) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        logger.log("Starting FFT thread processing", Logger::VERBOSE);
+        G_LG("Starting FFT thread processing", Logger::DBUG);
         std::vector<Frame> frames = std::vector<Frame>(frameCount);
         for (Frame& f : frames) {
             f.reset();
@@ -348,18 +345,18 @@ int commandHelp() {
 }
 
 int commandTrain(const std::string& path) {
-    logger.log("Training mode", Logger::INFO);
+    G_LG("Training mode", Logger::INFO);
 
     int examples = 1000;
     requestInput("Set examples", examples);
-    logger.log(std::format("Set examples count: {}", examples), Logger::VERBOSE);
+    G_LG(std::format("Set examples count: {}", examples), Logger::DBUG);
     if (examples <= 0) {
         throw("Out of range");
     }
 
     int epochs = 1000;
     requestInput("Set number of epochs", epochs);
-    logger.log(std::format("Set epochs: {}", epochs), Logger::VERBOSE);
+    G_LG(std::format("Set epochs: {}", epochs), Logger::DBUG);
     if (epochs <= 0) {
         throw("Out of range");
     }
@@ -380,7 +377,7 @@ int commandPreprocess(const std::string& path, const std::string& workDir, const
     char* condaEnv = getenv("CONDA_DEFAULT_ENV");
     if (condaEnv == NULL || strcmp(condaEnv, "aligner") != 0) {
         std::string errorMessage = "Aligner not detected, make sure MFA is installed and activated before starting this program";
-        logger.log(errorMessage, Logger::WARNING);
+        G_LG(errorMessage, Logger::WARN);
     }
 
     int batchSize = 1500;
@@ -466,9 +463,9 @@ int commandDefault() {
     unsigned int inputSampleRate = sampleRate;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
-    logger.log(std::format("Using input: {}", inputInfo.name), Logger::INFO);
-    logger.log(std::format("Sample rate: {}", inputSampleRate), Logger::INFO);
-    logger.log(std::format("Channels: {}", inputInfo.inputChannels), Logger::INFO);
+    G_LG(std::format("Using input: {}", inputInfo.name), Logger::INFO);
+    G_LG(std::format("Sample rate: {}", inputSampleRate), Logger::INFO);
+    G_LG(std::format("Channels: {}", inputInfo.inputChannels), Logger::INFO);
 
     InputData inputData = InputData(inputParameters.nChannels, inputSampleRate * INPUT_BUFFER_TIME);
 
@@ -494,9 +491,9 @@ int commandDefault() {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    logger.log(std::format("Using output: {}", outputInfo.name), Logger::INFO);
-    logger.log(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
-    logger.log(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
+    G_LG(std::format("Using output: {}", outputInfo.name), Logger::INFO);
+    G_LG(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
+    G_LG(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -601,9 +598,9 @@ int commandInteractive(const std::string& path) {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    logger.log(std::format("Using output: {}", outputInfo.name), Logger::INFO);
-    logger.log(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
-    logger.log(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
+    G_LG(std::format("Using output: {}", outputInfo.name), Logger::INFO);
+    G_LG(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
+    G_LG(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -733,21 +730,21 @@ void initClassifier(int argc, char* argv[]) {
         }
         launchString += argv[i];
     }
-    logger.log(std::format("Launch args: {}", launchString), Logger::INFO);
+    G_LG(std::format("Launch args: {}", launchString), Logger::INFO);
 
     srand(static_cast <unsigned> (time(0)));
 
     //requestInput("Select sample rate", sampleRate);
     sampleRate = 16000;
     classifier.initalize(sampleRate);
-    logger.log(std::format("Set sample rate: {}", sampleRate), Logger::VERBOSE);
+    G_LG(std::format("Set sample rate: {}", sampleRate), Logger::DBUG);
 
     {
         double forwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_FORWARD * FFT_FRAME_SPACING);
         double backwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_BACKWARD * FFT_FRAME_SPACING);
         double forwardMsec = 1000.0 * (forwardSamples / sampleRate);
         double backwardMsec = 1000.0 * (backwardSamples / sampleRate);
-        logger.log(std::format("Forward context: {}ms; Backward context: {}ms", forwardMsec, backwardMsec), Logger::INFO);
+        G_LG(std::format("Forward context: {}ms; Backward context: {}ms", forwardMsec, backwardMsec), Logger::INFO);
     }
 }
 
@@ -755,20 +752,6 @@ int main(int argc, char* argv[]) {
     tryMakeDir("logs");
     tryMakeDir("configs/articulators");
     tryMakeDir("configs/animations/phonemes");
-
-    logger = Logger();
-    logger.addStream(Logger::Stream("main.log")
-        .outputTo(Logger::VERBOSE)
-        .outputTo(Logger::INFO)
-        .outputTo(Logger::WARNING)
-        .outputTo(Logger::ERR)
-        .outputTo(Logger::FATAL));
-    logger.addStream(Logger::Stream(std::cout)
-        .outputTo(Logger::INFO)
-        .outputTo(Logger::WARNING)
-        .outputTo(Logger::ERR)
-        .outputTo(Logger::FATAL)
-        .enableColor(true));
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assert.h>
+
 #define MLPACK_ANN_IGNORE_SERIALIZATION_WARNING
 #define ARMA_PRINT_EXCEPTIONS
 #define OUT

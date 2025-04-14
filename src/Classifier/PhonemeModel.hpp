@@ -6,7 +6,6 @@
 #include "ModelSerializer.hpp"
 #include "../Utils/ClassifierHelper.hpp"
 #include "../Utils/Config.hpp"
-#include "../Utils/Logger.hpp"
 #include "../include_mlpack.hpp"
 
 class PhonemeModel {
@@ -32,7 +31,6 @@ public:
 	void setHyperparameters(Hyperparameters hp);
 	void initModel();
 	void initOptimizer();
-	void useLogger(Logger& l) { logger = l; };
 	mlpack::NegativeLogLikelihoodWType<MAT_TYPE>& outputLayer() { return net.OutputLayer(); };
 
 	void save(int checkpoint = -1);
@@ -53,7 +51,6 @@ private:
 	OPTIMIZER_TYPE optim;
 	Config config;
 	Hyperparameters hp;
-	std::optional<Logger> logger;
 
 	int inputSize = FRAME_SIZE * FFT_FRAMES * 3;
 	int outputSize = 0;

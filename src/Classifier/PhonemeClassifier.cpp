@@ -26,20 +26,6 @@
 using namespace mlpack;
 
 void PhonemeClassifier::initalize(const size_t& sr) {
-    logger = Logger();
-    logger.addStream(Logger::Stream("classifier.log")
-        .outputTo(Logger::VERBOSE)
-        .outputTo(Logger::INFO)
-        .outputTo(Logger::WARNING)
-        .outputTo(Logger::ERR)
-        .outputTo(Logger::FATAL));
-    logger.addStream(Logger::Stream(std::cout)
-        .outputTo(Logger::INFO)
-        .outputTo(Logger::WARNING)
-        .outputTo(Logger::ERR)
-        .outputTo(Logger::FATAL)
-        .enableColor(true));
-
     // Check if already initalized
     assert(!initalized);
 
@@ -54,18 +40,17 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     hp.batchSize() = 1;
     hp.stepSize() = 0.0001;
     model.setHyperparameters(hp);
-    model.useLogger(logger);
 
     model.getSampleRate() = sampleRate;
 
     if (!model.load()) {
-        logger.log("Model not loaded, initalizing new model", Logger::WARNING, Logger::YELLOW);
+        G_LG("Model not loaded, initalizing new model", Logger::WARN, Logger::YELLOW);
     }
 
-    logger.log(std::format("Model initalized with {} input features and {} output features", model.getInputSize(), model.getOutputSize()), Logger::INFO);
+    G_LG(std::format("Model initalized with {} input features and {} output features", model.getInputSize(), model.getOutputSize()), Logger::INFO);
 
     ready = true;
-    logger.log("Classifier ready", Logger::INFO, Logger::GREEN);
+    G_LG("Classifier ready", Logger::INFO, Logger::GREEN);
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
@@ -78,7 +63,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         size_t nSteps = std::max((size_t)1, examples / bs);
         realExamples = nSteps * bs;
         if (realExamples != examples) {
-            logger.log(std::format("Rounding examples to {} (multiple of {})", realExamples, bs), Logger::INFO);
+            G_LG(std::format("Rounding examples to {} (multiple of {})", realExamples, bs), Logger::INFO);
         }
     }
     
@@ -187,8 +172,8 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
     // Start training model
     int numPoints = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
-    logger.log(std::format("Total number of training points: {}", numPoints), Logger::INFO);
-    logger.log("Starting training", Logger::INFO);
+    G_LG(std::format("Total number of training points: {}", numPoints), Logger::INFO);
+    G_LG("Starting training", Logger::INFO);
     model.network().BPTTSteps() = trainData.n_slices;
     model.network().Train(
         CNAME(trainData),
@@ -198,7 +183,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         ens::ProgressBar(50),
         TrainingExecType<MAT_TYPE>(
             [&](size_t epoch) {
-                //logger.log(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::VERBOSE);
+                //G_LG(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::DBUG);
                 model.network().SetNetworkMode(false);
                 // Compare training and test accuracy to check for overfitting
                 if (epoch % 10 == 0) {
@@ -211,7 +196,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             }
         ));
 
-    logger.log(std::format("Training ended with best loss {}", bestLoss), Logger::INFO);
+        G_LG(std::format("Training ended with best loss {}", bestLoss), Logger::INFO);
 }
 
 // Note: This doesn't reset memory
@@ -270,7 +255,7 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
             }
         }
     }
-    logger.log(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
+    G_LG(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
     std::cout << "Confusion Matrix:\n";
     std::cout << "   ";
     for (size_t i = 0; i < outputSize; i++) {
@@ -370,7 +355,7 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
         int targetParam = i % paramSize;
         float delta = stepSize.e[targetParam];
 
-        logger.log(std::format("Starting iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
+        G_LG(std::format("Starting iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
         for (int j = 0; j < models.size(); j++) {
             // Reset stuff
             bestLosses[j] = 9e99;
@@ -389,7 +374,7 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
             }
 
             // Start training models
-            logger.log(std::format("Starting model {}", j), Logger::INFO);
+            G_LG(std::format("Starting model {}", j), Logger::INFO);
             std::thread& trainThread = trainThreads[j];
             trainThread = std::thread([this, &mdl, &CNAME(tuneTrainData), &CNAME(tuneTrainLabel), &CNAME(tuneValidData), &CNAME(tuneValidLabel), &bestLosses, j, optimIterations] {
                 mdl.optimizer().MaxIterations() = optimIterations;
@@ -404,12 +389,12 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
                             double validationLoss = 1; //mdl.network().Evaluate(CNAME(tuneValidData), CNAME(tuneValidLabel));
                             if (validationLoss < bestLosses[j]) {
                                 bestLosses[j] = validationLoss;
-                                logger.log(std::format("Model {} with new best {}", j, validationLoss), Logger::INFO);
+                                G_LG(std::format("Model {} with new best {}", j, validationLoss), Logger::INFO);
                             }
                             return validationLoss;
                         })
                 );
-                logger.log(std::format("Model {} done", j), Logger::INFO);
+                G_LG(std::format("Model {} done", j), Logger::INFO);
                 });
         }
 
@@ -434,9 +419,9 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
         base.e[targetParam] += bestDelta;
 
         // Print new best
-        logger.log(std::format("Best hyperparameters after iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
+        G_LG(std::format("Best hyperparameters after iteration {}, subiteration {}", i / paramSize, i % paramSize), Logger::INFO);
         for (int j = 0; j < paramSize; j++) {
-            logger.log(std::format("{}", base.e[j]), Logger::INFO);
+            G_LG(std::format("{}", base.e[j]), Logger::INFO);
         }
     }
 }

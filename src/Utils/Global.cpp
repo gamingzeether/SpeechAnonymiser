@@ -11,16 +11,16 @@ size_t Global::silencePhone() {
 Global::Global() {
 	logger.addStream(Logger::Stream(std::cout)
 		.outputTo(Logger::INFO)
-		.outputTo(Logger::WARNING)
-		.outputTo(Logger::ERR)
-		.outputTo(Logger::FATAL)
+		.outputTo(Logger::WARN)
+		.outputTo(Logger::ERRO)
+		.outputTo(Logger::DEAD)
 		.enableColor(true));
-	logger.addStream(Logger::Stream("global.log")
-		.outputTo(Logger::VERBOSE)
+	logger.addStream(Logger::Stream("log.txt")
+		.outputTo(Logger::DBUG)
 		.outputTo(Logger::INFO)
-		.outputTo(Logger::WARNING)
-		.outputTo(Logger::ERR)
-		.outputTo(Logger::FATAL));
+		.outputTo(Logger::WARN)
+		.outputTo(Logger::ERRO)
+		.outputTo(Logger::DEAD));
 
 	initPhonemeSet();
 	silPhone = ps.fromString("");
@@ -33,7 +33,7 @@ void Global::initPhonemeSet() {
 		JSONHelper::JSONObj mappings = json["mappings"];
 		size_t arrSize = mappings.get_array_size();
 		if (arrSize == 0) {
-			logger.log("No phoneme mapping groups found", Logger::WARNING);
+			G_LG("No phoneme mapping groups found", Logger::WARN);
 		}
 		for (size_t i = 0; i < arrSize; i++) {
 			JSONHelper::JSONObj group = mappings[i];
@@ -58,7 +58,11 @@ void Global::initPhonemeSet() {
 		}
 		json.close();
 	} else {
-		logger.log("Failed to open phoneme mappings", Logger::FATAL);
+		G_LG("Failed to open phoneme mappings", Logger::DEAD);
 		throw("Failed to open phoneme mappings");
 	}
+}
+
+void Global::log(const std::string& message, int verbosity, int color) {
+	logger.log(message, verbosity, color);
 }

@@ -32,8 +32,7 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
     
     int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
-    if (logger.has_value())
-        logger->log(std::format("Input dimensions: \t{}\t{}\t{}\t({} features)", x, y, z, x * y * z), Logger::INFO);
+    G_LG(std::format("Input dimensions: \t{}\t{}\t{}\t({} features)", x, y, z, x * y * z), Logger::INFO);
 
     // Default architecture defined in PhonemeModel::setDefaultModel()
     JSONHelper::JSONObj layers = config.object()["layers"];
@@ -85,8 +84,7 @@ void PhonemeModel::initModel() {
             y = 1;
             z = 1;
         }
-        if (logger.has_value())
-            logger->log(std::format("Layer {} output dimensions: \t{}\t{}\t{}\t({} features)", i, x, y, z, x * y * z), Logger::INFO);
+        G_LG(std::format("Layer {} output dimensions: \t{}\t{}\t{}\t({} features)", i, x, y, z, x * y * z), Logger::INFO);
 
         // Add activation function
         RELU_ACTIVATION;
@@ -166,8 +164,8 @@ bool PhonemeModel::load() {
         delete[] buf;
         zip_discard(archive);
         loaded = true;
-    } else if (logger.has_value()) {
-        logger->log(std::format("{} does not exist", ARCHIVE_FILE), Logger::WARNING);
+    } else {
+        G_LG(std::format("{} does not exist", ARCHIVE_FILE), Logger::DBUG);
     }
 
     outputSize = G_PS.size();
@@ -180,13 +178,9 @@ bool PhonemeModel::load() {
         defObj["output_features"].get_int() == outputSize &&
         defObj["sample_rate"].get_int() == sampleRate;
     if (configLoaded && configMatches) {
-        if (logger.has_value()) {
-            logger->log(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
-        }
+        G_LG(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
     } else {
-        if (logger.has_value()) {
-            logger->log(std::format("Generating new classifier config ", DEFAULT_CONFIG_FILE), Logger::INFO);
-        }
+        G_LG(std::format("Generating new classifier config ", DEFAULT_CONFIG_FILE), Logger::INFO);
         config.setDefault("input_features", inputSize)
             .setDefault("output_features", outputSize)
             .setDefault("sample_rate", sampleRate);
@@ -199,15 +193,11 @@ bool PhonemeModel::load() {
     if (!config.matchesDefault()) {
         loaded = false;
         config.useDefault();
-        if (logger.has_value()) {
-            logger->log("Config does not match", Logger::WARNING);
-        }
+        G_LG("Config does not match", Logger::DBUG);
     }
     if (loaded && !ModelSerializer::loadNetwork(tempPath + MODEL_FILE, &net)) {
         loaded = false;
-        if (logger.has_value()) {
-            logger->log(std::format("Failed to load model {}", tempPath + MODEL_FILE), Logger::WARNING);
-        }
+        G_LG(std::format("Failed to load model {}", tempPath + MODEL_FILE), Logger::DBUG);
     }
     cleanUnpacked();
     if (!loaded)
@@ -239,9 +229,7 @@ void PhonemeModel::logZipError(zip_t* archive) {
 
 void PhonemeModel::logZipError(zip_error_t* error) {
     const char* errString = zip_error_strerror(error);
-    if (logger.has_value()) {
-        logger.value().log(errString, Logger::ERR);
-    }
+    G_LG(errString, Logger::ERRO);
     zip_error_fini(error);
 }
 

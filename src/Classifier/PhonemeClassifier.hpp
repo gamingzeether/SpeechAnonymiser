@@ -5,7 +5,6 @@
 #include "PhonemeModel.hpp"
 #include "Train/TSVReader.hpp"
 #include "../Utils/Config.hpp"
-#include "../Utils/Logger.hpp"
 #include "../include_mlpack.hpp"
 #include "../define.hpp"
 #include "../structs.hpp"
@@ -35,8 +34,6 @@ public:
     };
 private:
     Config config;
-
-    Logger logger;
 
 	PhonemeModel model;
     size_t sampleRate;

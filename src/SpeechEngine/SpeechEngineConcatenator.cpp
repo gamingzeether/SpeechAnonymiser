@@ -1,5 +1,7 @@
 #include "SpeechEngineConcatenator.hpp"
 
+#include "../Utils/Global.hpp"
+
 SpeechEngineConcatenator& SpeechEngineConcatenator::configure(std::string file) {
 	std::vector<std::string> subdirs = { "B3_Soft/", "B4_Power/", "D#4_Natural/", "G3_Soft/", "G4_Natural/" };
 	for (std::string& subdir : subdirs) {
@@ -65,8 +67,7 @@ void SpeechEngineConcatenator::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned i
 }
 
 void SpeechEngineConcatenator::_init() {
-	initLogger();
-    logger.log("Type: Concatenator", Logger::INFO);
+    G_LG("Type: Concatenator", Logger::INFO);
 }
 
 void SpeechEngineConcatenator::playUnit(const Voicebank::Unit& unit) {

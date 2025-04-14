@@ -219,8 +219,7 @@ float SpeechEngineArticulator::VocalTract::step(float input) {
 #pragma endregion
 
 void SpeechEngineArticulator::_init() {
-	initLogger();
-    logger.log("Type: Articulator", Logger::INFO);
+    G_LG("Type: Articulator", Logger::INFO);
 
 #pragma region Animations
 	_initArticulators();
@@ -272,7 +271,7 @@ void SpeechEngineArticulator::_init() {
 		delete[] tmpWavetable;
 	}
 
-	logger.log("Initalized", Logger::VERBOSE);
+	G_LG("Initalized", Logger::DBUG);
 
 	vocalTract = VocalTract(1011);
 }

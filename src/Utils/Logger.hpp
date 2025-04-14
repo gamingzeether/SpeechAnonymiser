@@ -14,11 +14,11 @@ class Logger {
 public:
 	static const int verbosityLevels = 5;
 	enum Verbosity {
-		VERBOSE,
+		DBUG,
 		INFO,
-		WARNING,
-		ERR,
-		FATAL,
+		WARN,
+		ERRO,
+		DEAD,
 	};
 	enum Color {
 		NONE,
@@ -33,10 +33,6 @@ public:
 
 	class Stream {
 	public:
-		Stream() : stream(&std::cout) {};
-		Stream(std::ostream& s) : stream(&s) {};
-		Stream(const std::string& path) : fstreamPath(Logger::fileName(path)) {};
-
 		// Enables outputting messages at specified verbosity
 		// Ex: outputTo(1) will enable writing messages logged with verbosity 1 to stream
 		Stream& outputTo(int verbosity) { 
@@ -65,6 +61,12 @@ public:
 		std::vector<bool> outputVerbose;
 		std::mutex* mutex = NULL;
 		bool color = false;
+
+		Stream() : stream(&std::cout) {};
+		Stream(std::ostream& s) : stream(&s) {};
+		Stream(const std::string& path) : fstreamPath(Logger::fileName(path)) {};
+
+		friend class Global;
 	};
 
 	Logger& operator=(const Logger& other) { 
@@ -77,8 +79,6 @@ public:
 		streams.back().init();
 	}
 	void log(const std::string& message, int verbosity = 0, int color = Color::DEFAULT);
-
-	Logger() {};
 private:
 	std::vector<Stream> streams;
 	std::vector<std::string> colors = {
@@ -91,13 +91,17 @@ private:
 		"\033[33m",	 // YELLOW
 		"\033[34m" };// BLUE
 	std::vector<std::string> verbosityNames = {
-		"VERB ",
-		"INFO ",
-		"WARN ",
-		"ERROR",
-		"FATAL" };
+		"DBUG",
+		"INFO",
+		"WARN",
+		"ERRO",
+		"DEAD" };
+	
+	Logger() {};
 
 	static std::string fileName(const std::string& base);
 
 	std::string timeString();
+
+	friend class Global;
 };

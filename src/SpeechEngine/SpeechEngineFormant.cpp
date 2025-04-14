@@ -271,7 +271,7 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
                 formantDatabank[phoneme] = std::move(fg);
             } else {
                 // Notify user that a phoneme for the synthesiser exists but won't ever be played
-                logger.log(std::format("Phoneme exists but not registered: {}", phonemeStr), Logger::VERBOSE);
+                G_LG(std::format("Phoneme exists but not registered: {}", phonemeStr), Logger::DBUG);
             }
         }
         // Check for missing groups
@@ -279,19 +279,18 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
             const FormantGroup& fg = formantDatabank[i];
             if (fg.formants.size() == 0) {
                 std::string phoneme = G_PS.xSampa(i);
-                logger.log(std::format("Formants for '{}' are missing", phoneme), Logger::WARNING);
+                G_LG(std::format("Formants for '{}' are missing", phoneme), Logger::WARN);
             }
         }
     } else {
-        logger.log("Failed to open config", Logger::ERR);
+        G_LG("Failed to open config", Logger::ERRO);
     }
 
 	return *this;
 }
 
 void SpeechEngineFormant::_init() {
-    initLogger();
-    logger.log("Type: Formant", Logger::INFO);
+    G_LG("Type: Formant", Logger::INFO);
 #ifdef TRACKING
     formantTrack();
 #endif
