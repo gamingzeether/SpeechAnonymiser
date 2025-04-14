@@ -10,6 +10,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <mutex>
 
 #include <QObject>
 #include <QPixmap>
@@ -39,6 +40,8 @@ private:
 	QPixmap* waterfallPixmap;
 	bool drawWaterfall = false;
 	std::vector<QColor> colormap;
+	std::vector<std::array<float, FRAME_SIZE>> waterfallBuffer;
+	std::mutex waterfallMutex;
 
 	void initWindow(QWidget& qtWindow);
 	void cleanup();

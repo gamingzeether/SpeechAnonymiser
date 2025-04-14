@@ -22,14 +22,18 @@
 
 #include "define.hpp"
 
-#define SPEC_FRAMES 300 // Number of frames in spectrogram
-#define SPEC_HEIGHT 6 // Height of each point in the spectrogram
+#define SPEC_FRAMES 150 // Number of frames in spectrogram
+#define POINT_WIDTH 2 // Width of each point in the spectrogram
+#define POINT_HEIGHT 6 // Height of each point in the spectrogram
+#define SPEC_WIDTH POINT_WIDTH * SPEC_FRAMES // Total width of spectrogram
+#define SPEC_HEIGHT POINT_HEIGHT * FRAME_SIZE // Total height of spectrogram
 #define COLORMAP_STEPS 256
 
 void Visualizer::run() {
 	genColormap();
 
-    int argC = 0; // Dummy vars for QApplication
+	// Dummy vars for QApplication
+    int argC = 0;
     char** argV;
     QApplication qtApp(argC, argV);
     QWidget qtWindow;
@@ -42,26 +46,16 @@ void Visualizer::run() {
 }
 
 void Visualizer::updateWaterfall() {
-	if (!isOpen || !drawWaterfall || waterfallPixmap->isNull())
+	// We're just writing to a buffer here
+	// Actual drawing is done by waterfallTimer
+	if (!isOpen || !drawWaterfall)
 		return;
-	QPainter painter;
-	painter.begin(waterfallPixmap);
-
-	// Shift everything over by 1 pixel
-	painter.drawTiledPixmap(-1, 0, SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT, *waterfallPixmap);
-	// Draw new frame
+	
+	auto lock = std::unique_lock<std::mutex>(waterfallMutex);
+	std::array<float, FRAME_SIZE> frame;
 	float* currentFrame = fftData.frequencies[fftData.currentFrame];
-	for (int y = 0; y < FRAME_SIZE; y++) {
-		float val = currentFrame[FRAME_SIZE - 1 -y];
-		double col = 0.5 * (1.0 + std::tanh(val / 50.0));
-		painter.setPen(getColor(col));
-		for (int h = 0; h < SPEC_HEIGHT; h++) {
-			painter.drawPoint(SPEC_FRAMES - 1, y * SPEC_HEIGHT + h);
-		}
-	}
-
-	painter.end();
-	waterfallLabel->setPixmap(*waterfallPixmap);
+	std::copy_n(currentFrame, FRAME_SIZE, frame.begin());
+	waterfallBuffer.push_back(std::move(frame));
 }
 
 void Visualizer::initWindow(QWidget& qtWindow) {
@@ -112,7 +106,7 @@ void Visualizer::initWindow(QWidget& qtWindow) {
 	});
     spectrogramCheckbox->show();
 
-	waterfallPixmap = new QPixmap(SPEC_FRAMES, FRAME_SIZE * SPEC_HEIGHT);
+	waterfallPixmap = new QPixmap(SPEC_WIDTH, SPEC_HEIGHT);
 	waterfallPixmap->fill(Qt::black);
 
 	waterfallLabel = new QLabel(&qtWindow);
@@ -120,6 +114,47 @@ void Visualizer::initWindow(QWidget& qtWindow) {
 	waterfallLabel->setPixmap(*waterfallPixmap);
     waterfallLabel->show();
 
+	// Timer to update waterfall
+	QTimer* waterfallTimer = new QTimer(&qtWindow);
+	QObject::connect(waterfallTimer, &QTimer::timeout, this, [&](){
+		if (!drawWaterfall)
+			return;
+		
+		auto lock = std::unique_lock<std::mutex>(waterfallMutex);
+		size_t nFrames = waterfallBuffer.size();
+		if (nFrames == 0)
+			return;
+		
+		QPainter painter;
+		painter.begin(waterfallPixmap);
+		
+		// Shift everything over by POINT_WIDTH * nFrames pixels
+		int horizontalOffset = -POINT_WIDTH * nFrames;
+		painter.drawTiledPixmap(horizontalOffset, 0, SPEC_WIDTH, SPEC_HEIGHT, *waterfallPixmap);
+		for (size_t x = 0; x < nFrames; x++) {
+			// Draw new frame
+			std::array<float, FRAME_SIZE> currentFrame = waterfallBuffer[x];
+			size_t rectX = SPEC_WIDTH + horizontalOffset + POINT_WIDTH * x;
+			for (int y = 0; y < FRAME_SIZE; y++) {
+				float val = currentFrame[FRAME_SIZE - 1 -y];
+				double col = 0.5 * (1.0 + val); // [-1, 1] -> [0, 1]
+				painter.fillRect(
+						rectX,
+						y * POINT_HEIGHT,
+						POINT_WIDTH,
+						POINT_HEIGHT,
+						getColor(col));
+			}
+		}
+		waterfallBuffer.clear();
+		lock.unlock();
+	
+		painter.end();
+		waterfallLabel->setPixmap(*waterfallPixmap);
+		waterfallLabel->update();
+	});
+	int targetFrameRate = 50;
+	waterfallTimer->start(1000 / targetFrameRate);
 }
 
 void Visualizer::cleanup() {
@@ -188,6 +223,8 @@ void Visualizer::genColormap() {
 }
 
 const QColor& Visualizer::getColor(float value) {
-	return colormap[(size_t)(value * COLORMAP_STEPS + 0.5)];
+	int index = value * COLORMAP_STEPS + 0.5;
+	index = std::max(0, std::min(index, COLORMAP_STEPS - 1));
+	return colormap[index];
 }
 #endif

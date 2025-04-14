@@ -7,10 +7,10 @@ void ClassifierHelper::initalize(size_t sr) {
     window = new float[FFT_FRAME_SAMPLES];
     for (int i = 0; i < FFT_FRAME_SAMPLES; i++) {
         //window[i] = 1.0; // None
-        //window[i] = 0.5f * (1.0f - cos((6.2831853f * i) / FFT_FRAME_SAMPLES)); // Hann
+        window[i] = 0.5f * (1.0f - cos((6.2831853f * i) / FFT_FRAME_SAMPLES)); // Hann
         //window[i] = 0.5f * (1.0f - cos((6.2831853f * i) / FFT_FRAME_SAMPLES)) * pow(2.7182818f, (-5.0f * abs(FFT_FRAME_SAMPLES - 2.0f * i)) / FFT_FRAME_SAMPLES); // Hann - Poisson
         //window[i] = 0.355768f - 0.487396f * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.144232 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.012604 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Nuttall
-        window[i] = 0.3635819 - 0.4891775 * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.1365995 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.0106411 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Blackman - Nuttall
+        //window[i] = 0.3635819 - 0.4891775 * cosf((6.28318530f * i) / FFT_FRAME_SAMPLES) - 0.1365995 * cosf((12.5663706f * i) / FFT_FRAME_SAMPLES) - 0.0106411 * cosf((18.8495559f * i) / FFT_FRAME_SAMPLES); // Blackman - Nuttall
     }
 
 #pragma region Mel filterbank
@@ -95,11 +95,11 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     // Do DCT of logs
     for (size_t i = 0; i < MEL_BINS; i++) {
         float val = melFrequencies[i];
-        dctIn[i] = (val > 0) ? log10(val) : 0;
+        dctIn[i] = log10(std::max(val, 1e-24f));
     }
     fftwf_execute(dctPlan);
     for (size_t i = 0; i < FRAME_SIZE; i++) {
-        frame.real[i] = dctOut[i];
+        frame.real[i] = std::tanh(dctOut[i] / 50.0); // Clamp dct between -1 and 1
         //frame.real[i] = melFrequencies[i];
     }
 
