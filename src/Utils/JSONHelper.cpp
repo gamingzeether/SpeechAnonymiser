@@ -1,6 +1,7 @@
 #include "JSONHelper.hpp"
 
 #include <iostream>
+#include "Global.hpp"
 
 JSONHelper::Type JSONHelper::JSONObj::get_type() const {
     if (yyjson_mut_is_int(val)) {
@@ -50,7 +51,7 @@ bool JSONHelper::open(std::string openPath, int version, bool create) {
         iDoc = yyjson_read_file(path.c_str(), YYJSON_READ_NOFLAG, NULL, &err);
         if (iDoc == NULL) {
             if (!create)
-                std::cout << ("JSON read error (%u): %s at position: %ld\n", err.code, err.msg, err.pos);
+                G_LG(std::format("JSON read error ({}): {} at position: {}", err.code, err.msg, err.pos), Logger::ERRO);
         } else {
             yyjson_val* iRoot = yyjson_doc_get_root(iDoc);
             yyjson_val* iVersion = yyjson_obj_get(iRoot, "_version");

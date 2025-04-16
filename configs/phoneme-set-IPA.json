@@ -441,12 +441,6 @@
             }
         },
         {
-            "token": "ʋ",
-            "x_sampa": {
-                "symbol": "P"
-            }
-        },
-        {
             "token": "ɒ",
             "x_sampa": {
                 "symbol": "Q"
@@ -581,7 +575,7 @@
         {
             "token": "æ",
             "x_sampa": {
-                "symbol": "{}"
+                "symbol": "{"
             }
         },
         {

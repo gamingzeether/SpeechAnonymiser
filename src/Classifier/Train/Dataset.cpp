@@ -111,6 +111,7 @@ void Dataset::setSubtype(Subtype t) {
             break;
         }
     }
+    sharedData.subtype = t;
 }
 
 size_t Dataset::getLoadedClips() {
@@ -138,7 +139,25 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batc
     ex = batchSize * steps;
     sharedData.totalClips = ex;
 
-    std::printf("Loaded from %zd clips considering %zd total\n", sharedData.totalClips, sharedData.testedClips);
+    // Warn if a phoneme is in the phoneme set but not in the training dataset
+    if (sharedData.subtype == Subtype::TRAIN) {
+        size_t setSize = G_PS_C.size();
+        std::vector<size_t> labelCounts(setSize, 0);
+        // Get the phoneme counts
+        for (size_t i = 0; i < sharedData.exampleLabel.n_elem; i++) {
+            size_t label = sharedData.exampleLabel(i);
+            labelCounts[label]++;
+        }
+        // Check for any with 0 count
+        for (size_t i = 0; i < setSize; i++) {
+            if (labelCounts[i] == 0) {
+                std::string labelString = G_PS_C.xSampa(i);
+                G_LG(std::format("{} is in phoneme set but not in dataset", labelString), Logger::WARN);
+            }
+        }
+    }
+
+    G_LG(std::format("Loaded from {} clips considering {} total", sharedData.totalClips, sharedData.testedClips), Logger::INFO);
 }
 
 std::vector<Phone> Dataset::parseTextgrid(const std::string& path, int sampleRate) {

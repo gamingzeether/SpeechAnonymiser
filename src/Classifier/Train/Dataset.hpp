@@ -55,6 +55,7 @@ private:
             CPU_CUBE_TYPE exampleData;
             CPU_CUBE_TYPE exampleLabel;
             Type type;
+            Subtype subtype;
             size_t targetClips;
             size_t nSlices;
 
