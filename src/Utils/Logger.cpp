@@ -40,6 +40,20 @@ void Logger::log(const std::string& message, int verbosity, int color) {
 	assert(verbosity <= verbosityLevels);
 	assert(streams.size() > 0);
 
+	if (color == Color::DEFAULT) {
+		switch (verbosity) {
+			case Verbosity::WARN:
+				color = Color::YELLOW;
+				break;
+			case Verbosity::ERRO:
+				color = Color::RED;
+				break;
+			case Verbosity::DEAD:
+				color = Color::RED;
+				break;
+		}
+	}
+
 	std::string time = timeString();
 	for (size_t s = 0; s < streams.size(); s++) {
 		Stream& stream = streams[s];

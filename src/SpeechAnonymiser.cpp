@@ -770,7 +770,6 @@ int main(int argc, char* argv[]) {
         launchString += argv[i];
     }
     G_LG(std::format("Launch args: {}", launchString), Logger::INFO);
-
     G_LG(std::format("Working directory: {}", std::filesystem::current_path().string()), Logger::INFO);
 
     tryMakeDir("logs");
