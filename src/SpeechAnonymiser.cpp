@@ -775,6 +775,8 @@ int main(int argc, char* argv[]) {
     tryMakeDir("logs");
     tryMakeDir("configs/articulators");
     tryMakeDir("configs/animations/phonemes");
+    
+    Global::get().setSpeechEnginePhonemeSet("IPA");
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);

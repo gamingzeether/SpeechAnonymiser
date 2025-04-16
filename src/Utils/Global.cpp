@@ -13,9 +13,13 @@ bool Global::isClassifierSet() {
 }
 
 void Global::setClassifierPhonemeSet(const std::string& name, bool supress) {
-	if (isClassifierSet())
-		if (!supress)
+	if (isClassifierSet()) {
+		if (!supress) {
 			G_LG("Changing classifier phoneme set after it was set. Was this intended?", Logger::WARN);
+		} else {
+			G_LG("Changing classifier phoneme set after it was set", Logger::DBUG);
+		}
+	}
 	classifierPhonemeSetId = pc.getId(name);
 
 	silPhone = getPhonemeSet(PHONEME_SET_ARPA).fromString("h#");
@@ -39,9 +43,13 @@ bool Global::isSpeechEngineSet() {
 }
 
 void Global::setSpeechEnginePhonemeSet(const std::string& name, bool supress) {
-	if (isSpeechEngineSet())
-		if (!supress)
+	if (isSpeechEngineSet()) {
+		if (!supress) {
 			G_LG("Changing speech engine phoneme set after it was set. Was this intended?", Logger::WARN);
+		} else {
+			G_LG("Changing speech engine phoneme set after it was set", Logger::DBUG);
+		}
+	}
 	speechEnginePhonemeSetId = pc.getId(name);
 }
 
