@@ -55,7 +55,6 @@ public:
 	// Global lock to prevent multiple fftw functions being executed at the same time eg. planning
 	std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
 
-	// Won't log to file if Global hasn't been initalized 
 	static void log(const std::string& message, int verbosity = 0, int color = Logger::Color::DEFAULT);
 private:
 	Global();

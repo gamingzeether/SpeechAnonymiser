@@ -91,8 +91,12 @@ void Global::log(const std::string& message, int verbosity, int color) {
 	if (initalized()) {
 		Global::get().logger.log(message, verbosity, color);
 	} else {
-		// In case the Global instance isn't initalized yet, use this simpler method
-		std::cout << "(Preinit) " << message << std::endl;
+		static std::ofstream ostream("logs/preinit-log.txt");
+		std::string logMessage = "(Preinit) " + message;
+
+		std::cout << logMessage << std::endl;
+		ostream << logMessage << std::endl;
+
 		if (verbosity == Logger::DEAD) {
 			throw(message);
 		};
