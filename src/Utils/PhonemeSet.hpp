@@ -25,6 +25,10 @@ public:
 
 	std::string getName() const { return name; };
 	size_t getId() const { return id; };
+
+	inline static const size_t invalidPhoneme = -1;
+	inline static const std::string invalidString = "N/A";
+	inline static const std::wstring invalidWString = L"N/A";
 private:
 	std::map<std::string, size_t> xSampaMap;
 	std::map<size_t, std::string> invXSampaMap;
@@ -38,6 +42,11 @@ private:
 	PhonemeSet(std::string name, size_t id) : name(name), id(id) {};
 
 	size_t getOrNew(const std::string& xSampa);
+
+	template <typename Map, typename Val>
+	bool has(const Map& map, const Val& val) const {
+		return (map.find(val) != map.end());
+	}
 
 	friend class PhonemeCollection;
 	friend class TranslationMap;

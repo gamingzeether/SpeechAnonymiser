@@ -4,11 +4,15 @@
 
 #include <vector>
 #include <string>
+#include <locale>
+#include <codecvt>
 
 class Util {
 public:
-    // https://stackoverflow.com/a/7154226
-    static std::wstring utf8_to_utf16(const std::string& utf8);
+    // As the name describes
+    static std::wstring str2wstr(const std::string& utf8);
+    // As the name describes
+    static std::string wstr2str(const std::wstring& utf16);
     // Hashes a wstring
     static size_t customHasher(const std::wstring& str);
     // Removes a trailing slash from a path
@@ -28,4 +32,6 @@ public:
                 return elem;
         return excluded;
     }
+private:
+    inline static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> cvt;
 };

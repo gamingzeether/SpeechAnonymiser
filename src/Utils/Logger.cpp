@@ -62,7 +62,7 @@ void Logger::log(const std::string& message, int verbosity, int color) {
 			bool useColor = stream.supportsColor() && color != Color::DEFAULT;
 			std::string& colorStartStr = colors[useColor ? color : Color::NONE];
 			std::string& colorEndStr = colors[useColor ? Color::DEFAULT : Color::NONE];
-			std::string logLine = std::format("{}{} {}:\t{}{}\n", colorStartStr, time, verbosityName, message, colorEndStr);
+			std::string logLine = std::format("{}{} {}:  {}{}\n", colorStartStr, time, verbosityName, message, colorEndStr);
 			stream << logLine;
 		}
 	}

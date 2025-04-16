@@ -474,9 +474,6 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     // Write data
                     helper.writeInput(frames, i, data.exampleData, writeCol, nSlices);
                     data.exampleLabel(0, writeCol, nSlices) = frame.phone;
-
-                    if (frame.phone >= 52)
-                        throw;
                     
                     nSlices++;
                 }
