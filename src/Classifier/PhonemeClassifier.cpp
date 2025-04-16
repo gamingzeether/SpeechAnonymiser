@@ -20,6 +20,7 @@
 #include "ModelSerializer.hpp"
 #include "TrainingExec.hpp"
 #include "Train/Dataset.hpp"
+#include "Train/eta_callback.hpp"
 #include "../Utils/ClassifierHelper.hpp"
 #include "../Utils/Global.hpp"
 #include "../Utils/Util.hpp"
@@ -181,7 +182,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         CNAME(trainLabel),
         trainLengths,
         model.optimizer(),
-        ens::ProgressBar(50),
+        ens::ProgressBarETA(50),
         TrainingExecType<MAT_TYPE>(
             [&](size_t epoch) {
                 //G_LG(std::format("Finished epoch {} with learning rate {}", epoch, model.optimizer().StepSize()), Logger::DBUG);
