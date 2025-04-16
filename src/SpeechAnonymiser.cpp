@@ -369,7 +369,7 @@ int commandTrain(const std::string& path) {
 
     //double stepSize = STEP_SIZE;
     //requestInput("Set training rate", stepSize);
-    //logger.log(std::format("Set training rate: {}", stepSize), Logger::VERBOSE);
+    //G_LG(std::format("Set training rate: {}", stepSize), Logger::DBUG);
     //if (stepSize <= 0) {
     //    throw("Out of range");
     //}
@@ -839,7 +839,7 @@ int main(int argc, char* argv[]) {
             Util::removeTrailingSlash(iiVal);
             error = commandInteractive(iiVal);
 #else
-            logger.log("Compiled without audio support, exiting", Logger::FATAL);
+            G_LG("Compiled without audio support, exiting", Logger::DEAD);
             error = -1;
 #endif
         } else if (evaluateMode) {
@@ -850,11 +850,11 @@ int main(int argc, char* argv[]) {
   #ifdef GUI
             error = commandDefault();
   #else
-            logger.log("Compiled without GUI support, exiting", Logger::FATAL);
+            G_LG("Compiled without GUI support, exiting", Logger::DEAD);
             error = -1;
   #endif
 #else
-            logger.log("Compiled without audio support, exiting", Logger::FATAL);
+            G_LG("Compiled without audio support, exiting", Logger::DEAD);
             error = -1;
 #endif
         }
