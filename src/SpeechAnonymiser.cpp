@@ -17,6 +17,7 @@
 #include "Classifier/Train/TSVReader.hpp"
 #include "Utils/ClassifierHelper.hpp"
 #include "Utils/Global.hpp"
+#include "Utils/TranslationMap.hpp"
 #include "Utils/Util.hpp"
 #include "SpeechEngine/SpeechEngineConcatenator.hpp"
 #include "SpeechEngine/SpeechEngineFormant.hpp"
@@ -264,13 +265,16 @@ void startFFT(InputData& inputData) {
         app.classifierHelper = &helper;
         helper.initalize(sampleRate);
         SpeechFrame speechFrame;
-        const size_t silencePhoneme = G_PS.fromString(L"");
+        const size_t silencePhoneme = G_P_SIL;
         speechFrame.phoneme = silencePhoneme;
         int count = 0;
         // Wait for enough samples to be recorded to pass to FFT
         while ((inputData.writeOffset - lastSampleStart) % inputData.totalFrames < FFT_REAL_SAMPLES) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+
+        TranslationMap tm(G_PS_C, G_PS_S);
+
         while (app.isOpen) {
             Frame& frame = frames[currentFrame];
             // Wait for FFT_FRAME_SPACING new samples
@@ -319,6 +323,8 @@ void startFFT(InputData& inputData) {
             } else {
                 speechFrame.phoneme = silencePhoneme;
             }
+            // Translate classifier -> speech engine and push
+            speechFrame.phoneme = tm.translate(speechFrame.phoneme);
             if (speechEngine)
                 speechEngine->pushFrame(speechFrame);
             currentFrame = (currentFrame + 1) % frameCount;
@@ -643,8 +649,8 @@ int commandInteractive(const std::string& path) {
         } else if (command == "dataset" && prefix == "~") {
             prefix = "dataset";
         } else if (command == "phones" && prefix == "~") {
-            for (int i = 0; i < G_PS.size(); i++) {
-                std::string xs = G_PS.xSampa(i);
+            for (int i = 0; i < G_PS_C.size(); i++) {
+                std::string xs = G_PS_C.xSampa(i);
                 std::printf("%2d : %s\n", i, xs.c_str());
             }
         } else if (command == "exit") {
@@ -684,14 +690,14 @@ int commandInteractive(const std::string& path) {
             ac.pointer = 0;
         } else if (command != "" && prefix == "dataset") {
             size_t targetPhoneme = std::stoull(command);
-            if (targetPhoneme < G_PS.size()) {
+            if (targetPhoneme < G_PS_C.size()) {
                 std::string fileName;
                 clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, fileName, clipPhones);
                 prefix = "clip";
                 std::printf("%s\n", fileName.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
                     const Phone& p = clipPhones[i];
-                    std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS.xSampa(p.phonetic).c_str(), p.min, p.max);
+                    std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS_C.xSampa(p.phonetic).c_str(), p.min, p.max);
                 }
             } else {
                 std::printf("Out of range\n");
@@ -722,16 +728,7 @@ bool tryMakeDir(std::string path, bool fatal = true) {
     return true;
 }
 
-void initClassifier(int argc, char* argv[]) {
-    std::string launchString = "";
-    for (int i = 0; i < argc; i++) {
-        if (i > 0) {
-            launchString += " ";
-        }
-        launchString += argv[i];
-    }
-    G_LG(std::format("Launch args: {}", launchString), Logger::INFO);
-
+void initClassifier() {
     srand(static_cast <unsigned> (time(0)));
 
     //requestInput("Select sample rate", sampleRate);
@@ -748,7 +745,34 @@ void initClassifier(int argc, char* argv[]) {
     }
 }
 
+void setClassifierSet(const std::string& datasetPath) {
+    // Set classifer phoneme set
+    Type datasetType = Dataset::folderType(datasetPath);
+    switch (datasetType) {
+        case Type::COMMON_VOICE:
+            Global::get().setClassifierPhonemeSet("CVClassifier");
+            break;
+        case Type::TIMIT:
+            Global::get().setClassifierPhonemeSet("TIMITClassifier");
+            break;
+    }
+}
+
 int main(int argc, char* argv[]) {
+    // Can't print to cout if I don't write something to it here???
+    std::cout << "\r";
+
+    std::string launchString = "";
+    for (int i = 0; i < argc; i++) {
+        if (i > 0) {
+            launchString += " ";
+        }
+        launchString += argv[i];
+    }
+    G_LG(std::format("Launch args: {}", launchString), Logger::INFO);
+
+    G_LG(std::format("Working directory: {}", std::filesystem::current_path().string()), Logger::INFO);
+
     tryMakeDir("logs");
     tryMakeDir("configs/articulators");
     tryMakeDir("configs/animations/phonemes");
@@ -805,7 +829,8 @@ int main(int argc, char* argv[]) {
         Util::removeTrailingSlash(oVal);
         error = commandPreprocess(pVal, wVal, dVal, aVal, oVal);
     } else {
-        initClassifier(argc, argv);
+        setClassifierSet(Util::firstNotOf<std::string>({tVal, iiVal, eVal}, ""));
+        initClassifier();
         if (trainMode) {
             Util::removeTrailingSlash(tVal);
             error = commandTrain(tVal);
@@ -836,6 +861,8 @@ int main(int argc, char* argv[]) {
     }
 
     classifier.destroy();
+
+    G_LG(std::format("Program exited with code {}", error), Logger::INFO);
 
     return error;
 }

@@ -22,6 +22,7 @@
 #include "Train/Dataset.hpp"
 #include "../Utils/ClassifierHelper.hpp"
 #include "../Utils/Global.hpp"
+#include "../Utils/Util.hpp"
 
 using namespace mlpack;
 
@@ -217,7 +218,7 @@ size_t PhonemeClassifier::classify(const CUBE_TYPE& data) {
 }
 
 std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
-    return G_PS.xSampa(in);
+    return G_PS_C.xSampa(in);
 };
 
 void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, const CPU_CUBE_TYPE& testLabel, const arma::urowvec& lengths) {
@@ -257,13 +258,18 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
     }
     G_LG(std::format("Accuracy: {} out of {} ({:.1f}%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
     std::cout << "Confusion Matrix:\n";
-    std::cout << "   ";
+    std::cout << "    ";
+    const PhonemeSet& ps = G_PS_C;
     for (size_t i = 0; i < outputSize; i++) {
-        std::cout << std::setw(2) << G_PS.xSampa(i) << " ";
+        std::string phoneme = ps.xSampa(i);
+        Util::leftPad(phoneme, 3);
+        std::cout << phoneme << " ";
     }
     std::cout << std::endl;
     for (size_t label = 0; label < outputSize; label++) {
-        std::cout << std::setw(2) << G_PS.xSampa(label) << " ";
+        std::string phoneme = ps.xSampa(label);
+        Util::leftPad(phoneme, 3);
+        std::cout << phoneme << " ";
         size_t total = totalPhonemes[label];
         for (size_t prediction = 0; prediction < outputSize; prediction++) {
             std::string format;
@@ -274,19 +280,19 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
             
             if (label == prediction) {
                 if (percent == 100) {
-                    format = "\033[32m%2d\033[0m "; /* 100% accuracy: green */
+                    format = "\033[32m%3d\033[0m "; /* 100% accuracy: green */
                 } else {
-                    format = "\033[36m%2d\033[0m "; /* diagonal: cyan */
+                    format = "\033[36m%3d\033[0m "; /* diagonal: cyan */
                 }
             } else {
                 if (percent > 0) {
-                    format = "\033[31m%2d\033[0m "; /* >= 1% misclassify: red */
+                    format = "\033[31m%3d\033[0m "; /* >= 1% misclassify: red */
                 } else {
-                    format = "%2d " /* 0% misclassify: white */;
+                    format = "%3d " /* 0% misclassify: white */;
                 }
             }
             
-            std::printf(format.c_str(), (percent % 100));
+            std::printf(format.c_str(), percent % 100);
         }
 
         std::cout << "\n";

@@ -10,7 +10,6 @@
 #include <dr_wav.h>
 #include <mlpack/core/math/shuffle_data.hpp>
 #include "../../Utils/Util.hpp"
-#include "../../Utils/Global.hpp"
 
 #define CLIP_DURATION 8 // Max clip Duration
 // Return codes for loading clips
@@ -119,6 +118,14 @@ size_t Dataset::getLoadedClips() {
     return sharedData.totalClips;
 }
 
+Type Dataset::folderType(const std::string& path) {
+    if (std::filesystem::exists(path + "/train.tsv")) {
+        return Type::COMMON_VOICE;
+    } else {
+        return Type::TIMIT;
+    }
+}
+
 void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
     size_t realEx = ex;
 
@@ -174,7 +181,7 @@ std::vector<Phone> Dataset::parseTextgrid(const std::string& path, int sampleRat
         p.minIdx = sampleRate * p.min;
         p.maxIdx = sampleRate * p.max;
 
-        p.phonetic = G_PS.fromString(text);
+        p.phonetic = G_PS_C.fromString(text);
         phones[i] = p;
     }
 
@@ -206,7 +213,7 @@ std::vector<Phone> Dataset::parseTIMIT(const std::string& path, int sampleRate) 
         p.min = p.minIdx / 16000.0;
         p.maxIdx = std::stoull(i2);
         p.max = p.maxIdx / 16000.0;
-        p.phonetic = G_PS.fromString(i3);
+        p.phonetic = G_PS_C.fromString(i3);
 
         tempPhones.push_back(std::move(p));
     };
@@ -467,6 +474,10 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
                     // Write data
                     helper.writeInput(frames, i, data.exampleData, writeCol, nSlices);
                     data.exampleLabel(0, writeCol, nSlices) = frame.phone;
+
+                    if (frame.phone >= 52)
+                        throw;
+                    
                     nSlices++;
                 }
                 data.sequenceLengths(writeCol) = nSlices;
@@ -553,7 +564,7 @@ int Dataset::clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>&
         size_t maxOverlap = 0;
         size_t maxIdx = 0;
         // Assign phoneme ID to frame
-        currentFrame.phone = Global::get().silencePhone(); // Default silence
+        currentFrame.phone = G_P_SIL; // Default silence
         for (int i = 0; i < phones.size(); i++) {
             const Phone& p = phones[i];
 

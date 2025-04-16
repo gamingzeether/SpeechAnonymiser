@@ -22,6 +22,7 @@ public:
 	class JSONObj {
 	public:
 		JSONObj operator[](const char* key) const;
+		JSONObj operator[](const std::string& key) const;
 		JSONObj operator[](const int index) const { return JSONObj(_doc, yyjson_mut_arr_get(val, index)); };
 
 		// Getters
@@ -75,7 +76,7 @@ public:
 	};
 
 	// Returns true if successfully opened, false if not or wrong version
-	bool open(std::string openPath, int version = -1);
+	bool open(std::string openPath, int version = -1, bool create = true);
 	void close();
 	void save();
 	JSONObj getRoot() const { return rootObj; };

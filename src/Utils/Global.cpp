@@ -1,10 +1,64 @@
 #include "Global.hpp"
 
 #include "ClassifierHelper.hpp"
-#include "JSONHelper.hpp"
 #include "Util.hpp"
+#include "TranslationMap.hpp"
+
+const PhonemeSet& Global::getPhonemeSet(size_t id) {
+	return pc.get(id);
+};
+
+bool Global::isClassifierSet() {
+	return classifierPhonemeSetId >= 0;
+}
+
+void Global::setClassifierPhonemeSet(const std::string& name, bool supress) {
+	if (isClassifierSet())
+		if (!supress)
+			G_LG("Changing classifier phoneme set after it was set. Was this intended?", Logger::WARN);
+	classifierPhonemeSetId = pc.getId(name);
+
+	silPhone = getPhonemeSet(PHONEME_SET_ARPA).fromString("h#");
+	// Translate to classifier id
+	TranslationMap tm(getPhonemeSet(PHONEME_SET_ARPA), getPhonemeSet(classifierPhonemeSetId));
+	silPhone = tm.translate(silPhone);
+}
+
+const PhonemeSet& Global::getClassifierPhonemeSet() {
+	if (!isClassifierSet())
+		G_LG("Classifier phoneme set has not been initalized yet", Logger::DEAD);
+	return pc.get(classifierPhonemeSetId);
+};
+
+std::string Global::getClassifierPhonemeSetName() {
+	return getClassifierPhonemeSet().getName();
+}
+
+bool Global::isSpeechEngineSet() {
+	return speechEnginePhonemeSetId >= 0;
+}
+
+void Global::setSpeechEnginePhonemeSet(const std::string& name, bool supress) {
+	if (isSpeechEngineSet())
+		if (!supress)
+			G_LG("Changing speech engine phoneme set after it was set. Was this intended?", Logger::WARN);
+	speechEnginePhonemeSetId = pc.getId(name);
+}
+
+const PhonemeSet& Global::getSpeechEnginePhonemeSet() {
+	if (!isSpeechEngineSet())
+		G_LG("Speech engine phoneme set has not been initalized yet", Logger::DEAD);
+	return pc.get(speechEnginePhonemeSetId);
+};
+
+std::string Global::getSpeechEnginePhonemeSetName() {
+	return getSpeechEnginePhonemeSet().getName();
+}
 
 size_t Global::silencePhone() {
+	if (classifierPhonemeSetId < 0) {
+		G_LG("Cannot get silence phoneme; classifier has not been set yet", Logger::DEAD);
+	}
 	return silPhone;
 }
 
@@ -21,48 +75,18 @@ Global::Global() {
 		.outputTo(Logger::WARN)
 		.outputTo(Logger::ERRO)
 		.outputTo(Logger::DEAD));
-
-	initPhonemeSet();
-	silPhone = ps.fromString("");
-}
-
-void Global::initPhonemeSet() {
-	// X-Sampa for this group of phoneme tokens
-	JSONHelper json;
-	if (json.open("configs/phoneme_maps.json")) {
-		JSONHelper::JSONObj mappings = json["mappings"];
-		size_t arrSize = mappings.get_array_size();
-		if (arrSize == 0) {
-			G_LG("No phoneme mapping groups found", Logger::WARN);
-		}
-		for (size_t i = 0; i < arrSize; i++) {
-			JSONHelper::JSONObj group = mappings[i];
-			size_t groupSize = group.get_array_size();
-			for (size_t j = 0; j < groupSize; j++) {
-				JSONHelper::JSONObj item = group[j];
-				std::string token = item["token"].get_string();
-				JSONHelper::JSONObj xSampa = item["x_sampa"];
-
-				PhonemeSet::Phoneme phoneme;
-				phoneme.symbol = xSampa["symbol"].get_string();
-				if (xSampa.exists("diacritic")) {
-					phoneme.diacritic = xSampa["diacritic"].get_string();
-				}
-
-				if (i > 0 && !ps.xSampaExists(phoneme.symbol)) {
-					std::printf("Does not exists: %s\n", phoneme.symbol.c_str());
-				}
-
-				ps.addString(token, phoneme.symbol);
-			}
-		}
-		json.close();
-	} else {
-		G_LG("Failed to open phoneme mappings", Logger::DEAD);
-		throw("Failed to open phoneme mappings");
-	}
+	
+	init = true;
 }
 
 void Global::log(const std::string& message, int verbosity, int color) {
-	logger.log(message, verbosity, color);
+	if (initalized()) {
+		Global::get().logger.log(message, verbosity, color);
+	} else {
+		// In case the Global instance isn't initalized yet, use this simpler method
+		std::cout << "(Preinit) " << message << std::endl;
+		if (verbosity == Logger::DEAD) {
+			throw(message);
+		};
+	}
 }

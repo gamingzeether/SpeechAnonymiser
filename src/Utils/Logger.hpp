@@ -10,6 +10,8 @@
 #include <assert.h>
 #include <format>
 
+// Access through Global::get().log()
+// Or the macro G_LG defined in Global.hpp
 class Logger {
 public:
 	static const int verbosityLevels = 5;

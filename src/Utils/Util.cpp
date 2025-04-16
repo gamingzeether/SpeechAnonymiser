@@ -83,3 +83,33 @@ void Util::removeTrailingSlash(std::string& path) {
     if (length > 1 && (back == '/' || back == '\\'))
         path.pop_back();
 }
+
+bool Util::leftPad(std::string& message, int width, const char padChar) {
+    int nPad = width - message.size();
+    bool isShorter = nPad > 0;
+    if (isShorter) {
+        std::string padding = "";
+        for (size_t i = 0; i < nPad; i++)
+            padding += padChar;
+        message = padding + message;
+    }
+    return isShorter;
+}
+
+std::vector<std::string> Util::split(const std::string& input, const char delimiter) {
+    std::vector<std::string> parts;
+    size_t start = 0;
+    size_t end = 0;
+    while (end != input.npos) {
+        end = input.find(delimiter, start);
+        parts.push_back(input.substr(start, end - start));
+        start = end + 1;
+    }
+    return parts;
+}
+
+void Util::stripPadding(std::string& input, const char padChar) {
+    size_t start = input.find_first_not_of(padChar);
+    if (start != input.npos)
+        input = input.substr(start);
+}

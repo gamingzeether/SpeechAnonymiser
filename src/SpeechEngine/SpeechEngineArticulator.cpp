@@ -223,7 +223,7 @@ void SpeechEngineArticulator::_init() {
 
 #pragma region Animations
 	_initArticulators();
-	const PhonemeSet& ips = G_PS;
+	const PhonemeSet& ips = G_PS_S;
 	for (int i = 0; i < ips.size(); i++) {
 		const std::string& name = ips.xSampa(i);
 		articAnim.loadGroup(std::format("configs/animations/phonemes/{}_anim.json", name), name);

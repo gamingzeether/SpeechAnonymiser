@@ -1,5 +1,7 @@
 #include "JSONHelper.hpp"
 
+#include <iostream>
+
 JSONHelper::Type JSONHelper::JSONObj::get_type() const {
     if (yyjson_mut_is_int(val)) {
         return Type::INT;
@@ -32,7 +34,11 @@ JSONHelper::JSONObj JSONHelper::JSONObj::operator[](const char* key) const {
     return JSONObj(_doc, obj);
 }
 
-bool JSONHelper::open(std::string openPath, int version) {
+JSONHelper::JSONObj JSONHelper::JSONObj::operator[](const std::string& key) const {
+    return operator[](key.c_str());
+}
+
+bool JSONHelper::open(std::string openPath, int version, bool create) {
 	path = openPath;
 
     int jsonVersion = -1;
@@ -40,20 +46,25 @@ bool JSONHelper::open(std::string openPath, int version) {
     bool opened = false;
     if (openPath != "") {
         yyjson_doc* iDoc;
-        iDoc = yyjson_read_file(path.c_str(), YYJSON_READ_NOFLAG, NULL, NULL);
-        if (iDoc != NULL) {
-            yyjson_val* root = yyjson_doc_get_root(iDoc);
-            yyjson_val* version = yyjson_obj_get(root, "_version");
-            jsonVersion = yyjson_get_int(version);
+        yyjson_read_err err;
+        iDoc = yyjson_read_file(path.c_str(), YYJSON_READ_NOFLAG, NULL, &err);
+        if (iDoc == NULL) {
+            if (!create)
+                std::cout << ("JSON read error (%u): %s at position: %ld\n", err.code, err.msg, err.pos);
+        } else {
+            yyjson_val* iRoot = yyjson_doc_get_root(iDoc);
+            yyjson_val* iVersion = yyjson_obj_get(iRoot, "_version");
+            jsonVersion = yyjson_get_int(iVersion);
+
+            if (jsonVersion == version) {
+                doc = yyjson_doc_mut_copy(iDoc, NULL);
+                root = yyjson_mut_doc_get_root(doc);
+                opened = true;
+            }
+            yyjson_doc_free(iDoc);
         }
-        if (jsonVersion == version) {
-            doc = yyjson_doc_mut_copy(iDoc, NULL);
-            root = yyjson_mut_doc_get_root(doc);
-            opened = true;
-        }
-        yyjson_doc_free(iDoc);
     }
-    if (!opened) {
+    if (!opened && create) {
         doc = yyjson_mut_doc_new(NULL);
         root = yyjson_mut_obj(doc);
         yyjson_mut_doc_set_root(doc, root);
@@ -62,7 +73,7 @@ bool JSONHelper::open(std::string openPath, int version) {
 
     rootObj = JSONObj(doc, root);
 
-    return jsonVersion == version;
+    return opened || create;
 }
 
 void JSONHelper::close() {

@@ -5,14 +5,12 @@
 #include <string>
 #include <map>
 
-// Access through Global::get().phonemeSet()
-// Or the macro G_PS defined in Global.hpp
 class PhonemeSet {
 public:
 	struct Phoneme {
 		size_t index;
 		std::string symbol;
-		std::string diacritic;
+		//std::string diacritic;
 	};
 
 	size_t fromString(const std::string& str) const;
@@ -24,6 +22,9 @@ public:
 	size_t xSampaIndex(const std::string& str) const;
 	bool xSampaExists(const std::string& str) const;
 	size_t size() const { return _counter; };
+
+	std::string getName() const { return name; };
+	size_t getId() const { return id; };
 private:
 	std::map<std::string, size_t> xSampaMap;
 	std::map<size_t, std::string> invXSampaMap;
@@ -31,9 +32,13 @@ private:
 
 	size_t _counter = 0;
 
-	PhonemeSet() {};
+	std::string name;
+	int id;
+
+	PhonemeSet(std::string name, size_t id) : name(name), id(id) {};
 
 	size_t getOrNew(const std::string& xSampa);
 
-	friend class Global;
+	friend class PhonemeCollection;
+	friend class TranslationMap;
 };

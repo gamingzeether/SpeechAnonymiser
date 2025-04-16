@@ -12,6 +12,7 @@
 #include "TimitIterator.hpp"
 #include "TSVReader.hpp"
 #include "../../Utils/ClassifierHelper.hpp"
+#include "../../Utils/Global.hpp"
 #include "../../Utils/ParallelWorker.hpp"
 #include "../../structs.hpp"
 
@@ -27,6 +28,7 @@ public:
     std::vector<float> _findAndLoad(const std::string& path, size_t target, int samplerate, std::string& fileName, std::vector<Phone>& phones, const std::string& filter = "");
     void setSubtype(Subtype t);
     size_t getLoadedClips();
+    static Type folderType(const std::string& path);
 
     Dataset() {
         sharedData.reader = TSVReader();
@@ -38,10 +40,8 @@ public:
         sharedData.reader = TSVReader();
         sharedData.sampleRate = sr;
         sharedData.path = pth;
-        if (std::filesystem::exists(pth + "/train.tsv")) {
-            sharedData.type = COMMON_VOICE;
-        } else {
-            sharedData.type = TIMIT;
+        sharedData.type = folderType(pth);
+        if (sharedData.type == TIMIT) {
             sharedData.timitIter.open(sharedData.path);
         }
     };

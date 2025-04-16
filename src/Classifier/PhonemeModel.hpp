@@ -6,6 +6,7 @@
 #include "ModelSerializer.hpp"
 #include "../Utils/ClassifierHelper.hpp"
 #include "../Utils/Config.hpp"
+#include "../Utils/Global.hpp"
 #include "../include_mlpack.hpp"
 
 class PhonemeModel {
@@ -21,9 +22,10 @@ public:
 		double e[size];
 	};
 
+	// getInputSize and getSampleRate allow modifiying
 	int& getInputSize() { return inputSize; };
-	int& getOutputSize() { return outputSize; };
 	int& getSampleRate() { return sampleRate; };
+	int getOutputSize() const { return G_PS_C.size(); };
 
 	NETWORK_TYPE& network() { return net; };
 	OPTIMIZER_TYPE& optimizer() { return optim; };

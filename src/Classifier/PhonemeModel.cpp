@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <fstream>
 #include <format>
-#include "../Utils/Global.hpp"
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"
@@ -168,21 +167,28 @@ bool PhonemeModel::load() {
         G_LG(std::format("{} does not exist", ARCHIVE_FILE), Logger::DBUG);
     }
 
-    outputSize = G_PS.size();
+    // This should only be true if doing something with the dataset (training or evaluating)
+    bool hasPhonemeSet = Global::get().isClassifierSet();
+    std::string psName;
+    if (hasPhonemeSet) {
+        psName = Global::get().getClassifierPhonemeSetName();
+    }
 
     // Load config file
     config = Config(tempPath + CONFIG_FILE, 0);
     bool configLoaded = config.loadDefault(DEFAULT_CONFIG_FILE);
     auto& defObj = config.defaultObject();
     bool configMatches = defObj["input_features"].get_int() == inputSize &&
-        defObj["output_features"].get_int() == outputSize &&
+        // If phoneme set isn't set (inference?) or it is same as the one in the config
+        // then proceed with the config
+        (!hasPhonemeSet || defObj["phoneme_set"].get_string() == psName) &&
         defObj["sample_rate"].get_int() == sampleRate;
     if (configLoaded && configMatches) {
         G_LG(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
     } else {
         G_LG(std::format("Generating new classifier config ", DEFAULT_CONFIG_FILE), Logger::INFO);
         config.setDefault("input_features", inputSize)
-            .setDefault("output_features", outputSize)
+            .setDefault("phoneme_set", psName)
             .setDefault("sample_rate", sampleRate);
         setDefaultModel();
         config.saveDefault(DEFAULT_CONFIG_FILE);
@@ -200,6 +206,16 @@ bool PhonemeModel::load() {
         G_LG(std::format("Failed to load model {}", tempPath + MODEL_FILE), Logger::DBUG);
     }
     cleanUnpacked();
+
+    if (hasPhonemeSet) {
+        // Save in case it is empty
+        config.object()["phoneme_set"] = Global::get().getClassifierPhonemeSetName();
+    } else {
+        // Load from config
+        Global::get().setClassifierPhonemeSet(defObj["phoneme_set"].get_string());
+    }
+    outputSize = G_PS_C.size();
+
     if (!loaded)
         initModel();
     net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };

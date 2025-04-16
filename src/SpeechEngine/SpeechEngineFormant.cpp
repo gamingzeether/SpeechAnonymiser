@@ -239,12 +239,13 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
         JSONHelper::JSONObj groups = json["groups"];
 
         size_t numPhonemes = phonemes.get_array_size();
-        formantDatabank.resize(G_PS.size());
+        const PhonemeSet& ps = G_PS_S;
+        formantDatabank.resize(ps.size());
         for (size_t i = 0; i < numPhonemes; i++) {
             std::string phonemeStr = phonemes[i].get_string();
             // Create groups from JSON
-            if (G_PS.xSampaExists(phonemeStr)) {
-                size_t phoneme = G_PS.xSampaIndex(phonemeStr);
+            if (ps.xSampaExists(phonemeStr)) {
+                size_t phoneme = ps.xSampaIndex(phonemeStr);
                 JSONHelper::JSONObj groupJson = groups[phonemeStr.c_str()];
 
                 FormantGroup fg;
@@ -278,7 +279,7 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
         for (size_t i = 0; i < formantDatabank.size(); i++) {
             const FormantGroup& fg = formantDatabank[i];
             if (fg.formants.size() == 0) {
-                std::string phoneme = G_PS.xSampa(i);
+                std::string phoneme = ps.xSampa(i);
                 G_LG(std::format("Formants for '{}' are missing", phoneme), Logger::WARN);
             }
         }

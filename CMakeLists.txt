@@ -155,8 +155,10 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/Utils/Global.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/JSONHelper.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/Logger.hpp"
+    "${PROJECT_SOURCE_DIR}/Utils/PhonemeCollection.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/ParallelWorker.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/PhonemeSet.hpp"
+    "${PROJECT_SOURCE_DIR}/Utils/TranslationMap.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/Util.hpp"
 
     "${PROJECT_SOURCE_DIR}/common_inc.hpp"
@@ -188,7 +190,9 @@ set(Sources
     "${PROJECT_SOURCE_DIR}/Utils/Global.cpp"
     "${PROJECT_SOURCE_DIR}/Utils/JSONHelper.cpp"
     "${PROJECT_SOURCE_DIR}/Utils/Logger.cpp"
+    "${PROJECT_SOURCE_DIR}/Utils/PhonemeCollection.cpp"
     "${PROJECT_SOURCE_DIR}/Utils/PhonemeSet.cpp"
+    "${PROJECT_SOURCE_DIR}/Utils/TranslationMap.cpp"
     "${PROJECT_SOURCE_DIR}/Utils/Util.cpp"
 
     "${PROJECT_SOURCE_DIR}/SpeechAnonymiser.cpp"
