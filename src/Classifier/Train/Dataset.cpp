@@ -27,7 +27,6 @@ void Dataset::get(OUT CPU_CUBE_TYPE& data, OUT CPU_CUBE_TYPE& labels, arma::urow
     data = std::move(sharedData.exampleData);
     labels = std::move(sharedData.exampleLabel);
     sequenceLengths = std::move(sharedData.sequenceLengths);
-    mlpack::ShuffleData(data, labels, data, labels);
 }
 
 void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batchSize, bool print) {
@@ -144,9 +143,12 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batc
         size_t setSize = G_PS_C.size();
         std::vector<size_t> labelCounts(setSize, 0);
         // Get the phoneme counts
-        for (size_t i = 0; i < sharedData.exampleLabel.n_elem; i++) {
-            size_t label = sharedData.exampleLabel(i);
-            labelCounts[label]++;
+        for (size_t c = 0; c < sharedData.exampleLabel.n_cols; c++) {
+            size_t nSteps = sharedData.sequenceLengths(c);
+            for (size_t s = 0; s < nSteps; s++) {
+                size_t label = sharedData.exampleLabel(0, c, s);
+                labelCounts[label]++;
+            }
         }
         // Check for any with 0 count
         for (size_t i = 0; i < setSize; i++) {
