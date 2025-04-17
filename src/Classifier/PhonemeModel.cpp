@@ -98,7 +98,7 @@ void PhonemeModel::initModel() {
 void PhonemeModel::initOptimizer() {
     optim.BatchSize() = hp.batchSize();
     optim.StepSize() = hp.stepSize();
-    optim.Shuffle() = true;
+    optim.Shuffle() = false;
 }
 
 void PhonemeModel::save(int checkpoint) {
