@@ -1,8 +1,11 @@
 #include "Global.hpp"
 
+#include <filesystem>
 #include "ClassifierHelper.hpp"
 #include "Util.hpp"
 #include "TranslationMap.hpp"
+
+#define LOG_FILE log.txt
 
 const PhonemeSet& Global::getPhonemeSet(size_t id) {
 	return pc.get(id);
@@ -77,7 +80,7 @@ Global::Global() {
 		.outputTo(Logger::ERRO)
 		.outputTo(Logger::DEAD)
 		.enableColor(true));
-	logger.addStream(Logger::Stream("log.txt")
+	logger.addStream(Logger::Stream(logFile)
 		.outputTo(Logger::DBUG)
 		.outputTo(Logger::INFO)
 		.outputTo(Logger::WARN)
@@ -88,14 +91,16 @@ Global::Global() {
 }
 
 void Global::log(const std::string& message, int verbosity, int color) {
+	if (!logFile.is_open()) {
+		logFile = std::ofstream(Logger::fileName(STRINGIFY(LOG_FILE)));
+	}
+
 	if (initalized()) {
 		Global::get().logger.log(message, verbosity, color);
 	} else {
-		static std::ofstream ostream("logs/preinit-log.txt");
 		std::string logMessage = "(Preinit) " + message;
-
 		std::cout << logMessage << std::endl;
-		ostream << logMessage << std::endl;
+		logFile << logMessage << std::endl;
 
 		if (verbosity == Logger::DEAD) {
 			throw(message);

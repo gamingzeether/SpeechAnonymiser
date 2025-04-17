@@ -59,6 +59,7 @@ public:
 private:
 	Global();
 	inline static bool init = false;
+	inline static std::ofstream logFile;
 
 	PhonemeCollection pc;
 	Logger logger;

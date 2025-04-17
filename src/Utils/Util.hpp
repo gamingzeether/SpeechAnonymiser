@@ -32,6 +32,8 @@ public:
                 return elem;
         return excluded;
     }
+    // Checks if a contains b
+    static bool contains(const std::string& a, const std::string& b);
 private:
     inline static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> cvt;
 };

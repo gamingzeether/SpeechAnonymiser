@@ -12,6 +12,9 @@
 
 // Access through Global::get().log()
 // Or the macro G_LG defined in Global.hpp
+
+#define LOG_DIR logs/
+
 class Logger {
 public:
 	static const int verbosityLevels = 5;
@@ -66,7 +69,7 @@ public:
 
 		Stream() : stream(&std::cout) {};
 		Stream(std::ostream& s) : stream(&s) {};
-		Stream(const std::string& path) : fstreamPath(Logger::fileName(path)) {};
+		Stream(const std::string& path) : fstreamPath(path) {};
 
 		friend class Global;
 	};
@@ -81,6 +84,8 @@ public:
 		streams.back().init();
 	}
 	void log(const std::string& message, int verbosity = 0, int color = Color::DEFAULT);
+	
+	static std::string fileName(const std::string& base);
 private:
 	std::vector<Stream> streams;
 	std::vector<std::string> colors = {
@@ -100,8 +105,6 @@ private:
 		"DEAD" };
 	
 	Logger() {};
-
-	static std::string fileName(const std::string& base);
 
 	std::string timeString();
 

@@ -13,6 +13,8 @@
 
 #define QUOTE(v) #v
 
+#define STRINGIFY(v) QUOTE(v)
+
 #define CPU_CUBE_TYPE arma::fcube
 #define CPU_MAT_TYPE arma::fmat
 

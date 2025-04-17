@@ -55,3 +55,31 @@ void Util::stripPadding(std::string& input, const char padChar) {
     if (start != input.npos)
         input = input.substr(start);
 }
+
+bool Util::contains(const std::string& a, const std::string& b) {
+    bool terminate = false;
+    // Outer loop: starting position
+    for (size_t start = 0; start < a.size() && !terminate; start++) {
+        bool match = true;
+        // Inner loop: compare substrings
+        for (size_t nMatch = 0; nMatch < b.size(); nMatch++) {
+            size_t aPos = start + nMatch;
+            size_t bPos = nMatch;
+            // Out of bounds; impossible to contain at this point
+            if (aPos >= a.size()) {
+                terminate = true;
+                match = false;
+                break;
+            }
+            char aChar = a[start + nMatch];
+            char bChar = b[nMatch];
+            if (aChar != bChar) {
+                match = false;
+                break;
+            }
+        }
+        if (match)
+            return true;
+    }
+    return false;
+}

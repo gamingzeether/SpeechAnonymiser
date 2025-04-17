@@ -4,12 +4,15 @@
 #include <time.h>
 #include <format>
 #include <mutex>
+#include <filesystem>
+#include "Util.hpp"
 
 void Logger::Stream::init() {
 	if (fstreamPath != "") {
-		stream = new std::ofstream(fstreamPath, std::ios::out | std::ios::trunc);
+		std::string logDir = fileName(STRINGIFY(LOG_DIR));
+		stream = new std::ofstream(logDir, std::ios::app);
 		if (!((std::ofstream*)stream)->is_open()) {
-			std::printf("Failed to open file for %s\n", fstreamPath.c_str());
+			std::printf("Failed to open file for %s\n", logDir.c_str());
 		}
 	}
 	outputVerbose = std::vector<bool>(Logger::verbosityLevels, false);
@@ -77,7 +80,7 @@ std::string Logger::fileName(const std::string& base) {
 	auto time = std::chrono::system_clock::to_time_t(now);
 
 	tm lt = *std::localtime(&time);
-	return std::format("logs/{:04}_{:02}_{:02}-{:02}_{:02}-{}", lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base);
+	return std::format("{}{:04}_{:02}_{:02}-{:02}_{:02}-{}", STRINGIFY(LOG_DIR), lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base);
 }
 
 std::string Logger::timeString() {
