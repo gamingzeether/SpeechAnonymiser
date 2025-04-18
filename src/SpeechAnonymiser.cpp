@@ -180,7 +180,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
                 double floor = std::floor(realRead);
                 OUTPUT_TYPE p1 = iData->buffer[j][(int)floor];
                 OUTPUT_TYPE p2 = iData->buffer[j][(int)(std::ceil(realRead) + 0.1)];
-                input = std::lerp(p1, p2, realRead - floor);
+                input = Util::lerp(p1, p2, realRead - floor);
                 *buffer++ = (OUTPUT_TYPE)((input * OUTPUT_SCALE) / INPUT_SCALE);
             }
         }

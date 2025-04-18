@@ -20,3 +20,8 @@ std::string Util::format(const std::string& format, Args ... args) {
     free(cstr);
     return outStr;
 }
+
+template <typename Type, typename AmountType>
+Type Util::lerp(Type start, Type end, AmountType t) {
+    return start + (end - start) * t;
+}

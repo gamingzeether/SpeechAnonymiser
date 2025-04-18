@@ -94,6 +94,7 @@
         "hash_map": "cpp",
         "qbitmap": "cpp",
         "qpainter": "cpp",
-        "qlabel": "cpp"
+        "qlabel": "cpp",
+        "span_ext": "cpp"
     }
 }

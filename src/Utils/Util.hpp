@@ -34,6 +34,9 @@ public:
     // Formats a string similar to c++20's std::format
     template <typename... Args>
     static std::string format(const std::string& format, Args ... args);
+    // Performs a linear interpolation
+    template <typename Type, typename AmountType>
+    static Type lerp(Type start, Type end, AmountType t);
 private:
     inline static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> cvt;
 };
