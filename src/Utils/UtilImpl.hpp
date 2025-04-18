@@ -17,7 +17,7 @@ std::string Util::format(const std::string& format, Args ... args) {
     char* cstr = new char[strSize];
     snprintf(cstr, strSize, format.c_str(), args...);
     std::string outStr(cstr);
-    free(cstr);
+    delete[] cstr;
     return outStr;
 }
 
