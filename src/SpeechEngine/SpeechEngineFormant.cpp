@@ -272,7 +272,7 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
                 formantDatabank[phoneme] = std::move(fg);
             } else {
                 // Notify user that a phoneme for the synthesiser exists but won't ever be played
-                G_LG(std::format("Phoneme exists but not registered: {}", phonemeStr), Logger::DBUG);
+                G_LG(Util::format("Phoneme exists but not registered: %s", phonemeStr.CS), Logger::DBUG);
             }
         }
         // Check for missing groups
@@ -280,7 +280,7 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
             const FormantGroup& fg = formantDatabank[i];
             if (fg.formants.size() == 0) {
                 std::string phoneme = ps.xSampa(i);
-                G_LG(std::format("Formants for '{}' are missing", phoneme), Logger::WARN);
+                G_LG(Util::format("Formants for '%s' are missing", phoneme.CS), Logger::WARN);
             }
         }
     } else {

@@ -1,14 +1,14 @@
 #include "PhonemeCollection.hpp"
 
 #include <iostream>
-#include <format>
 #include "Global.hpp"
+#include "Util.hpp"
 
 int PhonemeCollection::getId(const std::string& name) {
 	for (const PhonemeSet ps : phonemeSets)
 		if (ps.name == name)
 			return ps.id;
-	G_LG(std::format("Phoneme set with name '{}' does not exist", name), Logger::DBUG);
+	G_LG(Util::format("Phoneme set with name '%s' does not exist", name.CS), Logger::DBUG);
 	return -1;
 }
 
@@ -35,7 +35,7 @@ void PhonemeCollection::initPhonemeSet(std::string path) {
 		phonemeSets.push_back(std::move(ps));
 		json.close();
 	} else {
-		G_LG(std::format("Failed to open phoneme set at {}", path), Logger::DEAD);
+		G_LG(Util::format("Failed to open phoneme set at %s", path.CS), Logger::DEAD);
 		throw;
 	}
 }
@@ -62,7 +62,7 @@ PhonemeCollection::PhonemeCollection() {
 		for (size_t i = 0; i < nSets; i++) {
 			JSONHelper::JSONObj set = sets[i];
 			std::string setName = set["name"].get_string();
-			G_LG(std::format("Initalizing phoneme set '{}'", setName), Logger::DBUG);
+			G_LG(Util::format("Initalizing phoneme set '%s'", setName.CS), Logger::DBUG);
 			initPhonemeSet(set["path"].get_string());
 		}
 	} else {

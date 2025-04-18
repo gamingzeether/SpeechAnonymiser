@@ -54,7 +54,7 @@ https://github.com/gamingzeether/SpeechAnonymiser/releases
 
 
 # Dependencies
-- A compiler that supports c++ 20 (and std::format)
+- A compiler that supports c++ 17
 - CMake >= 3.16.0
 - vcpkg
 

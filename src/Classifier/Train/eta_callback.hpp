@@ -21,7 +21,7 @@
 #include <vector>
 #include <tuple>
 #include <string>
-#include <format>
+#include "../../Utils/Util.hpp"
 
 namespace ens {
 
@@ -188,14 +188,14 @@ class ProgressBarETA
         double val = std::get<double>(pair);
         if (val > 1) {
             std::string& unit = std::get<std::string>(pair);
-            pairString = std::format("{:.2f}{}", val, unit);
+            pairString = Util::format("%.2lf%s", val, unit.CS);
             break;
         }
     }
     if (pairString.empty()) {
         // Empty (seconds <= 1)?
         // Default to print seconds
-        pairString = std::format("{:.2f}s", secondsRemaining);
+        pairString = Util::format("%.2fs", secondsRemaining);
     }
 
     output << "] " << progress << "% - ETA: " << pairString << " - loss: " <<
