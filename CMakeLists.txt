@@ -37,6 +37,11 @@ endif()
 ################################################################################
 # Set up project
 ################################################################################
+set(OUTPUT_DIRECTORY "${CMAKE_BUILD_TYPE}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
 project(SpeechAnonymiser CXX)
@@ -75,7 +80,7 @@ set(Headers
     "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineConcatenator.hpp"
     "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineFormant.hpp"
     "${PROJECT_SOURCE_DIR}/SpeechEngine/Voicebank.hpp"
-    
+
     "${PROJECT_SOURCE_DIR}/Utils/ClassifierHelper.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/Config.hpp"
     "${PROJECT_SOURCE_DIR}/Utils/Global.hpp"
