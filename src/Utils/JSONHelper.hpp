@@ -50,7 +50,7 @@ public:
 		void operator=(const std::string& value) {
 			// Results in unfreed memory but allows writing even after value is freed
 			// There is a better way to do this but I would have to rewrite a lot of things
-			char* copy = (char*)malloc(sizeof(char) * value.length());
+			char* copy = (char*)malloc(sizeof(char) * value.length() + 1);
 			strcpy(copy, value.c_str());
 			yyjson_mut_set_str(val, copy);
 		};
