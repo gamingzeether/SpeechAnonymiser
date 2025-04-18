@@ -1,7 +1,7 @@
 ##################################################
 # Build stage
 ##################################################
-FROM gcc:14.2.0-bookworm as build
+FROM debian:bookworm AS build
 
 # Install dependencies from apt
 RUN apt-get update &&\
@@ -15,7 +15,10 @@ RUN apt-get update &&\
         unzip \
         tar \
         build-essential \
-        pkg-config
+        pkg-config \
+        gcc \
+        g++ \
+        gfortran
 
 # Install vcpkg
 WORKDIR /git/
@@ -25,10 +28,12 @@ RUN git clone https://github.com/microsoft/vcpkg.git &&\
 ENV VCPKG_ROOT=/git/vcpkg
 
 # Configure speech anonymiser project
+ENV SPEECHANONYMISER_BRANCH=main
 WORKDIR /git/
 RUN git clone https://github.com/gamingzeether/SpeechAnonymiser &&\
     cd SpeechAnonymiser &&\
     mkdir out &&\
+    git checkout $SPEECHANONYMISER_BRANCH &&\
     cmake -B out \
         -DCMAKE_BUILD_TYPE=Release \
         -DAUDIO=OFF \
@@ -38,14 +43,15 @@ RUN git clone https://github.com/gamingzeether/SpeechAnonymiser &&\
 
 # Pull if there is a new commit
 WORKDIR /git/SpeechAnonymiser/
-ADD "https://api.github.com/repos/gamingzeether/SpeechAnonymiser/commits?per_page=1" .latest_commit
+ADD "https://api.github.com/repos/gamingzeether/SpeechAnonymiser/commits/$SPEECHANONYMISER_BRANCH?per_page=1" .latest_commit
 RUN git pull &&\
+    cmake -B out &&\
     cmake --build out
 
 ##################################################
 # Deploy stage
 ##################################################
-FROM condaforge/mambaforge as deploy
+FROM condaforge/miniforge3 AS deploy
 
 RUN useradd -ms /bin/bash speechanonymiser
 
@@ -70,7 +76,7 @@ USER speechanonymiser
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/conda/lib/ &&\
     conda run -p /env mfa server init &&\
     echo "source activate /env" > ~/.bashrc
-ENV PATH /env/bin:$PATH
+ENV PATH=/env/bin:$PATH
 
 # Install Whisper
 RUN pip install --no-cache-dir -U openai-whisper
@@ -85,23 +91,13 @@ RUN pip install --no-cache-dir pydub
 
 # Install speech anonymiser
 USER root
-COPY --from=build /git/SpeechAnonymiser/Release/ /SpeechAnonymiser/
+COPY --from=build /git/SpeechAnonymiser/out/Release/ /SpeechAnonymiser/
 COPY --from=build \
     /git/SpeechAnonymiser/out/vcpkg_installed/x64-linux-release/lib/ \
-    /usr/local/lib64/libgfortran.so.5 \
-    /usr/local/lib64/libstdc++.so.6 \
-    /lib/x86_64-linux-gnu/libc.so.6 \
-    /lib/x86_64-linux-gnu/libpthread.so.0 \
-    /lib/x86_64-linux-gnu/libm.so.6 \
-    /lib/x86_64-linux-gnu/libutil.so.1 \
-    /lib/x86_64-linux-gnu/libdl.so.2 \
-    /lib/x86_64-linux-gnu/librt.so.1 \
-    /lib/x86_64-linux-gnu/libgcc_s.so.1 \
+    /lib/x86_64-linux-gnu/libgfortran.so.5 \
     /lib/x86_64-linux-gnu/libgomp.so.1 \
+    /lib/x86_64-linux-gnu/libquadmath.so.0 \
     /lib/x86_64-linux-gnu/
-COPY --from=build \
-    /lib64/ld-linux-x86-64.so.2 \
-    /lib64/
 RUN chown -R speechanonymiser /SpeechAnonymiser &&\
     chown -R speechanonymiser /app
 USER speechanonymiser
@@ -111,5 +107,5 @@ ADD build/entry_script.bash build/whisper_transcribe.py build/generate_tsv.py /a
 ##################################################
 # Flatten stage
 ##################################################
-FROM deploy as flatten
+FROM deploy AS flatten
 ENTRYPOINT [ "bash", "entry_script.bash" ]

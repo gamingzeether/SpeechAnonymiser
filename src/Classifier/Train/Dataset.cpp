@@ -154,12 +154,12 @@ void Dataset::_start(size_t inputSize, size_t outputSize, size_t ex, size_t batc
         for (size_t i = 0; i < setSize; i++) {
             if (labelCounts[i] == 0) {
                 std::string labelString = G_PS_C.xSampa(i);
-                G_LG(std::format("{} is in phoneme set but not in dataset", labelString), Logger::WARN);
+                G_LG(Util::format("%s is in phoneme set but not in dataset", labelString.CS), Logger::WARN);
             }
         }
     }
 
-    G_LG(std::format("Loaded from {} clips considering {} total", sharedData.totalClips, sharedData.testedClips), Logger::INFO);
+    G_LG(Util::format("Loaded from %ld clips considering %ld total", sharedData.totalClips, sharedData.testedClips), Logger::INFO);
 }
 
 std::vector<Phone> Dataset::parseTextgrid(const std::string& path, int sampleRate) {
@@ -346,7 +346,7 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
             }
             std::cout << "\n";
             // Run alignment
-            const std::string mfaLine = std::format("mfa align -t {} --use_mp --quiet --clean {} {} {} {}", mfaWorkDir, audioWorkDir, dictPath, acousticPath, outputDir);
+            const std::string mfaLine = Util::format("mfa align -t %s --use_mp --quiet --clean %s %s %s %s", mfaWorkDir.CS, audioWorkDir.CS, dictPath.CS, acousticPath.CS, outputDir.CS);
             int result = system(mfaLine.c_str());
             if (result != 0)
                 std::printf("MFA exited with exit code %d\n", result);

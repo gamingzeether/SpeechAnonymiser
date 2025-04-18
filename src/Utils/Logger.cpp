@@ -2,10 +2,8 @@
 
 #include <chrono>
 #include <time.h>
-#include <format>
 #include <mutex>
 #include <filesystem>
-#include "Util.hpp"
 
 void Logger::Stream::init() {
 	if (fstreamPath != "") {
@@ -65,7 +63,7 @@ void Logger::log(const std::string& message, int verbosity, int color) {
 			bool useColor = stream.supportsColor() && color != Color::DEFAULT;
 			std::string& colorStartStr = colors[useColor ? color : Color::NONE];
 			std::string& colorEndStr = colors[useColor ? Color::DEFAULT : Color::NONE];
-			std::string logLine = std::format("{}{} {}:  {}{}\n", colorStartStr, time, verbosityName, message, colorEndStr);
+			std::string logLine = Util::format("%s%s %s:  %s%s\n", colorStartStr.CS, time.CS, verbosityName.CS, message.CS, colorEndStr.CS);
 			stream << logLine;
 		}
 	}
@@ -80,7 +78,7 @@ std::string Logger::fileName(const std::string& base) {
 	auto time = std::chrono::system_clock::to_time_t(now);
 
 	tm lt = *std::localtime(&time);
-	return std::format("{}{:04}_{:02}_{:02}-{:02}_{:02}-{}", STRINGIFY(LOG_DIR), lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base);
+	return Util::format("%s%04d_%02d_%02d-%02d_%02d-%s", STRINGIFY(LOG_DIR), lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base.CS);
 }
 
 std::string Logger::timeString() {
@@ -88,5 +86,5 @@ std::string Logger::timeString() {
 	auto time = std::chrono::system_clock::to_time_t(now);
 	
 	tm lt = *std::localtime(&time);
-	return std::format("[{:02}:{:02}:{:02}]", lt.tm_hour, lt.tm_min, lt.tm_sec);
+	return Util::format("[%02d:%02d:%02d]", lt.tm_hour, lt.tm_min, lt.tm_sec);
 }

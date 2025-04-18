@@ -2,19 +2,20 @@
 
 #include <assert.h>
 #include "../Utils/ClassifierHelper.hpp"
+#include "../Utils/Util.hpp"
 
 float Animator::CubicBezierCurve::pos(float t) {
 	assert(0 <= t && t <= 1);
 	float b1, b2, b3, c1, c2;
 
-	b1 = std::lerp(p1, p2, t);
-	b2 = std::lerp(p2, p3, t);
-	b3 = std::lerp(p3, p4, t);
+	b1 = Util::lerp(p1, p2, t);
+	b2 = Util::lerp(p2, p3, t);
+	b3 = Util::lerp(p3, p4, t);
 
-	c1 = std::lerp(b1, b2, t);
-	c2 = std::lerp(b2, b3, t);
+	c1 = Util::lerp(b1, b2, t);
+	c2 = Util::lerp(b2, b3, t);
 
-	return std::lerp(c1, c2, t);
+	return Util::lerp(c1, c2, t);
 }
 
 float Animator::Curve::pos(float t) {

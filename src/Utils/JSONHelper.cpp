@@ -51,7 +51,7 @@ bool JSONHelper::open(std::string openPath, int version, bool create) {
         iDoc = yyjson_read_file(path.c_str(), YYJSON_READ_NOFLAG, NULL, &err);
         if (iDoc == NULL) {
             if (!create)
-                G_LG(std::format("JSON read error ({}): {} at position: {}", err.code, err.msg, err.pos), Logger::ERRO);
+                G_LG(Util::format("JSON read error (%d): %s at position: %d", err.code, err.msg, err.pos), Logger::ERRO);
         } else {
             yyjson_val* iRoot = yyjson_doc_get_root(iDoc);
             yyjson_val* iVersion = yyjson_obj_get(iRoot, "_version");

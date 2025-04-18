@@ -9,7 +9,6 @@
 #include <filesystem>
 #include <random>
 #include <unordered_set>
-#include <format>
 #include <optional>
 #include <cargs.h>
 #include "Classifier/PhonemeClassifier.hpp"
@@ -18,7 +17,6 @@
 #include "Utils/ClassifierHelper.hpp"
 #include "Utils/Global.hpp"
 #include "Utils/TranslationMap.hpp"
-#include "Utils/Util.hpp"
 #include "SpeechEngine/SpeechEngineConcatenator.hpp"
 #include "SpeechEngine/SpeechEngineFormant.hpp"
 #include "structs.hpp"
@@ -182,7 +180,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
                 double floor = std::floor(realRead);
                 OUTPUT_TYPE p1 = iData->buffer[j][(int)floor];
                 OUTPUT_TYPE p2 = iData->buffer[j][(int)(std::ceil(realRead) + 0.1)];
-                input = std::lerp(p1, p2, realRead - floor);
+                input = Util::lerp(p1, p2, realRead - floor);
                 *buffer++ = (OUTPUT_TYPE)((input * OUTPUT_SCALE) / INPUT_SCALE);
             }
         }
@@ -355,21 +353,21 @@ int commandTrain(const std::string& path) {
 
     int examples = 1000;
     requestInput("Set examples", examples);
-    G_LG(std::format("Set examples count: {}", examples), Logger::DBUG);
+    G_LG(Util::format("Set examples count: %d", examples), Logger::DBUG);
     if (examples <= 0) {
         throw("Out of range");
     }
 
     int epochs = 1000;
     requestInput("Set number of epochs", epochs);
-    G_LG(std::format("Set epochs: {}", epochs), Logger::DBUG);
+    G_LG(Util::format("Set epochs: %d", epochs), Logger::DBUG);
     if (epochs <= 0) {
         throw("Out of range");
     }
 
     //double stepSize = STEP_SIZE;
     //requestInput("Set training rate", stepSize);
-    //G_LG(std::format("Set training rate: {}", stepSize), Logger::DBUG);
+    //G_LG(Util::format("Set training rate: %lf", stepSize), Logger::DBUG);
     //if (stepSize <= 0) {
     //    throw("Out of range");
     //}
@@ -469,9 +467,9 @@ int commandDefault() {
     unsigned int inputSampleRate = sampleRate;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
-    G_LG(std::format("Using input: {}", inputInfo.name), Logger::INFO);
-    G_LG(std::format("Sample rate: {}", inputSampleRate), Logger::INFO);
-    G_LG(std::format("Channels: {}", inputInfo.inputChannels), Logger::INFO);
+    G_LG(Util::format("Using input: %s", inputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Sample rate: %u", inputSampleRate), Logger::INFO);
+    G_LG(Util::format("Channels: %u", inputInfo.inputChannels), Logger::INFO);
 
     InputData inputData = InputData(inputParameters.nChannels, inputSampleRate * INPUT_BUFFER_TIME);
 
@@ -497,9 +495,9 @@ int commandDefault() {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    G_LG(std::format("Using output: {}", outputInfo.name), Logger::INFO);
-    G_LG(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
-    G_LG(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
+    G_LG(Util::format("Using output: %s", outputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
+    G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -604,9 +602,9 @@ int commandInteractive(const std::string& path) {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    G_LG(std::format("Using output: {}", outputInfo.name), Logger::INFO);
-    G_LG(std::format("Sample rate: {}", outputSampleRate), Logger::INFO);
-    G_LG(std::format("Channels: {}", outputInfo.outputChannels), Logger::INFO);
+    G_LG(Util::format("Using output: %s", outputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
+    G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
 
     OutputData outputData = OutputData();
     outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
@@ -734,14 +732,14 @@ void initClassifier() {
     //requestInput("Select sample rate", sampleRate);
     sampleRate = 16000;
     classifier.initalize(sampleRate);
-    G_LG(std::format("Set sample rate: {}", sampleRate), Logger::DBUG);
+    G_LG(Util::format("Set sample rate: %d", sampleRate), Logger::DBUG);
 
     {
         double forwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_FORWARD * FFT_FRAME_SPACING);
         double backwardSamples = FFT_FRAME_SAMPLES + (CONTEXT_BACKWARD * FFT_FRAME_SPACING);
         double forwardMsec = 1000.0 * (forwardSamples / sampleRate);
         double backwardMsec = 1000.0 * (backwardSamples / sampleRate);
-        G_LG(std::format("Forward context: {}ms; Backward context: {}ms", forwardMsec, backwardMsec), Logger::INFO);
+        G_LG(Util::format("Forward context: %dms; Backward context: %dms", (int)forwardMsec, (int)backwardMsec), Logger::INFO);
     }
 }
 
@@ -769,8 +767,8 @@ int main(int argc, char* argv[]) {
         }
         launchString += argv[i];
     }
-    G_LG(std::format("Launch args: {}", launchString), Logger::INFO);
-    G_LG(std::format("Working directory: {}", std::filesystem::current_path().string()), Logger::INFO);
+    G_LG(Util::format("Launch args: %s", launchString.CS), Logger::INFO);
+    G_LG(Util::format("Working directory: %s", std::filesystem::current_path().CS), Logger::INFO);
 
     tryMakeDir("logs");
     tryMakeDir("configs/articulators");
@@ -863,7 +861,7 @@ int main(int argc, char* argv[]) {
 
     classifier.destroy();
 
-    G_LG(std::format("Program exited with code {}", error), Logger::INFO);
+    G_LG(Util::format("Program exited with code %d", error), Logger::INFO);
 
     return error;
 }

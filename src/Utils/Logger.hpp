@@ -8,7 +8,8 @@
 #include <optional>
 #include <vector>
 #include <assert.h>
-#include <format>
+ // Include so that everything that uses this class has access to Util::format
+#include "Util.hpp"
 
 // Access through Global::get().log()
 // Or the macro G_LG defined in Global.hpp

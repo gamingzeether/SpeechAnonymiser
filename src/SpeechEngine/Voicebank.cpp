@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <fstream>
 #include <ctype.h>
-#include <format>
 #include <dr_wav.h>
 #include <samplerate.h>
 #include "../Utils/ClassifierHelper.hpp"
@@ -341,7 +340,7 @@ void Voicebank::Unit::save(int sr, const std::string& cacheDir) const {
     format.channels = 1;
     format.sampleRate = sr;
     format.bitsPerSample = 16;
-    drwav_init_file_write(&wav, (std::format("{}/data/{}.wav", cacheDir, index)).c_str(), &format, NULL);
+    drwav_init_file_write(&wav, (Util::format("%s/data/%ld.wav", cacheDir.CS, index)).c_str(), &format, NULL);
     // Convert data to 16 bit signed int
     int16_t* intData = new int16_t[audio.size()];
     size_t samples = audio.size();
@@ -358,7 +357,7 @@ void Voicebank::Unit::save(int sr, const std::string& cacheDir) const {
 void Voicebank::Unit::load(const std::string& cacheDir) {
     if (loaded)
         return;
-    std::string filepath = std::format("{}/data/{}.wav", cacheDir, index);
+    std::string filepath = Util::format("%s/data/%ld.wav", cacheDir.CS, index);
     unsigned int chOut, srOut;
     drwav_uint64 samples;
     float* data;

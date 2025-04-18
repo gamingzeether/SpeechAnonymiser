@@ -54,7 +54,7 @@ https://github.com/gamingzeether/SpeechAnonymiser/releases
 
 
 # Dependencies
-- A compiler that supports c++ 20 (and std::format)
+- A compiler that supports c++ 17
 - CMake >= 3.16.0
 - vcpkg
 
@@ -63,9 +63,19 @@ The below commands *should* install all of the required libraries.
 ### Debian/Ubuntu
 ```
 sudo apt-get install -y \
-    gfortran \
+    gcc \
+    g++ \
+    gfortran
+    ffmpeg \
+    cmake \
+    git \
     curl \
-    pkg-config \
+    zip \
+    unzip \
+    tar \
+    build-essential \
+    pkg-config
+    gfortran \
     libxinerama-dev \
     libxcursor-dev \
     xorg-dev \
@@ -75,7 +85,7 @@ sudo apt-get install -y \
 For more information, check out [the Dockerfile](docker/Dockerfile)
 
 ### Windows
-Should have the required libraries but I haven't tested this
+Shouldn't need any additional libraries but I haven't tested this
 
 # Building
 Run

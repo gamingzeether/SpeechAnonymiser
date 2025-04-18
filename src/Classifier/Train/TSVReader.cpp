@@ -2,11 +2,11 @@
 
 #include <iostream>
 #include <sstream>
-#include <format>
 #include <string>
 #include <algorithm>
 #include <random>
 #include <chrono>
+#include "../../Utils/Util.hpp"
 #include "../../structs.hpp"
 
 void TSVReader::dropIdx(size_t index, bool decrement) {
@@ -20,10 +20,10 @@ TSVReader::TSVLine TSVReader::convert(const TSVReader::CompactTSVLine& compact) 
 	TSVReader::TSVLine expanded;
 	std::string idString = "";
 	for (int i = 0; i < 8; i++) {
-		idString += std::format("{:016x}", compact.CLIENT_ID[i]);
+		idString += Util::format("%016x", compact.CLIENT_ID[i]);
 	}
 	expanded.CLIENT_ID = idString;
-	expanded.PATH = std::format("common_voice_en_{}.mp3", compact.PATH);
+	expanded.PATH = Util::format("common_voice_en_%u.mp3", compact.PATH);
 	expanded.SENTENCE = compact.SENTENCE;
 	return expanded;
 }

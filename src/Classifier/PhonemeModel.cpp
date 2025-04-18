@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <format>
 
 #define ARCHIVE_FILE "classifier.zip"
 #define MODEL_FILE "phoneme_model.bin"
@@ -31,7 +30,7 @@ void PhonemeModel::initModel() {
     net = NETWORK_TYPE();
     
     int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
-    G_LG(std::format("Input dimensions: \t{}\t{}\t{}\t({} features)", x, y, z, x * y * z), Logger::INFO);
+    G_LG(Util::format("Input dimensions: \t%d\t%d\t%d\t(%d features)", x, y, z, x * y * z), Logger::INFO);
 
     // Default architecture defined in PhonemeModel::setDefaultModel()
     JSONHelper::JSONObj layers = config.object()["layers"];
@@ -83,7 +82,7 @@ void PhonemeModel::initModel() {
             y = 1;
             z = 1;
         }
-        G_LG(std::format("Layer {} output dimensions: \t{}\t{}\t{}\t({} features)", i, x, y, z, x * y * z), Logger::INFO);
+        G_LG(Util::format("Layer %d output dimensions: \t%d\t%d\t%d\t(%d features)", i, x, y, z, x * y * z), Logger::INFO);
 
         // Add activation function
         RELU_ACTIVATION;
@@ -164,7 +163,7 @@ bool PhonemeModel::load() {
         zip_discard(archive);
         loaded = true;
     } else {
-        G_LG(std::format("{} does not exist", ARCHIVE_FILE), Logger::DBUG);
+        G_LG(Util::format("%s does not exist", ARCHIVE_FILE), Logger::DBUG);
     }
 
     // This should only be true if doing something with the dataset (training or evaluating)
@@ -184,9 +183,9 @@ bool PhonemeModel::load() {
         (!hasPhonemeSet || defObj["phoneme_set"].get_string() == psName) &&
         defObj["sample_rate"].get_int() == sampleRate;
     if (configLoaded && configMatches) {
-        G_LG(std::format("Using classifier config from file '{}'", DEFAULT_CONFIG_FILE), Logger::INFO);
+        G_LG(Util::format("Using classifier config from file '%s'", DEFAULT_CONFIG_FILE), Logger::INFO);
     } else {
-        G_LG(std::format("Generating new classifier config ", DEFAULT_CONFIG_FILE), Logger::INFO);
+        G_LG(Util::format("Generating new classifier config '%s'", DEFAULT_CONFIG_FILE), Logger::INFO);
         config.setDefault("input_features", inputSize)
             .setDefault("phoneme_set", psName)
             .setDefault("sample_rate", sampleRate);
@@ -203,7 +202,7 @@ bool PhonemeModel::load() {
     }
     if (loaded && !ModelSerializer::loadNetwork(tempPath + MODEL_FILE, &net)) {
         loaded = false;
-        G_LG(std::format("Failed to load model {}", tempPath + MODEL_FILE), Logger::DBUG);
+        G_LG(Util::format("Failed to load model %s", (tempPath + MODEL_FILE).CS), Logger::DBUG);
     }
     cleanUnpacked();
 
