@@ -13,9 +13,9 @@ T Util::firstNotOf(const std::vector<T>& vector, const T& excluded) {
 
 template <typename... Args>
 std::string Util::format(const std::string& format, Args ... args) {
-    int strSize = snprintf(NULL, 0, format.c_str(), args...);
+    int strSize = snprintf(NULL, 0, format.c_str(), args...) + 1;
     char* cstr = new char[strSize];
-    sprintf(cstr, format.c_str(), args...);
+    snprintf(cstr, strSize, format.c_str(), args...);
     std::string outStr(cstr);
     free(cstr);
     return outStr;
