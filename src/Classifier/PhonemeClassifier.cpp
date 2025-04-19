@@ -41,6 +41,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     // Batch size must be 1 for ragged sequences
     hp.batchSize() = 1;
     hp.stepSize() = 0.0001;
+    hp.bpttSteps() = 40;
     model.setHyperparameters(hp);
 
     model.getSampleRate() = sampleRate;
@@ -176,7 +177,6 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     int numPoints = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
     G_LG(Util::format("Total number of training points: %d", numPoints), Logger::INFO);
     G_LG("Starting training", Logger::INFO);
-    model.network().BPTTSteps() = trainData.n_slices;
     model.network().Train(
         CNAME(trainData),
         CNAME(trainLabel),
@@ -339,16 +339,16 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
     PhonemeModel::Hyperparameters base = PhonemeModel::Hyperparameters();
     base.dropout() = 0.3;
     base.l2() = 0.001;
-    base.batchSize() = 512;
+    base.batchSize() = 1;
     base.stepSize() = 0.005;
-    base.warmup() = 10;
+    base.bpttSteps() = 40;
 
     PhonemeModel::Hyperparameters stepSize = PhonemeModel::Hyperparameters();
     stepSize.dropout() = 0.05;
     stepSize.l2() = 0.0001;
-    stepSize.batchSize() = 256;
+    stepSize.batchSize() = 0;
     stepSize.stepSize() = 0.0001;
-    stepSize.warmup() = 1;
+    stepSize.bpttSteps() = 5;
 
     int paramSize = PhonemeModel::Hyperparameters::size;
 

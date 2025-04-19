@@ -92,6 +92,8 @@ void PhonemeModel::initModel() {
     DROPOUT;
     LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
+
+    net.BPTTSteps() = hp.bpttSteps();
 }
 
 void PhonemeModel::initOptimizer() {

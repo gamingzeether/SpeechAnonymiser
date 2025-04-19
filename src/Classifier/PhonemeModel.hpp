@@ -16,7 +16,7 @@ public:
 		double& l2() { return e[1]; };
 		double& batchSize() { return e[2]; };
 		double& stepSize() { return e[3]; };
-		double& warmup() { return e[4]; };
+		double& bpttSteps() { return e[4]; };
 
 		static const int size = 5;
 		double e[size];
@@ -29,7 +29,6 @@ public:
 
 	NETWORK_TYPE& network() { return net; };
 	OPTIMIZER_TYPE& optimizer() { return optim; };
-	float rate(int epoch) { return (epoch < hp.warmup()) ? (epoch / hp.warmup()) * hp.stepSize() : hp.stepSize(); };
 	void setHyperparameters(Hyperparameters hp);
 	void initModel();
 	void initOptimizer();
