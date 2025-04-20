@@ -4,6 +4,15 @@
 
 #include <algorithm>
 #include <vector>
+#include <RtAudio.h>
+
+struct AudioDevice {
+    RtAudio audio;
+    RtAudio::StreamParameters streamParameters;
+    RtAudio::StreamOptions flags;
+    unsigned int samplerate;
+    unsigned int bufferFrames;
+};
 
 struct InputData {
     INPUT_TYPE** buffer;

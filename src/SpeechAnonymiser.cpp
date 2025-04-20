@@ -27,6 +27,8 @@
 #include "Visualizer.hpp"
 #endif
 
+#define ERROR_STUB(Requires, Method, ...) Method(__VA_ARGS__) { G_LG("Compiled without " STRINGIFY(Requires) " support", Logger::DEAD); }
+
 const bool outputPassthrough = false;
 
 auto programStart = std::chrono::system_clock::now();
@@ -113,6 +115,8 @@ bool requestString(const std::string& request, std::string& out, T& value) {
     if (isInteractive) {
         std::getline(std::cin, out);
     }
+    G_LG(Util::format("Requested: '%s', Default: '%s', Recieved: '%s'",
+            request.c_str(), std::to_string(value).c_str(), out.c_str()), Logger::DBUG);
     std::cout << std::endl;
     return out != "";
 }
@@ -146,8 +150,7 @@ int processInput(void* /*outputBuffer*/, void* inputBuffer, unsigned int nBuffer
 
     if (outputPassthrough) {
         if ((iData->lastProcessed - iData->writeOffset) % iData->totalFrames < nBufferFrames) {
-            auto sinceStart = std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::system_clock::now() - programStart);
-            std::cout << sinceStart.count() << ": Stream overflow detected!\n";
+            G_LG("Stream overflow detected", Logger::ERRO);
             iData->writeOffset = (iData->lastProcessed + nBufferFrames + 128) % iData->totalFrames;
         }
     }
@@ -170,7 +173,7 @@ int processOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
     OUTPUT_TYPE* buffer = (OUTPUT_TYPE*)outputBuffer;
 
     if (status) {
-        std::cout << "Stream underflow detected!\n";
+        G_LG("Stream underflow detected", Logger::ERRO);
     }
 
     if (outputPassthrough) {
@@ -223,7 +226,65 @@ void cleanupRtAudio(RtAudio audio) {
     }
 }
 
+// Requests user to select an audio device for either input or output
+// Returns true on success, false on error
+bool selectAudioDevice(const bool input, OUT AudioDevice& audioDev) {
+    // Check if there are any devices available
+    int defaultDevice = (input) ? audioDev.audio.getDefaultInputDevice() : audioDev.audio.getDefaultOutputDevice();
+    const char* deviceType = (input) ? "input" : "output";
+    if (defaultDevice == 0) {
+        G_LG(Util::format("No %s device available", deviceType), Logger::ERRO);
+        return false;
+    }
 
+    // Select target devices
+    std::vector<RtAudio::DeviceInfo> audioDevices = std::vector<RtAudio::DeviceInfo>();
+    auto devices = audioDev.audio.getDeviceIds();
+    for (size_t i = 0; i < devices.size(); i++) {
+        RtAudio::DeviceInfo deviceInfo = audioDev.audio.getDeviceInfo(devices[i]);
+        bool isTargetType = (input && deviceInfo.inputChannels > 0) ||
+                (!input && deviceInfo.outputChannels > 0);
+        bool isDefault = (input && deviceInfo.isDefaultInput) ||
+                (!input && deviceInfo.isDefaultOutput);
+
+        if (isDefault)
+            defaultDevice = audioDevices.size(); // Get the index that this device will be at
+        if (isTargetType)
+            audioDevices.push_back(std::move(deviceInfo));
+    }
+
+    // Request user to select an audio device
+    for (size_t i = 0; i < audioDevices.size(); i++) {
+        std::cout << i << ": " << audioDevices[i].name << std::endl;
+    }
+    requestInput(Util::format("Select %s device", deviceType), defaultDevice);
+    if (defaultDevice < 0 || defaultDevice >= audioDevices.size()) {
+        G_LG("Selected device is out of range", Logger::ERRO);
+        return false;
+    } else {
+        defaultDevice = audioDevices[defaultDevice].ID;
+    }
+
+    // Set up stream parameters
+    RtAudio::DeviceInfo deviceInfo = audioDev.audio.getDeviceInfo(defaultDevice);
+    audioDev.streamParameters = RtAudio::StreamParameters();
+    audioDev.streamParameters.deviceId = defaultDevice;
+    audioDev.streamParameters.nChannels = (input) ? deviceInfo.inputChannels : deviceInfo.outputChannels;
+
+    // Get device properties
+    audioDev.samplerate = deviceInfo.preferredSampleRate;
+    return true;
+}
+#else
+ERROR_STUB(audio, int processInput, void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
+    double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data)
+ERROR_STUB(audio, int processOutput, void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames,
+    double /*streamTime*/, RtAudioStreamStatus status, void* data)
+ERROR_STUB(audio, int oneshotOutput, void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames,
+    double /*streamTime*/, RtAudioStreamStatus status, void* data)
+ERROR_STUB(audio, void cleanupRtAudio, RtAudio audio)
+ERROR_STUB(audio, void selectAudioDevice, bool input)
+ERROR_STUB(audio, void startFFT, InputData& inputData)
 #endif
 
 #ifdef GUI
@@ -348,6 +409,8 @@ void startFFT(InputData& inputData) {
     app.run();
     fft.join();
 }
+#else
+ERROR_STUB(GUI, void startFFT, InputData& inputData)
 #endif
 
 int commandHelp() {
@@ -401,162 +464,55 @@ int commandPreprocess(const std::string& path, const std::string& workDir, const
     return 0;
 }
 
-#ifdef AUDIO
-  #ifdef GUI
 int commandDefault() {
-#pragma region Input and output selector
-    RtAudio audioQuery;
-    auto devices = audioQuery.getDeviceIds();
-    unsigned int inDevice = audioQuery.getDefaultInputDevice();
-    if (inDevice == 0) {
-        std::cout << "No input devices available\n";
-        return 0;
-    }
-    unsigned int outDevice = audioQuery.getDefaultOutputDevice();
-    if (outDevice == 0) {
-        std::cout << "No output devices available\n";
-        return 0;
-    }
-    std::vector<RtAudio::DeviceInfo> inputDevices = std::vector<RtAudio::DeviceInfo>();
-    std::vector<RtAudio::DeviceInfo> outputDevices = std::vector<RtAudio::DeviceInfo>();
-    int inIdx = 0;
-    int outIdx = 0;
-    for (size_t i = 0; i < devices.size(); i++) {
-        unsigned int deviceId = devices[i];
-        RtAudio::DeviceInfo deviceInfo = audioQuery.getDeviceInfo(deviceId);
-        if (deviceInfo.inputChannels > 0) {
-            if (deviceInfo.isDefaultInput) {
-                inIdx = inputDevices.size();
-            }
-            inputDevices.push_back(deviceInfo);
-        }
-        if (deviceInfo.outputChannels > 0) {
-            if (deviceInfo.isDefaultOutput) {
-                outIdx = outputDevices.size();
-            }
-            outputDevices.push_back(deviceInfo);
-        }
-    }
+    // Set up audio devices
+    AudioDevice inputDevice, outputDevice;
+    inputDevice.bufferFrames = INPUT_BUFFER_SIZE;
+    outputDevice.bufferFrames = OUTPUT_BUFFER_SIZE;
+    if (!selectAudioDevice(true, inputDevice))
+        G_LG("Failed to get audio input", Logger::DEAD);
+    if (!selectAudioDevice(false, outputDevice))
+        G_LG("Failed to get audio output", Logger::DEAD);
 
-    std::string response;
-    for (size_t i = 0; i < inputDevices.size(); i++) {
-        std::cout << i << ": " << inputDevices[i].name << std::endl;
-    }
-    requestInput("Select input device", inIdx);
-    if (inIdx < 0 || inIdx >= inputDevices.size()) {
-        throw("Out of range");
-    } else {
-        inDevice = inputDevices[inIdx].ID;
-    }
-
-    for (size_t i = 0; i < outputDevices.size(); i++) {
-        std::cout << i << ": " << outputDevices[i].name << std::endl;
-    }
-    requestInput("Select output device", outIdx);
-    if (outIdx < 0 || outIdx >= outputDevices.size()) {
-        throw("Out of range");
-    } else {
-        outDevice = outputDevices[outIdx].ID;
-    }
-#pragma endregion
-
-    // Create and start input device
-#pragma region Input
-    RtAudio::StreamOptions inputFlags;
-
-    RtAudio inputAudio;
-
-    RtAudio::StreamParameters inputParameters;
-
-    RtAudio::DeviceInfo inputInfo = inputAudio.getDeviceInfo(inDevice);
-
-    inputParameters.deviceId = inDevice;
-    inputParameters.nChannels = inputInfo.inputChannels;
-    unsigned int inputSampleRate = sampleRate;
-    unsigned int bufferFrames = INPUT_BUFFER_SIZE;
-
-    G_LG(Util::format("Using input: %s", inputInfo.name.c_str()), Logger::INFO);
-    G_LG(Util::format("Sample rate: %u", inputSampleRate), Logger::INFO);
-    G_LG(Util::format("Channels: %u", inputInfo.inputChannels), Logger::INFO);
-
-    InputData inputData = InputData(inputParameters.nChannels, inputSampleRate * INPUT_BUFFER_TIME);
-
-    if (inputAudio.openStream(NULL, &inputParameters, INPUT_FORMAT,
-        inputSampleRate, &bufferFrames, &processInput, (void*)&inputData, &inputFlags)) {
-        std::cout << inputAudio.getErrorText() << '\n';
-        return 0; // problem with device settings
-    }
-#pragma endregion
-
-
-    // Create and start output device
-#pragma region Output
-    RtAudio::StreamOptions outputFlags;
-    RtAudio outputAudio;
-
-    RtAudio::StreamParameters outputParameters;
-    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(outDevice);
-
-    outputParameters.deviceId = outDevice;
-    outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = 44100;
-    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
-
-
-    G_LG(Util::format("Using output: %s", outputInfo.name.c_str()), Logger::INFO);
-    G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
-    G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
+    InputData inputData = InputData(inputDevice.streamParameters.nChannels, sampleRate * INPUT_BUFFER_TIME);
 
     OutputData outputData = OutputData();
-    outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
-    outputData.channels = outputParameters.nChannels;
+    outputData.lastValues = (double*)calloc(outputDevice.streamParameters.nChannels, sizeof(double));
+    outputData.channels = outputDevice.streamParameters.nChannels;
     outputData.input = &inputData;
-    outputData.scale = (double)outputSampleRate / inputSampleRate;
+    outputData.scale = (double)outputDevice.samplerate / sampleRate;
 
-    if (outputAudio.openStream(&outputParameters, NULL, OUTPUT_FORMAT,
-        outputSampleRate, &outputBufferFrames, &processOutput, (void*)&outputData, &outputFlags)) {
-        std::cout << outputAudio.getErrorText() << '\n';
+    // Open audio streams
+    if (inputDevice.audio.openStream(NULL, &inputDevice.streamParameters, INPUT_FORMAT,
+        sampleRate, &inputDevice.bufferFrames, &processInput, (void*)&inputData, &inputDevice.flags)) {
+        G_LG(inputDevice.audio.getErrorText(), Logger::ERRO);
         return 0; // problem with device settings
     }
-#pragma endregion
 
-    // Initalize speech engine
-    /*
-    auto tmpEngine = SpeechEngineConcatenator();
-    tmpEngine.setSampleRate(outputSampleRate)
-        .setChannels(2)
-        .setVolume(0.05)
-        .configure("AERIS CV-VC ENG Kire 2.0/");
-    */
-    /*
-    auto tmpEngine = SpeechEngineFormant();
-    tmpEngine.setSampleRate(outputSampleRate)
-        .setChannels(2)
-        .setVolume(0.001)
-        .configure("configs/formants/formants.json");
-    speechEngine = std::unique_ptr<SpeechEngine>(&tmpEngine);
-    */
-
-    if (inputAudio.startStream()) {
-        std::cout << inputAudio.getErrorText() << '\n';
-        cleanupRtAudio(inputAudio);
-        return 0;
+    if (outputDevice.audio.openStream(&outputDevice.streamParameters, NULL, OUTPUT_FORMAT,
+        outputDevice.samplerate, &outputDevice.bufferFrames, &processOutput, (void*)&outputData, &outputDevice.flags)) {
+        G_LG(outputDevice.audio.getErrorText(), Logger::ERRO);
+        return 0; // problem with device settings
     }
 
-    if (outputAudio.startStream()) {
-        std::cout << outputAudio.getErrorText() << '\n';
-        cleanupRtAudio(outputAudio);
-        return 0;
+    // Start audio streams
+    if (inputDevice.audio.startStream()) {
+        G_LG(inputDevice.audio.getErrorText(), Logger::ERRO);
+        cleanupRtAudio(inputDevice.audio);
+        return -1;
     }
 
-    std::cout << std::endl;
+    if (outputDevice.audio.startStream()) {
+        G_LG(outputDevice.audio.getErrorText(), Logger::ERRO);
+        cleanupRtAudio(outputDevice.audio);
+        return -1;
+    }
 
     // Setup data visualization
     startFFT(inputData);
 
     return 0;
 }
-  #endif
 
 // For development - listening to and comparing sound clips/phonemes
 int commandInteractive(const std::string& path) {
@@ -564,84 +520,35 @@ int commandInteractive(const std::string& path) {
     ac.audio = std::vector<float>(1);
     ac.pointer = 0;
 
-#pragma region Output
-    RtAudio audioQuery;
-    auto devices = audioQuery.getDeviceIds();
-    unsigned int outDevice = audioQuery.getDefaultOutputDevice();
-    if (outDevice == 0) {
-        std::cout << "No output devices available\n";
-        return 0;
-    }
-    std::vector<RtAudio::DeviceInfo> outputDevices = std::vector<RtAudio::DeviceInfo>();
-    int inIdx = 0;
-    int outIdx = 0;
-    for (size_t i = 0; i < devices.size(); i++) {
-        unsigned int deviceId = devices[i];
-        RtAudio::DeviceInfo deviceInfo = audioQuery.getDeviceInfo(deviceId);
-        if (deviceInfo.outputChannels > 0) {
-            if (deviceInfo.isDefaultOutput) {
-                outIdx = outputDevices.size();
-            }
-            outputDevices.push_back(deviceInfo);
-        }
-    }
-
-    std::string response;
-
-    for (size_t i = 0; i < outputDevices.size(); i++) {
-        std::cout << i << ": " << outputDevices[i].name << std::endl;
-    }
-    requestInput("Select output device", outIdx);
-    if (outIdx < 0 || outIdx >= outputDevices.size()) {
-        throw("Out of range");
-    } else {
-        outDevice = outputDevices[outIdx].ID;
-    }
-
-    RtAudio::StreamOptions outputFlags;
-    RtAudio outputAudio;
-
-    RtAudio::StreamParameters outputParameters;
-    RtAudio::DeviceInfo outputInfo = outputAudio.getDeviceInfo(outDevice);
-
-    outputParameters.deviceId = outDevice;
-    outputParameters.nChannels = outputInfo.outputChannels;
-    unsigned int outputSampleRate = 44100;
-    unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
-
-
-    G_LG(Util::format("Using output: %s", outputInfo.name.c_str()), Logger::INFO);
-    G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
-    G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
-
-    OutputData outputData = OutputData();
-    outputData.lastValues = (double*)calloc(outputParameters.nChannels, sizeof(double));
-    outputData.channels = outputParameters.nChannels;
-    outputData.input = NULL;
-    outputData.scale = (double)outputSampleRate / outputSampleRate;
-
-    if (outputAudio.openStream(&outputParameters, NULL, OUTPUT_FORMAT,
-        outputSampleRate, &outputBufferFrames, &oneshotOutput, (void*)&ac, &outputFlags)) {
-        std::cout << outputAudio.getErrorText() << '\n';
+    // Set up audio devices
+    AudioDevice outputDevice;
+    outputDevice.bufferFrames = OUTPUT_BUFFER_SIZE;
+    if (!selectAudioDevice(false, outputDevice))
+        G_LG("Failed to get audio output", Logger::DEAD);
+    
+    // Open audio streams
+    if (outputDevice.audio.openStream(&outputDevice.streamParameters, NULL, OUTPUT_FORMAT,
+        outputDevice.samplerate, &outputDevice.bufferFrames, &oneshotOutput, (void*)&ac, &outputDevice.flags)) {
+        G_LG(outputDevice.audio.getErrorText(), Logger::ERRO);
         return 0; // problem with device settings
     }
-#pragma endregion
+
+    // Start audio streams
+    if (outputDevice.audio.startStream()) {
+        G_LG(outputDevice.audio.getErrorText(), Logger::ERRO);
+        cleanupRtAudio(outputDevice.audio);
+        return -1;
+    }
 
     auto tmp = SpeechEngineConcatenator();
-    tmp.setSampleRate(outputSampleRate)
+    tmp.setSampleRate(outputDevice.samplerate)
         .setChannels(1)
         .setVolume(0.1)
         .configure("AERIS CV-VC ENG Kire 2.0/");
     speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
 
-    Dataset ds = Dataset(outputSampleRate, path);
+    Dataset ds = Dataset(outputDevice.samplerate, path);
     ds.setSubtype(Subtype::TEST);
-
-    if (outputAudio.startStream()) {
-        std::cout << outputAudio.getErrorText() << '\n';
-        cleanupRtAudio(outputAudio);
-        return -1;
-    }
 
     std::string command;
     std::string prefix = "~";
@@ -691,14 +598,14 @@ int commandInteractive(const std::string& path) {
             SpeechFrame sf;
             sf.phoneme = std::stoi(command);
             speechEngine->pushFrame(sf);
-            ac.audio.resize(outputSampleRate / 2);
-            speechEngine->writeBuffer(ac.audio.data(), outputSampleRate / 2);
+            ac.audio.resize(outputDevice.samplerate / 2);
+            speechEngine->writeBuffer(ac.audio.data(), outputDevice.samplerate / 2);
             ac.pointer = 0;
         } else if (command != "" && prefix == "dataset") {
             size_t targetPhoneme = std::stoull(command);
             if (targetPhoneme < G_PS_C.size()) {
                 std::string fileName;
-                clipAudio = ds._findAndLoad(path, targetPhoneme, outputSampleRate, fileName, clipPhones);
+                clipAudio = ds._findAndLoad(path, targetPhoneme, outputDevice.samplerate, fileName, clipPhones);
                 prefix = "clip";
                 std::printf("%s\n", fileName.c_str());
                 for (int i = 0; i < clipPhones.size(); i++) {
@@ -714,7 +621,6 @@ int commandInteractive(const std::string& path) {
     }
     return 0;
 }
-#endif
 
 int commandEvaluate(const std::string& path) {
     classifier.evaluate(path);
@@ -858,28 +764,13 @@ int main(int argc, char* argv[]) {
             Util::removeTrailingSlash(tuVal);
             error = commandTune(tuVal);
         } else if (interactiveMode) {
-#ifdef AUDIO
             Util::removeTrailingSlash(iiVal);
             error = commandInteractive(iiVal);
-#else
-            G_LG("Compiled without audio support, exiting", Logger::DEAD);
-            error = -1;
-#endif
         } else if (evaluateMode) {
             Util::removeTrailingSlash(eVal);
             error = commandEvaluate(eVal);
         } else {
-#ifdef AUDIO
-  #ifdef GUI
             error = commandDefault();
-  #else
-            G_LG("Compiled without GUI support, exiting", Logger::DEAD);
-            error = -1;
-  #endif
-#else
-            G_LG("Compiled without audio support, exiting", Logger::DEAD);
-            error = -1;
-#endif
         }
     }
 
