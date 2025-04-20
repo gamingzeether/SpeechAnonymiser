@@ -57,8 +57,6 @@ void PhonemeClassifier::initalize(const size_t& sr) {
 }
 
 void PhonemeClassifier::train(const std::string& path, const size_t& examples, const size_t& epochs) {
-    //tuneHyperparam(path, 100);
-
     // Set number of examples to be a multiple of batch size
     size_t realExamples;
     {
@@ -156,22 +154,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     */
     
     // Set class weights
-    {
-        std::vector<size_t> labelCounts(outputSize);
-        for (size_t col = 0; col < trainLabel.n_cols; col++) {
-            for (size_t slice = 0; slice < trainLabel.n_slices; slice++) {
-                labelCounts[trainLabel(0, col, slice)]++;
-            }
-        }
-        size_t nPoints = std::accumulate(labelCounts.begin(), labelCounts.end(), 0);
-        arma::Row<MAT_TYPE::elem_type>& classWeights = model.outputLayer().ClassWeights();
-        if (classWeights.n_elem < outputSize) {
-            classWeights.ones(outputSize);
-        }
-        for (size_t i = 0; i < outputSize; i++) {
-            classWeights(i) = (double)nPoints / (outputSize * labelCounts[i]);
-        }
-    }
+    model.outputLayer().ClassWeights() = weighClasses(trainLabel, trainLengths);
 
     // Start training model
     int numPoints = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
@@ -201,7 +184,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
         G_LG(Util::format("Training ended with best loss %lf", bestLoss), Logger::INFO);
 }
 
-// Note: This doesn't reset memory
+// Note: This doesn't reset memory, only use for inference and not evaluating
 size_t PhonemeClassifier::classify(const CUBE_TYPE& data) {
     CUBE_TYPE results;
     model.network().PredictSingle(data, results);
@@ -300,113 +283,155 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
     }
 }
 
-void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) {
+void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations, int mr) {
     int inputSize = model.getInputSize();
     int outputSize = model.getOutputSize();
 
     // Get data
-    Dataset train(16000, path);
-    Dataset validate(16000, path);
-    train.setSubtype(Subtype::TRAIN);
-    validate.setSubtype(Subtype::VALIDATE);
-    size_t tuneSize = 250;
-    train.start(inputSize, outputSize, tuneSize * 0.8, true);
-    validate.start(inputSize, outputSize, tuneSize * 0.2, true);
-    train.join();
-    validate.join();
     arma::urowvec trainLengths, validLengths;
-    CPU_CUBE_TYPE tuneTrainData, tuneTrainLabel, tuneValidData, tuneValidLabel;
-    train.get(tuneTrainData, tuneTrainLabel, trainLengths);
-    validate.get(tuneValidData, tuneValidLabel, validLengths);
+    CPU_CUBE_TYPE trainData, trainLabel, validData, validLabel;
+    {
+        Dataset train(16000, path);
+        Dataset validate(16000, path);
+        train.setSubtype(Subtype::TRAIN);
+        validate.setSubtype(Subtype::VALIDATE);
+        size_t tuneSize = 250;
+        train.start(inputSize, outputSize, tuneSize * 0.8, true);
+        validate.start(inputSize, outputSize, tuneSize * 0.2, true);
+        train.join();
+        validate.join();
+        train.get(trainData, trainLabel, trainLengths);
+        validate.get(validData, validLabel, validLengths);
+    }
 
-    CONVERT(tuneTrainData);
-    CONVERT(tuneTrainLabel);
-    CONVERT(tuneValidData);
-    CONVERT(tuneValidLabel);
+    CONVERT(trainData);
+    CONVERT(trainLabel);
+    CONVERT(validData);
+    CONVERT(validLabel);
 
     // Prepare models
-    std::vector<PhonemeModel> models;
-    std::vector<float> bestLosses;
-    int mr = 2;
-    for (int i = 0; i < 2 * mr + 1; i++) {
-        PhonemeModel mdl;
-        models.push_back(mdl);
-        bestLosses.push_back(9e99);
-    }
-    std::vector<std::thread> trainThreads(models.size());
+    // mr is the number of steps in each direction
+    int numModels = mr * 2 + 1;
+    std::vector<PhonemeModel> models(numModels);
+    std::vector<float> accuracies(numModels);
+    std::vector<std::thread> trainThreads(numModels);
 
     // Initalize parameters
     PhonemeModel::Hyperparameters base = PhonemeModel::Hyperparameters();
     base.dropout() = 0.3;
-    base.l2() = 0.001;
+    base.l2() = 0.1;
     base.batchSize() = 1;
     base.stepSize() = 0.005;
     base.bpttSteps() = 40;
 
+    // Per "step" distance; 1 steps, delta = 1*stepSize; 2 steps, delta = 2*stepSize etc
     PhonemeModel::Hyperparameters stepSize = PhonemeModel::Hyperparameters();
     stepSize.dropout() = 0.05;
-    stepSize.l2() = 0.0001;
-    stepSize.batchSize() = 0;
+    stepSize.l2() = 0.05;
+    stepSize.batchSize() = -1;
     stepSize.stepSize() = 0.0001;
     stepSize.bpttSteps() = 5;
 
+    PhonemeModel::Hyperparameters min = PhonemeModel::Hyperparameters();
+    min.dropout() = 0.05;
+    min.l2() = 0.05;
+    min.batchSize() = -1;
+    min.stepSize() = 0.0001;
+    min.bpttSteps() = 20;
+
+    PhonemeModel::Hyperparameters max = PhonemeModel::Hyperparameters();
+    max.dropout() = 0.5;
+    max.l2() = 1.00;
+    max.batchSize() = -1;
+    max.stepSize() = 0.01;
+    max.bpttSteps() = 200;
+
     int paramSize = PhonemeModel::Hyperparameters::size;
 
-    int optimEpochs = 500;
-    int optimIterations = optimEpochs * (tuneSize * 0.8) * outputSize;
+    int optimEpochs = 10;
+    int optimIterations = optimEpochs * trainLabel.n_cols;
+
+    auto classWeights = weighClasses(trainLabel, trainLengths);
 
     // Do iterations
     // Each iteration adjusts one parameter up or down various amounts per model
     // Then continues with the best out of them
     for (int i = 0; i < iterations * paramSize; i++) {
+        int iteration = i / paramSize;
         int targetParam = i % paramSize;
         float delta = stepSize.e[targetParam];
 
-        G_LG(Util::format("Starting iteration %d, subiteration %d", i / paramSize, i % paramSize), Logger::INFO);
+        if (delta < 0) {
+            G_LG(Util::format("Skipping subiteration %d", targetParam), Logger::INFO);
+            continue;
+        }
+        G_LG(Util::format("Starting iteration %d, subiteration %d", iteration, targetParam), Logger::INFO);
         for (int j = 0; j < models.size(); j++) {
-            // Reset stuff
-            bestLosses[j] = 9e99;
-
             // Initalize models with parameters
             PhonemeModel::Hyperparameters tempParams = base;
+            // Check to make sure change is within bounds
             tempParams.e[targetParam] += delta * (j - mr);
+            if (tempParams.e[targetParam] <= min.e[targetParam] || tempParams.e[targetParam] >= max.e[targetParam]) {
+                G_LG(Util::format("Skipping %d, out of bounds (%lf)", j, tempParams.e[targetParam]), Logger::DBUG);
+                continue;
+            }
 
-            PhonemeModel& mdl = models[j];
-            mdl.setHyperparameters(tempParams);
-            mdl.initModel();
-            mdl.initOptimizer();
-            // Copy first model's inital weights
-            if (j > 0) {
-                mdl.network().Parameters() = models[0].network().Parameters();
+            {
+                PhonemeModel& mdl = models[j];
+                // Reset model
+                Global::supressLog(true); // Hide the initalization messages
+                mdl = PhonemeModel();
+                mdl.setHyperparameters(tempParams);
+                mdl.getSampleRate() = 16000;
+                mdl.load();
+                Global::supressLog(false);
+                mdl.network().OutputLayer().ClassWeights() = classWeights;
+                // Make sure every model starts at the same place
+                if (j > 1) {
+                    auto copy = models[0].network().Parameters();
+                    mdl.network().Parameters() = copy;
+                }
             }
 
             // Start training models
             G_LG(Util::format("Starting model %d", j), Logger::INFO);
             std::thread& trainThread = trainThreads[j];
-            trainThread = std::thread([this, &mdl, &CNAME(tuneTrainData), &CNAME(tuneTrainLabel), &CNAME(tuneValidData), &CNAME(tuneValidLabel), &bestLosses, j, optimIterations] {
+            trainThread = std::thread([this,
+                                       &models,
+                                       &CNAME(trainData),
+                                       &CNAME(trainLabel),
+                                       &trainLengths,
+                                       &CNAME(validData),
+                                       &CNAME(validLabel),
+                                       &validLengths,
+                                       &accuracies,
+                                       j,
+                                       optimIterations]
+            {
+                PhonemeModel& mdl = models[j];
                 mdl.optimizer().MaxIterations() = optimIterations;
 
                 mdl.network().Train(
-                    CNAME(tuneTrainData),
-                    CNAME(tuneTrainLabel),
+                    CNAME(trainData),
+                    CNAME(trainLabel),
+                    trainLengths,
                     mdl.optimizer(),
-                    ens::EarlyStopAtMinLossType<MAT_TYPE>(
-                        [&](const MAT_TYPE& /* param */)
-                        {
-                            double validationLoss = 1; //mdl.network().Evaluate(CNAME(tuneValidData), CNAME(tuneValidLabel));
-                            if (validationLoss < bestLosses[j]) {
-                                bestLosses[j] = validationLoss;
-                                G_LG(Util::format("Model %d with new best %lf", j, validationLoss), Logger::INFO);
-                            }
-                            return validationLoss;
-                        })
+                    TrainingExecType<MAT_TYPE>(
+                        [&](size_t epoch) {
+                            mdl.network().SetNetworkMode(false);
+                            double acc = accuracy(mdl.network(), CNAME(validData), CNAME(validLabel), validLengths);
+                            mdl.network().SetNetworkMode(true);
+                            accuracies[j] = acc;
+                            G_LG(Util::format("Model %d epoch %ld: %lf", j, epoch, acc), Logger::INFO);
+                        }
+                    )
                 );
-                G_LG(Util::format("Model %d done", j), Logger::INFO);
-                });
+                G_LG(Util::format("Model %d done with acc: %lf", j, accuracies[j]), Logger::INFO);
+            });
         }
 
         // Wait for training to complete
-        for (int j = 0; j < models.size(); j++) {
+        for (int j = 0; j < numModels; j++) {
             if (trainThreads[j].joinable()) {
                 trainThreads[j].join();
             }
@@ -414,21 +439,27 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations) 
 
         // Evaluate best
         int bestIndex = -1;
-        float bestLoss = 9e99;
-        for (int j = 0; j < models.size(); j++) {
-            float mLoss = bestLosses[j];
-            if (mLoss < bestLoss) {
-                bestLoss = mLoss;
+        float bestAcc = -1;
+        for (int j = 0; j < numModels; j++) {
+            float acc = accuracies[j];
+            if (acc > bestAcc) {
+                bestAcc = acc;
                 bestIndex = j;
             }
         }
         float bestDelta = delta * (bestIndex - mr);
+        double targetBefore = base.e[targetParam];
         base.e[targetParam] += bestDelta;
+        double targetAfter = base.e[targetParam];
 
         // Print new best
-        G_LG(Util::format("Best hyperparameters after iteration %d, subiteration %d", i / paramSize, i % paramSize), Logger::INFO);
+        G_LG(Util::format("Best hyperparameters after iteration %d, subiteration %d", iteration, targetParam), Logger::INFO);
         for (int j = 0; j < paramSize; j++) {
-            G_LG(Util::format("%lf", base.e[j]), Logger::INFO);
+            if (j == targetParam) {
+                G_LG(Util::format("  %s: %lf <- %lf", base.labels[j].CS, targetAfter, targetBefore), Logger::INFO);
+            } else {
+                G_LG(Util::format("  %s: %lf", base.labels[j].CS, base.e[j]), Logger::INFO);
+            }
         }
     }
 }
@@ -446,4 +477,39 @@ void PhonemeClassifier::evaluate(const std::string& path) {
     CPU_CUBE_TYPE data, labels;
     test.get(data, labels, lengths);
     printConfusionMatrix(data, labels, lengths);
+}
+
+double PhonemeClassifier::accuracy(NETWORK_TYPE& network, const CPU_CUBE_TYPE& data, const CPU_CUBE_TYPE& labels, const arma::urowvec& lengths) {
+    CPU_CUBE_TYPE predictions;
+    network.Predict(data, predictions, lengths);
+    size_t correctCount = 0, totalCount = 0;
+    for (size_t col = 0; col < labels.n_cols; col++) {
+        size_t seqLen = lengths[col];
+        for (size_t s = 0; s < seqLen; s++) {
+            size_t label = labels(0, col, s);
+            size_t prediction = predictions.slice(s).col(col).index_max();
+            if (label == prediction)
+                correctCount++;
+            totalCount++;
+        }
+    }
+    return (double)correctCount / totalCount;
+}
+
+arma::Row<MAT_TYPE::elem_type> PhonemeClassifier::weighClasses(const CPU_CUBE_TYPE& labels, const arma::urowvec& lengths) {
+    size_t outputSize = model.getOutputSize();
+    std::vector<size_t> labelCounts(outputSize);
+    for (size_t col = 0; col < labels.n_cols; col++) {
+        size_t length = lengths[col];
+        for (size_t slice = 0; slice < length; slice++) {
+            labelCounts[labels(0, col, slice)]++;
+        }
+    }
+
+    size_t nPoints = std::accumulate(labelCounts.begin(), labelCounts.end(), 0);
+    arma::Row<MAT_TYPE::elem_type> outWeights(outputSize);
+    for (size_t i = 0; i < outputSize; i++) {
+        outWeights(i) = (double)nPoints / (outputSize * labelCounts[i]);
+    }
+    return outWeights;
 }

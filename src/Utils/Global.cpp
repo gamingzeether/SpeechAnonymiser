@@ -90,7 +90,14 @@ Global::Global() {
 	init = true;
 }
 
-void Global::log(const std::string& message, int verbosity, int color) {
+void Global::log(std::string message, int verbosity, int color) {
+	int origVerbosity = verbosity;
+	if (supressLogging) {
+		const char* origLevel = Global::get().logger.verbosityNames[verbosity].CS;
+		verbosity = Logger::DBUG;
+		message = Util::format("(%s) ", origLevel) + message;
+	}
+	
 	if (!logFile.is_open()) {
 		logFile = std::ofstream(Logger::fileName(STRINGIFY(LOG_FILE)));
 	}
@@ -101,9 +108,17 @@ void Global::log(const std::string& message, int verbosity, int color) {
 		std::string logMessage = "(Preinit) " + message;
 		std::cout << logMessage << std::endl;
 		logFile << logMessage << std::endl;
-
-		if (verbosity == Logger::DEAD) {
-			throw(message);
-		};
 	}
+	if (origVerbosity == Logger::DEAD) {
+		throw(message);
+	};
+}
+
+void Global::supressLog(bool supress) {
+	if (supress) {
+		G_LG("Supressing logs", Logger::DBUG);
+	} else {
+		G_LG("Unsupressing logs", Logger::DBUG);
+	}
+	supressLogging = supress;
 }

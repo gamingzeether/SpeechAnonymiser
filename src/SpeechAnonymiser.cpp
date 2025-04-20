@@ -91,7 +91,13 @@ static struct cag_option options[] = {
     .identifier = 'e',
     .access_letters = "e",
     .value_name = "[Dataset directory]",
-    .description = "Evaluate model accuracy"}
+    .description = "Evaluate model accuracy"},
+
+    {
+     .identifier = '1',
+     .access_name = "tune",
+     .value_name = "[Dataset directory]",
+     .description = "Tune training hyperparameters"}
 };
 
 struct AudioContainer {
@@ -713,6 +719,15 @@ int commandEvaluate(const std::string& path) {
     return 0;
 }
 
+int commandTune(const std::string& path) {
+    int iterations = 1000;
+    requestInput("Number of iterations", iterations);
+    int radius = 2;
+    requestInput("Steps in each direction", radius);
+    classifier.tuneHyperparam(path, iterations, radius);
+    return 0;
+}
+
 bool tryMakeDir(std::string path, bool fatal = true) {
     if (!std::filesystem::create_directories(path)) {
         if (std::filesystem::exists(path)) {
@@ -778,8 +793,8 @@ int main(int argc, char* argv[]) {
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-    bool trainMode = false, preprocessMode = false, helpMode = false, interactiveMode = false, evaluateMode = false;
-    std::string tVal, pVal, wVal, dVal, aVal, oVal, iiVal, eVal;
+    bool trainMode = false, preprocessMode = false, helpMode = false, interactiveMode = false, evaluateMode = false, tuneMode = false;
+    std::string tVal, pVal, wVal, dVal, aVal, oVal, iiVal, eVal, tuVal;
     while (cag_option_fetch(&context)) {
         switch (cag_option_get_identifier(&context)) {
         case 't': // Train mode
@@ -813,6 +828,10 @@ int main(int argc, char* argv[]) {
             evaluateMode = true;
             eVal = cag_option_get_value(&context);
             break;
+        case '1':
+            tuneMode = true;
+            tuVal = cag_option_get_value(&context);
+            break;
         }
     }
 
@@ -833,6 +852,9 @@ int main(int argc, char* argv[]) {
         if (trainMode) {
             Util::removeTrailingSlash(tVal);
             error = commandTrain(tVal);
+        } else if (tuneMode) {
+            Util::removeTrailingSlash(tuVal);
+            error = commandTune(tuVal);
         } else if (interactiveMode) {
 #ifdef AUDIO
             Util::removeTrailingSlash(iiVal);

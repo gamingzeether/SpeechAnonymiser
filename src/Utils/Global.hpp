@@ -55,10 +55,14 @@ public:
 	// Global lock to prevent multiple fftw functions being executed at the same time eg. planning
 	std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
 
-	static void log(const std::string& message, int verbosity = 0, int color = Logger::Color::DEFAULT);
+	static void log(std::string message, int verbosity = 0, int color = Logger::Color::DEFAULT);
+
+	// Causes all logging to be logged as DBUG (doesn't show up in console but will in logs)
+	static void supressLog(bool supress);
 private:
 	Global();
 	inline static bool init = false;
+	inline static bool supressLogging = false;
 	inline static std::ofstream logFile;
 
 	PhonemeCollection pc;

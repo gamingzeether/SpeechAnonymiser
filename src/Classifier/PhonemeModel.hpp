@@ -2,6 +2,8 @@
 
 #include "../common_inc.hpp"
 
+#include <vector>
+#include <string>
 #include <zip.h>
 #include "ModelSerializer.hpp"
 #include "../Utils/ClassifierHelper.hpp"
@@ -12,6 +14,13 @@
 class PhonemeModel {
 public:
 	struct Hyperparameters {
+		inline static const std::vector<std::string> labels = {
+			"Dropout",
+			"L2",
+			"Batch Size",
+			"Step Size",
+			"BPTT Steps",
+		};
 		double& dropout() { return e[0]; };
 		double& l2() { return e[1]; };
 		double& batchSize() { return e[2]; };

@@ -37,6 +37,9 @@ public:
     // Performs a linear interpolation
     template <typename Type, typename AmountType>
     static Type lerp(Type start, Type end, AmountType t);
+    // Checks if a is close to b
+    template <typename Type>
+    static bool fcmp(Type a, Type b, Type eps);
 private:
     inline static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> cvt;
 };

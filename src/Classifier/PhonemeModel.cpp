@@ -92,8 +92,6 @@ void PhonemeModel::initModel() {
     DROPOUT;
     LINEAR(outputSize);
     net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
-
-    net.BPTTSteps() = hp.bpttSteps();
 }
 
 void PhonemeModel::initOptimizer() {
@@ -134,7 +132,6 @@ void PhonemeModel::save(int checkpoint) {
 
 bool PhonemeModel::load() {
     auto tempPath = getTempPath();
-    bool loaded = true;
     // Try open classifier.zip
     if (std::filesystem::exists(ARCHIVE_FILE)) {
         int error = 0;
@@ -163,7 +160,6 @@ bool PhonemeModel::load() {
         }
         delete[] buf;
         zip_discard(archive);
-        loaded = true;
     } else {
         G_LG(Util::format("%s does not exist", ARCHIVE_FILE), Logger::DBUG);
     }
@@ -197,6 +193,7 @@ bool PhonemeModel::load() {
     config.load();
 
     // Load or initalize model network and optimizer
+    bool loaded = true;
     if (!config.matchesDefault()) {
         loaded = false;
         config.useDefault();
@@ -220,6 +217,7 @@ bool PhonemeModel::load() {
     if (!loaded)
         initModel();
     net.InputDimensions() = { FFT_FRAMES, FRAME_SIZE, 3 };
+    net.BPTTSteps() = hp.bpttSteps();
     net.MemoryInit();
     initOptimizer();
 

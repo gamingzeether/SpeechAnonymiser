@@ -19,8 +19,9 @@ public:
     size_t classify(const CUBE_TYPE& data);
     std::string getPhonemeString(const size_t& in);
     void printConfusionMatrix(const CPU_CUBE_TYPE& testData, const CPU_CUBE_TYPE& testLabel, const arma::urowvec& lengths);
-    void tuneHyperparam(const std::string& path, int iterations);
+    void tuneHyperparam(const std::string& path, int iterations, int mr);
     void evaluate(const std::string& path);
+    static double accuracy(NETWORK_TYPE& network, const CPU_CUBE_TYPE& data, const CPU_CUBE_TYPE& labels, const arma::urowvec& lengths);
 
     inline size_t getInputSize() { return model.getInputSize(); };
     inline size_t getOutputSize() { return model.getOutputSize(); };
@@ -33,6 +34,8 @@ public:
         config.close();
     };
 private:
+    arma::Row<MAT_TYPE::elem_type> weighClasses(const CPU_CUBE_TYPE& labels, const arma::urowvec& lengths);
+
     Config config;
 
 	PhonemeModel model;

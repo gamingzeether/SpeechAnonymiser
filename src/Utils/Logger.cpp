@@ -67,10 +67,6 @@ void Logger::log(const std::string& message, int verbosity, int color) {
 			stream << logLine;
 		}
 	}
-
-	if (verbosity == DEAD) {
-		throw(message);
-	}
 }
 
 std::string Logger::fileName(const std::string& base) {

@@ -25,3 +25,9 @@ template <typename Type, typename AmountType>
 Type Util::lerp(Type start, Type end, AmountType t) {
     return start + (end - start) * t;
 }
+
+template <typename Type>
+bool Util::fcmp(Type a, Type b, Type eps) {
+    Type diff = std::abs(a - b);
+    return diff <= eps;
+}
