@@ -7,8 +7,6 @@
 #include <locale>
 #include <codecvt>
 
-#define CS c_str()
-
 class Util {
 public:
     // As the name describes

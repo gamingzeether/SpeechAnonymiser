@@ -188,7 +188,7 @@ class ProgressBarETA
         double val = std::get<double>(pair);
         if (val > 1) {
             std::string& unit = std::get<std::string>(pair);
-            pairString = Util::format("%.2lf%s", val, unit.CS);
+            pairString = Util::format("%.2lf%s", val, unit.c_str());
             break;
         }
     }

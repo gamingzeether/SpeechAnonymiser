@@ -93,7 +93,7 @@ Global::Global() {
 void Global::log(std::string message, int verbosity, int color) {
 	int origVerbosity = verbosity;
 	if (supressLogging) {
-		const char* origLevel = Global::get().logger.verbosityNames[verbosity].CS;
+		const char* origLevel = Global::get().logger.verbosityNames[verbosity].c_str();
 		verbosity = Logger::DBUG;
 		message = Util::format("(%s) ", origLevel) + message;
 	}

@@ -222,6 +222,8 @@ void cleanupRtAudio(RtAudio audio) {
         audio.closeStream();
     }
 }
+
+
 #endif
 
 #ifdef GUI
@@ -473,7 +475,7 @@ int commandDefault() {
     unsigned int inputSampleRate = sampleRate;
     unsigned int bufferFrames = INPUT_BUFFER_SIZE;
 
-    G_LG(Util::format("Using input: %s", inputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Using input: %s", inputInfo.name.c_str()), Logger::INFO);
     G_LG(Util::format("Sample rate: %u", inputSampleRate), Logger::INFO);
     G_LG(Util::format("Channels: %u", inputInfo.inputChannels), Logger::INFO);
 
@@ -501,7 +503,7 @@ int commandDefault() {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    G_LG(Util::format("Using output: %s", outputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Using output: %s", outputInfo.name.c_str()), Logger::INFO);
     G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
     G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
 
@@ -608,7 +610,7 @@ int commandInteractive(const std::string& path) {
     unsigned int outputBufferFrames = OUTPUT_BUFFER_SIZE;
 
 
-    G_LG(Util::format("Using output: %s", outputInfo.name.CS), Logger::INFO);
+    G_LG(Util::format("Using output: %s", outputInfo.name.c_str()), Logger::INFO);
     G_LG(Util::format("Sample rate: %u", outputSampleRate), Logger::INFO);
     G_LG(Util::format("Channels: %u", outputInfo.outputChannels), Logger::INFO);
 
@@ -782,8 +784,8 @@ int main(int argc, char* argv[]) {
         }
         launchString += argv[i];
     }
-    G_LG(Util::format("Launch args: %s", launchString.CS), Logger::INFO);
-    G_LG(Util::format("Working directory: %s", std::filesystem::current_path().CS), Logger::INFO);
+    G_LG(Util::format("Launch args: %s", launchString.c_str()), Logger::INFO);
+    G_LG(Util::format("Working directory: %s", std::filesystem::current_path().c_str()), Logger::INFO);
 
     tryMakeDir("logs");
     tryMakeDir("configs/articulators");

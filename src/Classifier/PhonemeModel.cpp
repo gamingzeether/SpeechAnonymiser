@@ -201,7 +201,7 @@ bool PhonemeModel::load() {
     }
     if (loaded && !ModelSerializer::loadNetwork(tempPath + MODEL_FILE, &net)) {
         loaded = false;
-        G_LG(Util::format("Failed to load model %s", (tempPath + MODEL_FILE).CS), Logger::DBUG);
+        G_LG(Util::format("Failed to load model %s", (tempPath + MODEL_FILE).c_str()), Logger::DBUG);
     }
     cleanUnpacked();
 

@@ -226,7 +226,7 @@ void SpeechEngineArticulator::_init() {
 	const PhonemeSet& ips = G_PS_S;
 	for (int i = 0; i < ips.size(); i++) {
 		const std::string& name = ips.xSampa(i);
-		articAnim.loadGroup(Util::format("configs/animations/phonemes/%s_anim.json", name.CS), name);
+		articAnim.loadGroup(Util::format("configs/animations/phonemes/%s_anim.json", name.c_str()), name);
 	}
 	articAnim.finalize();
 	for (int i = 0; i < ips.size(); i++) {

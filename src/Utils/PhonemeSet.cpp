@@ -12,7 +12,7 @@ PhonemeSet& PhonemeSet::addString(const std::string& str, const std::string& xSa
 
 size_t PhonemeSet::fromString(const std::wstring& str) const {
 	if (!has(stringMap, str)) {
-		G_LG(Util::format("Set %s does not have phoneme '%s'", this->name.CS, Util::wstr2str(str).CS), Logger::ERRO);
+		G_LG(Util::format("Set %s does not have phoneme '%s'", this->name.c_str(), Util::wstr2str(str).c_str()), Logger::ERRO);
 		return invalidPhoneme;
 	}
 	return stringMap.at(str);
@@ -21,7 +21,7 @@ size_t PhonemeSet::fromString(const std::wstring& str) const {
 PhonemeSet& PhonemeSet::addString(const std::wstring& str, const std::string& xSampa) {
 	if (stringMap.find(str) != stringMap.end()) {
 		if (xSampaMap[xSampa] != stringMap[str])
-			G_LG(Util::format("Collision: %s / %s", Util::wstr2str(str).CS, xSampa.CS), Logger::ERRO);
+			G_LG(Util::format("Collision: %s / %s", Util::wstr2str(str).c_str(), xSampa.c_str()), Logger::ERRO);
 	}
 	stringMap[str] = getOrNew(xSampa);
 	return *this;
@@ -29,7 +29,7 @@ PhonemeSet& PhonemeSet::addString(const std::wstring& str, const std::string& xS
 
 std::string PhonemeSet::xSampa(size_t phoneme) const {
 	if (phoneme >= invXSampaMap.size()) {
-		G_LG(Util::format("Set %s does not have phoneme ID %ld", this->name.CS, phoneme), Logger::DEAD);
+		G_LG(Util::format("Set %s does not have phoneme ID %ld", this->name.c_str(), phoneme), Logger::DEAD);
 		return invalidString;
 	}
 	return invXSampaMap.at(phoneme);
@@ -37,7 +37,7 @@ std::string PhonemeSet::xSampa(size_t phoneme) const {
 
 size_t PhonemeSet::xSampaIndex(const std::string& str) const {
 	if (!has(xSampaMap, str)) {
-		G_LG(Util::format("Set %s does not have X-SAMPA phoneme '%s'", this->name.CS, str.CS), Logger::ERRO);
+		G_LG(Util::format("Set %s does not have X-SAMPA phoneme '%s'", this->name.c_str(), str.c_str()), Logger::ERRO);
 		return invalidPhoneme;
 	}
 	return xSampaMap.at(str);

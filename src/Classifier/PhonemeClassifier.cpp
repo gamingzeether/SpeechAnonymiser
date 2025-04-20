@@ -126,7 +126,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
             std::string folder = Util::format("debug/data/%ld/", phone);
             if (!std::filesystem::exists(folder))
                 std::filesystem::create_directories(folder);
-            imageNames.push_back(Util::format("%s/%ld.png", folder.CS, i));
+            imageNames.push_back(Util::format("%s/%ld.png", folder.c_str(), i));
 
             auto col = images.col(i);
             float min = col.min();
@@ -456,9 +456,9 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations, 
         G_LG(Util::format("Best hyperparameters after iteration %d, subiteration %d", iteration, targetParam), Logger::INFO);
         for (int j = 0; j < paramSize; j++) {
             if (j == targetParam) {
-                G_LG(Util::format("  %s: %lf <- %lf", base.labels[j].CS, targetAfter, targetBefore), Logger::INFO);
+                G_LG(Util::format("  %s: %lf <- %lf", base.labels[j].c_str(), targetAfter, targetBefore), Logger::INFO);
             } else {
-                G_LG(Util::format("  %s: %lf", base.labels[j].CS, base.e[j]), Logger::INFO);
+                G_LG(Util::format("  %s: %lf", base.labels[j].c_str(), base.e[j]), Logger::INFO);
             }
         }
     }

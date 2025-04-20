@@ -63,7 +63,7 @@ void Logger::log(const std::string& message, int verbosity, int color) {
 			bool useColor = stream.supportsColor() && color != Color::DEFAULT;
 			std::string& colorStartStr = colors[useColor ? color : Color::NONE];
 			std::string& colorEndStr = colors[useColor ? Color::DEFAULT : Color::NONE];
-			std::string logLine = Util::format("%s%s %s:  %s%s\n", colorStartStr.CS, time.CS, verbosityName.CS, message.CS, colorEndStr.CS);
+			std::string logLine = Util::format("%s%s %s:  %s%s\n", colorStartStr.c_str(), time.c_str(), verbosityName.c_str(), message.c_str(), colorEndStr.c_str());
 			stream << logLine;
 		}
 	}
@@ -74,7 +74,7 @@ std::string Logger::fileName(const std::string& base) {
 	auto time = std::chrono::system_clock::to_time_t(now);
 
 	tm lt = *std::localtime(&time);
-	return Util::format("%s%04d_%02d_%02d-%02d_%02d-%s", STRINGIFY(LOG_DIR), lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base.CS);
+	return Util::format("%s%04d_%02d_%02d-%02d_%02d-%s", STRINGIFY(LOG_DIR), lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, base.c_str());
 }
 
 std::string Logger::timeString() {

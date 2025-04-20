@@ -45,7 +45,7 @@ size_t TranslationMap::getClosest(const std::string& fromPhn, const PhonemeSet& 
     }
 
     if (maxSimilarity < 1e-8) {
-        G_LG(Util::format("Max similarity from phoneme '%s' to set '%s' is zero", fromPhn.CS, to.name.CS), Logger::WARN);
+        G_LG(Util::format("Max similarity from phoneme '%s' to set '%s' is zero", fromPhn.c_str(), to.name.c_str()), Logger::WARN);
     }
 
     return maxIdx;
@@ -78,7 +78,7 @@ void TranslationMap::loadSimilarityMatrix() {
             G_LG(Util::format("Row %ld has incorrect number of elements", r), Logger::ERRO);
         }
         if (row[0] != phonemes[r]) {
-            G_LG(Util::format("Labels do not match: %s and %s (line %ld)", row[0].CS, phonemes[r].CS, r), Logger::ERRO);
+            G_LG(Util::format("Labels do not match: %s and %s (line %ld)", row[0].c_str(), phonemes[r].c_str(), r), Logger::ERRO);
         }
         // Load the values into the similarity matrix
         for (size_t c = 1; c < row.size(); c++) {
@@ -87,7 +87,7 @@ void TranslationMap::loadSimilarityMatrix() {
             try {
                 val = std::stof(elem);
             } catch (...) {
-                G_LG(Util::format("Failed to parse %s as a float", elem.CS), Logger::ERRO);
+                G_LG(Util::format("Failed to parse %s as a float", elem.c_str()), Logger::ERRO);
             }
             similarityMatrix(r - 1, c - 1) = val;
         }
