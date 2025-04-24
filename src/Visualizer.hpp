@@ -20,32 +20,32 @@
 
 class Visualizer : QObject{
 public:
-	struct Frequencies {
-		float** frequencies;
-		int frames;
-		int currentFrame;
-	};
+  struct Frequencies {
+    float** frequencies;
+    int frames;
+    int currentFrame;
+  };
 
-	bool isOpen = false;
-	Frequencies fftData;
+  bool isOpen = false;
+  Frequencies fftData;
 
-	ClassifierHelper* classifierHelper;
+  ClassifierHelper* classifierHelper;
 
-	void run();
-	void updateWaterfall();
-	void setSpectrogramPixel(int x, int y, float val);
+  void run();
+  void updateWaterfall();
+  void setSpectrogramPixel(int x, int y, float val);
 private:
-	QLabel* peakAmountLabel;
-	QLabel* waterfallLabel;
-	QPixmap* waterfallPixmap;
-	bool drawWaterfall = false;
-	std::vector<QColor> colormap;
-	std::vector<std::array<float, FRAME_SIZE>> waterfallBuffer;
-	std::mutex waterfallMutex;
+  QLabel* peakAmountLabel;
+  QLabel* waterfallLabel;
+  QPixmap* waterfallPixmap;
+  bool drawWaterfall = false;
+  std::vector<QColor> colormap;
+  std::vector<std::array<float, FRAME_SIZE>> waterfallBuffer;
+  std::mutex waterfallMutex;
 
-	void initWindow(QWidget& qtWindow);
-	void cleanup();
-	void genColormap();
-	const QColor& getColor(float value);
+  void initWindow(QWidget& qtWindow);
+  void cleanup();
+  void genColormap();
+  const QColor& getColor(float value);
 };
 #endif

@@ -1,58 +1,58 @@
 {
-    "dependencies": [
-        "cargs",
-        "drlibs",
-        "fftw3",
-        "libsamplerate",
-        "mlpack",
-        "yyjson",
-        "libzip"
-    ],
-    "features": {
-        "audio": {
-            "description": "Compile with audio input and output",
-            "dependencies": [
-                {
-                    "name": "rtaudio",
-                    "features": [
-                        "pulse"
-                    ]
-                }
-            ]
-        },
-        "mkl": {
-            "description": "Compile with Intel MKL",
-            "dependencies": [
-                {
-                    "name": "intel-mkl",
-                    "platform": "(windows | linux | osx) & x64"
-                }
-            ]
-        },
-        "gui": {
-            "description": "Compile with support for a GUI",
-            "dependencies": [
-                {
-                    "name": "qt5",
-                    "default-features": false,
-                    "features": [
-                    ]
-                },
-                {
-                    "name": "qt5",
-                    "default-features": false,
-                    "platform": "linux",
-                    "features": [
-                        "wayland"
-                    ]
-                }
-            ]
-        },
-        "gpu": {
-            "description": "Compile with GPU support for training",
-            "dependencies": [
-                "bandicoot"
-            ]
+  "dependencies": [
+    "cargs",
+    "drlibs",
+    "fftw3",
+    "libsamplerate",
+    "mlpack",
+    "yyjson",
+    "libzip"
+  ],
+  "features": {
+    "audio": {
+      "description": "Compile with audio input and output",
+      "dependencies": [
+        {
+          "name": "rtaudio",
+          "features": [
+            "pulse"
+          ]
         }
+      ]
+    },
+    "mkl": {
+      "description": "Compile with Intel MKL",
+      "dependencies": [
+        {
+          "name": "intel-mkl",
+          "platform": "(windows | linux | osx) & x64"
+        }
+      ]
+    },
+    "gui": {
+      "description": "Compile with support for a GUI",
+      "dependencies": [
+        {
+          "name": "qt5",
+          "default-features": false,
+          "features": [
+          ]
+        },
+        {
+          "name": "qt5",
+          "default-features": false,
+          "platform": "linux",
+          "features": [
+            "wayland"
+          ]
+        }
+      ]
+    },
+    "gpu": {
+      "description": "Compile with GPU support for training",
+      "dependencies": [
+        "bandicoot"
+      ]
     }
+  }
 }

@@ -1,378 +1,378 @@
 {
-    "_version": -1,
-    "name": "TIMITClassifier",
-    "mappings": [
-        {
-            "token": "aa",
-            "x_sampa": {
-                "symbol": "A"
-            }
-        },
-        {
-            "token": "ae",
-            "x_sampa": {
-                "symbol": "{"
-            }
-        },
-        {
-            "token": "ah",
-            "x_sampa": {
-                "symbol": "V"
-            }
-        },
-        {
-            "token": "ao",
-            "x_sampa": {
-                "symbol": "O"
-            }
-        },
-        {
-            "token": "aw",
-            "x_sampa": {
-                "symbol": "aU"
-            }
-        },
-        {
-            "token": "ax",
-            "x_sampa": {
-                "symbol": "@"
-            }
-        },
-        {
-            "token": "axr",
-            "x_sampa": {
-                "symbol": "@`"
-            }
-        },
-        {
-            "token": "ay",
-            "x_sampa": {
-                "symbol": "aI"
-            }
-        },
-        {
-            "token": "eh",
-            "x_sampa": {
-                "symbol": "E"
-            }
-        },
-        {
-            "token": "er",
-            "x_sampa": {
-                "symbol": "3`"
-            }
-        },
-        {
-            "token": "ey",
-            "x_sampa": {
-                "symbol": "eI"
-            }
-        },
-        {
-            "token": "ih",
-            "x_sampa": {
-                "symbol": "I"
-            }
-        },
-        {
-            "token": "ix",
-            "x_sampa": {
-                "symbol": "1"
-            }
-        },
-        {
-            "token": "iy",
-            "x_sampa": {
-                "symbol": "i"
-            }
-        },
-        {
-            "token": "ow",
-            "x_sampa": {
-                "symbol": "oU"
-            }
-        },
-        {
-            "token": "oy",
-            "x_sampa": {
-                "symbol": "OI"
-            }
-        },
-        {
-            "token": "uh",
-            "x_sampa": {
-                "symbol": "U"
-            }
-        },
-        {
-            "token": "uw",
-            "x_sampa": {
-                "symbol": "u"
-            }
-        },
-        {
-            "token": "ux",
-            "x_sampa": {
-                "symbol": "}"
-            }
-        },
-        {
-            "token": "b",
-            "x_sampa": {
-                "symbol": "b"
-            }
-        },
-        {
-            "token": "ch",
-            "x_sampa": {
-                "symbol": "tS"
-            }
-        },
-        {
-            "token": "d",
-            "x_sampa": {
-                "symbol": "d"
-            }
-        },
-        {
-            "token": "dh",
-            "x_sampa": {
-                "symbol": "D"
-            }
-        },
-        {
-            "token": "dx",
-            "x_sampa": {
-                "symbol": "4"
-            }
-        },
-        {
-            "token": "el",
-            "x_sampa": {
-                "symbol": "l_="
-            }
-        },
-        {
-            "token": "em",
-            "x_sampa": {
-                "symbol": "m_="
-            }
-        },
-        {
-            "token": "en",
-            "x_sampa": {
-                "symbol": "n_="
-            }
-        },
-        {
-            "token": "f",
-            "x_sampa": {
-                "symbol": "f"
-            }
-        },
-        {
-            "token": "g",
-            "x_sampa": {
-                "symbol": "g"
-            }
-        },
-        {
-            "token": "h",
-            "x_sampa": {
-                "symbol": "h"
-            }
-        },
-        {
-            "token": "hh",
-            "x_sampa": {
-                "symbol": "h"
-            }
-        },
-        {
-            "token": "jh",
-            "x_sampa": {
-                "symbol": "dZ"
-            }
-        },
-        {
-            "token": "k",
-            "x_sampa": {
-                "symbol": "k"
-            }
-        },
-        {
-            "token": "l",
-            "x_sampa": {
-                "symbol": "l"
-            }
-        },
-        {
-            "token": "m",
-            "x_sampa": {
-                "symbol": "m"
-            }
-        },
-        {
-            "token": "n",
-            "x_sampa": {
-                "symbol": "n"
-            }
-        },
-        {
-            "token": "ng",
-            "x_sampa": {
-                "symbol": "N"
-            }
-        },
-        {
-            "token": "nx",
-            "x_sampa": {
-                "symbol": "4_~"
-            }
-        },
-        {
-            "token": "p",
-            "x_sampa": {
-                "symbol": "p"
-            }
-        },
-        {
-            "token": "q",
-            "x_sampa": {
-                "symbol": "?"
-            }
-        },
-        {
-            "token": "r",
-            "x_sampa": {
-                "symbol": "r\\"
-            }
-        },
-        {
-            "token": "s",
-            "x_sampa": {
-                "symbol": "s"
-            }
-        },
-        {
-            "token": "sh",
-            "x_sampa": {
-                "symbol": "S"
-            }
-        },
-        {
-            "token": "t",
-            "x_sampa": {
-                "symbol": "t"
-            }
-        },
-        {
-            "token": "th",
-            "x_sampa": {
-                "symbol": "T"
-            }
-        },
-        {
-            "token": "v",
-            "x_sampa": {
-                "symbol": "v"
-            }
-        },
-        {
-            "token": "w",
-            "x_sampa": {
-                "symbol": "w"
-            }
-        },
-        {
-            "token": "y",
-            "x_sampa": {
-                "symbol": "j"
-            }
-        },
-        {
-            "token": "z",
-            "x_sampa": {
-                "symbol": "z"
-            }
-        },
-        {
-            "token": "zh",
-            "x_sampa": {
-                "symbol": "Z"
-            }
-        },
-        {
-            "token": "ax-h",
-            "x_sampa": {
-                "symbol": "@_0"
-            }
-        },
-        {
-            "token": "bcl",
-            "x_sampa": {
-                "symbol": "b"
-            }
-        },
-        {
-            "token": "dcl",
-            "x_sampa": {
-                "symbol": "d"
-            }
-        },
-        {
-            "token": "eng",
-            "x_sampa": {
-                "symbol": "n_="
-            }
-        },
-        {
-            "token": "gcl",
-            "x_sampa": {
-                "symbol": "g"
-            }
-        },
-        {
-            "token": "hv",
-            "x_sampa": {
-                "symbol": "h\\"
-            }
-        },
-        {
-            "token": "kcl",
-            "x_sampa": {
-                "symbol": "k"
-            }
-        },
-        {
-            "token": "pcl",
-            "x_sampa": {
-                "symbol": "p"
-            }
-        },
-        {
-            "token": "tcl",
-            "x_sampa": {
-                "symbol": "t"
-            }
-        },
-        {
-            "token": "pau",
-            "x_sampa": {
-                "symbol": "."
-            }
-        },
-        {
-            "token": "epi",
-            "x_sampa": {
-                "symbol": "."
-            }
-        },
-        {
-            "token": "h#",
-            "x_sampa": {
-                "symbol": "."
-            }
-        }
-    ]
+  "_version": -1,
+  "name": "TIMITClassifier",
+  "mappings": [
+    {
+      "token": "aa",
+      "x_sampa": {
+        "symbol": "A"
+      }
+    },
+    {
+      "token": "ae",
+      "x_sampa": {
+        "symbol": "{"
+      }
+    },
+    {
+      "token": "ah",
+      "x_sampa": {
+        "symbol": "V"
+      }
+    },
+    {
+      "token": "ao",
+      "x_sampa": {
+        "symbol": "O"
+      }
+    },
+    {
+      "token": "aw",
+      "x_sampa": {
+        "symbol": "aU"
+      }
+    },
+    {
+      "token": "ax",
+      "x_sampa": {
+        "symbol": "@"
+      }
+    },
+    {
+      "token": "axr",
+      "x_sampa": {
+        "symbol": "@`"
+      }
+    },
+    {
+      "token": "ay",
+      "x_sampa": {
+        "symbol": "aI"
+      }
+    },
+    {
+      "token": "eh",
+      "x_sampa": {
+        "symbol": "E"
+      }
+    },
+    {
+      "token": "er",
+      "x_sampa": {
+        "symbol": "3`"
+      }
+    },
+    {
+      "token": "ey",
+      "x_sampa": {
+        "symbol": "eI"
+      }
+    },
+    {
+      "token": "ih",
+      "x_sampa": {
+        "symbol": "I"
+      }
+    },
+    {
+      "token": "ix",
+      "x_sampa": {
+        "symbol": "1"
+      }
+    },
+    {
+      "token": "iy",
+      "x_sampa": {
+        "symbol": "i"
+      }
+    },
+    {
+      "token": "ow",
+      "x_sampa": {
+        "symbol": "oU"
+      }
+    },
+    {
+      "token": "oy",
+      "x_sampa": {
+        "symbol": "OI"
+      }
+    },
+    {
+      "token": "uh",
+      "x_sampa": {
+        "symbol": "U"
+      }
+    },
+    {
+      "token": "uw",
+      "x_sampa": {
+        "symbol": "u"
+      }
+    },
+    {
+      "token": "ux",
+      "x_sampa": {
+        "symbol": "}"
+      }
+    },
+    {
+      "token": "b",
+      "x_sampa": {
+        "symbol": "b"
+      }
+    },
+    {
+      "token": "ch",
+      "x_sampa": {
+        "symbol": "tS"
+      }
+    },
+    {
+      "token": "d",
+      "x_sampa": {
+        "symbol": "d"
+      }
+    },
+    {
+      "token": "dh",
+      "x_sampa": {
+        "symbol": "D"
+      }
+    },
+    {
+      "token": "dx",
+      "x_sampa": {
+        "symbol": "4"
+      }
+    },
+    {
+      "token": "el",
+      "x_sampa": {
+        "symbol": "l_="
+      }
+    },
+    {
+      "token": "em",
+      "x_sampa": {
+        "symbol": "m_="
+      }
+    },
+    {
+      "token": "en",
+      "x_sampa": {
+        "symbol": "n_="
+      }
+    },
+    {
+      "token": "f",
+      "x_sampa": {
+        "symbol": "f"
+      }
+    },
+    {
+      "token": "g",
+      "x_sampa": {
+        "symbol": "g"
+      }
+    },
+    {
+      "token": "h",
+      "x_sampa": {
+        "symbol": "h"
+      }
+    },
+    {
+      "token": "hh",
+      "x_sampa": {
+        "symbol": "h"
+      }
+    },
+    {
+      "token": "jh",
+      "x_sampa": {
+        "symbol": "dZ"
+      }
+    },
+    {
+      "token": "k",
+      "x_sampa": {
+        "symbol": "k"
+      }
+    },
+    {
+      "token": "l",
+      "x_sampa": {
+        "symbol": "l"
+      }
+    },
+    {
+      "token": "m",
+      "x_sampa": {
+        "symbol": "m"
+      }
+    },
+    {
+      "token": "n",
+      "x_sampa": {
+        "symbol": "n"
+      }
+    },
+    {
+      "token": "ng",
+      "x_sampa": {
+        "symbol": "N"
+      }
+    },
+    {
+      "token": "nx",
+      "x_sampa": {
+        "symbol": "4_~"
+      }
+    },
+    {
+      "token": "p",
+      "x_sampa": {
+        "symbol": "p"
+      }
+    },
+    {
+      "token": "q",
+      "x_sampa": {
+        "symbol": "?"
+      }
+    },
+    {
+      "token": "r",
+      "x_sampa": {
+        "symbol": "r\\"
+      }
+    },
+    {
+      "token": "s",
+      "x_sampa": {
+        "symbol": "s"
+      }
+    },
+    {
+      "token": "sh",
+      "x_sampa": {
+        "symbol": "S"
+      }
+    },
+    {
+      "token": "t",
+      "x_sampa": {
+        "symbol": "t"
+      }
+    },
+    {
+      "token": "th",
+      "x_sampa": {
+        "symbol": "T"
+      }
+    },
+    {
+      "token": "v",
+      "x_sampa": {
+        "symbol": "v"
+      }
+    },
+    {
+      "token": "w",
+      "x_sampa": {
+        "symbol": "w"
+      }
+    },
+    {
+      "token": "y",
+      "x_sampa": {
+        "symbol": "j"
+      }
+    },
+    {
+      "token": "z",
+      "x_sampa": {
+        "symbol": "z"
+      }
+    },
+    {
+      "token": "zh",
+      "x_sampa": {
+        "symbol": "Z"
+      }
+    },
+    {
+      "token": "ax-h",
+      "x_sampa": {
+        "symbol": "@_0"
+      }
+    },
+    {
+      "token": "bcl",
+      "x_sampa": {
+        "symbol": "b"
+      }
+    },
+    {
+      "token": "dcl",
+      "x_sampa": {
+        "symbol": "d"
+      }
+    },
+    {
+      "token": "eng",
+      "x_sampa": {
+        "symbol": "n_="
+      }
+    },
+    {
+      "token": "gcl",
+      "x_sampa": {
+        "symbol": "g"
+      }
+    },
+    {
+      "token": "hv",
+      "x_sampa": {
+        "symbol": "h\\"
+      }
+    },
+    {
+      "token": "kcl",
+      "x_sampa": {
+        "symbol": "k"
+      }
+    },
+    {
+      "token": "pcl",
+      "x_sampa": {
+        "symbol": "p"
+      }
+    },
+    {
+      "token": "tcl",
+      "x_sampa": {
+        "symbol": "t"
+      }
+    },
+    {
+      "token": "pau",
+      "x_sampa": {
+        "symbol": "."
+      }
+    },
+    {
+      "token": "epi",
+      "x_sampa": {
+        "symbol": "."
+      }
+    },
+    {
+      "token": "h#",
+      "x_sampa": {
+        "symbol": "."
+      }
+    }
+  ]
 }

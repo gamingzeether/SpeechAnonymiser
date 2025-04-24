@@ -1,21 +1,21 @@
 {
-    "_version": -1,
-    "sets": [
-        {
-            "name": "IPA",
-            "path": "configs/phoneme-set-IPA.json"
-        },
-        {
-            "name": "ARPABET",
-            "path": "configs/phoneme-set-ARPABET.json"
-        },
-        {
-            "name": "CVClassifier",
-            "path": "configs/phoneme-set-CVClassifier.json"
-        },
-        {
-            "name": "TimitClassifier",
-            "path": "configs/phoneme-set-TIMITClassifier.json"
-        }
-    ]
+  "_version": -1,
+  "sets": [
+    {
+      "name": "IPA",
+      "path": "configs/phoneme-set-IPA.json"
+    },
+    {
+      "name": "ARPABET",
+      "path": "configs/phoneme-set-ARPABET.json"
+    },
+    {
+      "name": "CVClassifier",
+      "path": "configs/phoneme-set-CVClassifier.json"
+    },
+    {
+      "name": "TimitClassifier",
+      "path": "configs/phoneme-set-TIMITClassifier.json"
+    }
+  ]
 }

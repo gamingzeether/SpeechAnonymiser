@@ -7,23 +7,23 @@
 
 class SpeechEngineConcatenator : public SpeechEngine {
 public:
-	SpeechEngineConcatenator() {};
+  SpeechEngineConcatenator() {};
 
-	virtual void pushFrame(const SpeechFrame& frame);
-	virtual void writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames);
+  virtual void pushFrame(const SpeechFrame& frame);
+  virtual void writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames);
 
-	virtual SpeechEngineConcatenator& configure(std::string file);
+  virtual SpeechEngineConcatenator& configure(std::string file);
 protected:
-	struct ActiveUnit {
-		const Voicebank::Unit* unit;
-		size_t pointer;
-	};
+  struct ActiveUnit {
+    const Voicebank::Unit* unit;
+    size_t pointer;
+  };
 
-	virtual void _init();
-	virtual void playUnit(const Voicebank::Unit& unit);
+  virtual void _init();
+  virtual void playUnit(const Voicebank::Unit& unit);
 
-	std::vector<Voicebank> voicebanks;
-	std::vector<ActiveUnit> activeUnits;
+  std::vector<Voicebank> voicebanks;
+  std::vector<ActiveUnit> activeUnits;
 
-	size_t currentPhoneme = 0;
+  size_t currentPhoneme = 0;
 };

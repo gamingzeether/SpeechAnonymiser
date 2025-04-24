@@ -232,7 +232,7 @@ void SpeechEngineFormant::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nF
 }
 
 SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
-	_init();
+  _init();
     JSONHelper json;
     if (json.open(file)) {
         JSONHelper::JSONObj phonemes = json["phonemes"];
@@ -287,7 +287,7 @@ SpeechEngineFormant& SpeechEngineFormant::configure(std::string file) {
         G_LG("Failed to open config", Logger::ERRO);
     }
 
-	return *this;
+  return *this;
 }
 
 void SpeechEngineFormant::_init() {

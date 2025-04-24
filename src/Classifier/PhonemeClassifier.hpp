@@ -38,7 +38,7 @@ private:
 
     Config config;
 
-	PhonemeModel model;
+  PhonemeModel model;
     size_t sampleRate;
 
     bool initalized = false;

@@ -25,7 +25,7 @@ namespace mlpack {
  * number of classes, as target when calling the Forward function.
  *
  * @tparam MatType Matrix representation to accept as input and use for
- *    computation.
+ *  computation.
  */
 template<typename MatType = arma::mat>
 class NegativeLogLikelihoodWType
@@ -35,10 +35,10 @@ class NegativeLogLikelihoodWType
    * Create the NegativeLogLikelihoodTypeWLayer object.
    *
    * @param reduction Specifies the reduction to apply to the output. If false,
-   *                  'mean' reduction is used, where sum of the output will be
-   *                  divided by the number of elements in the output. If true,
-   *                  'sum' reduction is used and the output will be summed. It
-   *                  is set to true by default.
+   *          'mean' reduction is used, where sum of the output will be
+   *          divided by the number of elements in the output. If true,
+   *          'sum' reduction is used and the output will be summed. It
+   *          is set to true by default.
    */
   NegativeLogLikelihoodWType(const bool reduction = true);
 
@@ -46,12 +46,12 @@ class NegativeLogLikelihoodWType
    * Computes the Negative log likelihood.
    *
    * @param iprediction Predictions used for evaluating the specified loss
-   *     function.
+   *   function.
    * @param target The target vector, that contains the class index in the range
-   *        between 1 and the number of classes.
+   *    between 1 and the number of classes.
    */
   double Forward(const MatType& prediction,
-                 const MatType& target);
+         const MatType& target);
 
   /**
    * Ordinary feed backward pass of a neural network. The negative log
@@ -60,14 +60,14 @@ class NegativeLogLikelihoodWType
    * and the number of classes, as target when calling the Forward function.
    *
    * @param prediction Predictions used for evaluating the specified loss
-   *     function.
+   *   function.
    * @param target The target vector, that contains the class index in the range
-   *        between 1 and the number of classes.
+   *    between 1 and the number of classes.
    * @param loss The calculated error.
    */
   void Backward(const MatType& prediction,
-                const MatType& target,
-                MatType& loss);
+        const MatType& target,
+        MatType& loss);
 
   //! Get the reduction type, represented as boolean
   //! (false 'mean' reduction, true 'sum' reduction).

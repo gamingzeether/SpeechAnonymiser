@@ -10,17 +10,17 @@
 // Or the macro G_PS defined in Global.hpp
 class PhonemeCollection {
 public:
-    int getId(const std::string& name);
-    std::string getName(int id);
-    const PhonemeSet& get(int id);
-    const PhonemeSet& get(const std::string& name);
+  int getId(const std::string& name);
+  std::string getName(int id);
+  const PhonemeSet& get(int id);
+  const PhonemeSet& get(const std::string& name);
 private:
-    std::vector<PhonemeSet> phonemeSets;
+  std::vector<PhonemeSet> phonemeSets;
 
-    void initPhonemeSet(std::string path);
-    void addMappingToSet(JSONHelper::JSONObj& group, PhonemeSet& ps);
+  void initPhonemeSet(std::string path);
+  void addMappingToSet(JSONHelper::JSONObj& group, PhonemeSet& ps);
 
-    PhonemeCollection();
+  PhonemeCollection();
 
-    friend class Global;
+  friend class Global;
 };

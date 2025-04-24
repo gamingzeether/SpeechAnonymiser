@@ -1,1083 +1,1083 @@
 {
-    "_version": -1,
-    "phonemes": [
-        "aI",
-        "aU",
-        "b",
-        "k",
-        "d",
-        "dZ",
-        "eI",
-        "f",
-        "h",
-        "i",
-        "j",
-        "l",
-        "m",
-        "n",
-        "oU",
-        "p",
-        "s",
-        ".",
-        "t",
-        "tS",
-        "v",
-        "w",
-        "z",
-        "{",
-        "h\\",
-        "D",
-        "N",
-        "6",
-        "A",
-        "Q",
-        "O",
-        "@",
-        "E",
-        "3",
-        "g",
-        "I",
-        "r\\",
-        "4",
-        "S",
-        "}",
-        "U",
-        "Z",
-        "T"
-    ],
-    "groups":  {
-        "aI": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.88
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 8.23
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 19.61
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 52.88
-                }
-            ]
+  "_version": -1,
+  "phonemes": [
+    "aI",
+    "aU",
+    "b",
+    "k",
+    "d",
+    "dZ",
+    "eI",
+    "f",
+    "h",
+    "i",
+    "j",
+    "l",
+    "m",
+    "n",
+    "oU",
+    "p",
+    "s",
+    ".",
+    "t",
+    "tS",
+    "v",
+    "w",
+    "z",
+    "{",
+    "h\\",
+    "D",
+    "N",
+    "6",
+    "A",
+    "Q",
+    "O",
+    "@",
+    "E",
+    "3",
+    "g",
+    "I",
+    "r\\",
+    "4",
+    "S",
+    "}",
+    "U",
+    "Z",
+    "T"
+  ],
+  "groups":  {
+    "aI": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.88
         },
-        "aU": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.54
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 7.23
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 18.59
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 39.39
-                }
-            ]
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 8.23
         },
-        "b": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.25
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.21
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 9.58
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 23.94
-                }
-            ]
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 19.61
         },
-        "k": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 8.03
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 9.25
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 13.87
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 15.18
-                }
-            ]
-        },
-        "d": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 1.63
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.13
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 3.83
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 14.59
-                }
-            ]
-        },
-        "dZ": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 1.76
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.18
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 4.63
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 10.77
-                }
-            ]
-        },
-        "eI": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 2.72
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.06
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 7.35
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 24.28
-                }
-            ]
-        },
-        "f": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.65
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 6.15
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 16.62
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 21.10
-                }
-            ]
-        },
-        "h": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 6.08
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 6.96
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 10.68
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 20.02
-                }
-            ]
-        },
-        "i": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 1.97
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.44
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 4.28
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 12.50
-                }
-            ]
-        },
-        "j": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 2.83
-                },
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.41
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 4.83
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 11.30
-                }
-            ]
-        },
-        "l": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.96
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 6.00
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 13.09
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 36.79
-                }
-            ]
-        },
-        "m": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 2.23
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 3.27
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 8.39
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 26.07
-                }
-            ]
-        },
-        "n": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 1.63
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.51
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 5.49
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 13.64
-                }
-            ]
-        },
-        "oU": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.19
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.38
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 11.06
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 27.59
-                }
-            ]
-        },
-        "p": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 6.28
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 10.75
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 14.74
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 19.17
-                }
-            ]
-        },
-        "s": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.70
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 4.67
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 5.59
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 7.90
-                }
-            ]
-        },
-        ".": {
-            "volume": 0.0,
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 0.31
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 0.49
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 0.69
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 1.11
-                }
-            ]
-        },
-        "t": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 1.62
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.34
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 3.71
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 7.82
-                }
-            ]
-        },
-        "tS": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 0.86
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 1.01
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 1.82
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 4.95
-                }
-            ]
-        },
-        "v": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.15
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 3.01
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 5.51
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 17.45
-                }
-            ]
-        },
-        "w": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.86
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.23
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 10.67
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 35.15
-                }
-            ]
-        },
-        "z": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 0.85
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 1.12
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 2.14
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 5.64
-                }
-            ]
-        },
-        "{": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 4.13
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 6.21
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 12.85
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 38.13
-                }
-            ]
-        },
-        "h\\": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.84
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 5.46
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 9.99
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 15.84
-                }
-            ]
-        },
-        "D": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 4.42
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 6.07
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 13.09
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 57.54
-                }
-            ]
-        },
-        "N": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 0.78
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 1.06
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 2.58
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 7.61
-                }
-            ]
-        },
-        "6": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.20
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.69
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 12.25
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 37.13
-                }
-            ]
-        },
-        "A": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 4.38
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 9.12
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 21.65
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 49.98
-                }
-            ]
-        },
-        "Q": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 4.08
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 7.60
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 17.52
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 45.25
-                }
-            ]
-        },
-        "O": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 4.64
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 5.90
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 12.20
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 42.81
-                }
-            ]
-        },
-        "@": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.06
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.98
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 6.14
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 18.75
-                }
-            ]
-        },
-        "E": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.20
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.31
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 9.95
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 29.67
-                }
-            ]
-        },
-        "3": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 3.21
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.20
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 8.98
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 24.48
-                }
-            ]
-        },
-        "g": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.52
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 3.47
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 5.99
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 21.17
-                }
-            ]
-        },
-        "I": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 2.55
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 3.25
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 5.27
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 15.38
-                }
-            ]
-        },
-        "r\\": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 2.79
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.49
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 9.94
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 28.17
-                }
-            ]
-        },
-        "4": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 2.24
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.94
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 4.33
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 18.76
-                }
-            ]
-        },
-        "S": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 0.79
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 1.01
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 2.14
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 3.60
-                }
-            ]
-        },
-        "}": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 3.04
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 4.00
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 6.58
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 20.64
-                }
-            ]
-        },
-        "U": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 8.64
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 15.03
-                },
-                {
-                    "frequency": 625.0,
-                    "width": 0.0,
-                    "volume": 28.65
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 43.13
-                }
-            ]
-        },
-        "Z": {
-            "formants": [
-                {
-                    "frequency": 156.0,
-                    "width": 0.0,
-                    "volume": 1.99
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 2.44
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 3.44
-                },
-                {
-                    "frequency": 938.0,
-                    "width": 0.0,
-                    "volume": 7.01
-                }
-            ]
-        },
-        "T": {
-            "formants": [
-                {
-                    "frequency": 312.0,
-                    "width": 0.0,
-                    "volume": 1.53
-                },
-                {
-                    "frequency": 469.0,
-                    "width": 0.0,
-                    "volume": 1.62
-                },
-                {
-                    "frequency": 781.0,
-                    "width": 0.0,
-                    "volume": 1.91
-                },
-                {
-                    "frequency": 1094.0,
-                    "width": 0.0,
-                    "volume": 2.97
-                }
-            ]
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 52.88
         }
+      ]
+    },
+    "aU": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.54
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 7.23
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 18.59
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 39.39
+        }
+      ]
+    },
+    "b": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.25
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.21
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 9.58
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 23.94
+        }
+      ]
+    },
+    "k": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 8.03
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 9.25
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 13.87
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 15.18
+        }
+      ]
+    },
+    "d": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 1.63
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.13
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 3.83
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 14.59
+        }
+      ]
+    },
+    "dZ": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 1.76
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.18
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 4.63
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 10.77
+        }
+      ]
+    },
+    "eI": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 2.72
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.06
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 7.35
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 24.28
+        }
+      ]
+    },
+    "f": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.65
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 6.15
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 16.62
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 21.10
+        }
+      ]
+    },
+    "h": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 6.08
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 6.96
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 10.68
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 20.02
+        }
+      ]
+    },
+    "i": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 1.97
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.44
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 4.28
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 12.50
+        }
+      ]
+    },
+    "j": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 2.83
+        },
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.41
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 4.83
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 11.30
+        }
+      ]
+    },
+    "l": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.96
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 6.00
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 13.09
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 36.79
+        }
+      ]
+    },
+    "m": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 2.23
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 3.27
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 8.39
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 26.07
+        }
+      ]
+    },
+    "n": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 1.63
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.51
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 5.49
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 13.64
+        }
+      ]
+    },
+    "oU": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.19
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.38
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 11.06
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 27.59
+        }
+      ]
+    },
+    "p": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 6.28
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 10.75
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 14.74
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 19.17
+        }
+      ]
+    },
+    "s": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.70
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 4.67
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 5.59
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 7.90
+        }
+      ]
+    },
+    ".": {
+      "volume": 0.0,
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 0.31
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 0.49
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 0.69
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 1.11
+        }
+      ]
+    },
+    "t": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 1.62
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.34
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 3.71
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 7.82
+        }
+      ]
+    },
+    "tS": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 0.86
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 1.01
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 1.82
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 4.95
+        }
+      ]
+    },
+    "v": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.15
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 3.01
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 5.51
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 17.45
+        }
+      ]
+    },
+    "w": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.86
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.23
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 10.67
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 35.15
+        }
+      ]
+    },
+    "z": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 0.85
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 1.12
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 2.14
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 5.64
+        }
+      ]
+    },
+    "{": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 4.13
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 6.21
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 12.85
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 38.13
+        }
+      ]
+    },
+    "h\\": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.84
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 5.46
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 9.99
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 15.84
+        }
+      ]
+    },
+    "D": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 4.42
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 6.07
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 13.09
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 57.54
+        }
+      ]
+    },
+    "N": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 0.78
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 1.06
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 2.58
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 7.61
+        }
+      ]
+    },
+    "6": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.20
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.69
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 12.25
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 37.13
+        }
+      ]
+    },
+    "A": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 4.38
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 9.12
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 21.65
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 49.98
+        }
+      ]
+    },
+    "Q": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 4.08
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 7.60
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 17.52
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 45.25
+        }
+      ]
+    },
+    "O": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 4.64
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 5.90
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 12.20
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 42.81
+        }
+      ]
+    },
+    "@": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.06
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.98
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 6.14
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 18.75
+        }
+      ]
+    },
+    "E": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.20
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.31
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 9.95
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 29.67
+        }
+      ]
+    },
+    "3": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 3.21
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.20
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 8.98
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 24.48
+        }
+      ]
+    },
+    "g": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.52
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 3.47
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 5.99
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 21.17
+        }
+      ]
+    },
+    "I": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 2.55
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 3.25
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 5.27
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 15.38
+        }
+      ]
+    },
+    "r\\": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 2.79
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.49
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 9.94
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 28.17
+        }
+      ]
+    },
+    "4": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 2.24
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.94
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 4.33
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 18.76
+        }
+      ]
+    },
+    "S": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 0.79
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 1.01
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 2.14
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 3.60
+        }
+      ]
+    },
+    "}": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 3.04
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 4.00
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 6.58
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 20.64
+        }
+      ]
+    },
+    "U": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 8.64
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 15.03
+        },
+        {
+          "frequency": 625.0,
+          "width": 0.0,
+          "volume": 28.65
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 43.13
+        }
+      ]
+    },
+    "Z": {
+      "formants": [
+        {
+          "frequency": 156.0,
+          "width": 0.0,
+          "volume": 1.99
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 2.44
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 3.44
+        },
+        {
+          "frequency": 938.0,
+          "width": 0.0,
+          "volume": 7.01
+        }
+      ]
+    },
+    "T": {
+      "formants": [
+        {
+          "frequency": 312.0,
+          "width": 0.0,
+          "volume": 1.53
+        },
+        {
+          "frequency": 469.0,
+          "width": 0.0,
+          "volume": 1.62
+        },
+        {
+          "frequency": 781.0,
+          "width": 0.0,
+          "volume": 1.91
+        },
+        {
+          "frequency": 1094.0,
+          "width": 0.0,
+          "volume": 2.97
+        }
+      ]
     }
+  }
 }

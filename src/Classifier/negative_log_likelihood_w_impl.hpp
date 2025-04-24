@@ -21,61 +21,61 @@ namespace mlpack {
 
 template<typename MatType>
 NegativeLogLikelihoodWType<MatType>::NegativeLogLikelihoodWType(
-    const bool reduction) : reduction(reduction)
+  const bool reduction) : reduction(reduction)
 {
   // Nothing to do here.
 }
 
 template<typename MatType>
 double NegativeLogLikelihoodWType<MatType>::Forward(
-    const MatType& prediction,
-    const MatType& target)
+  const MatType& prediction,
+  const MatType& target)
 {
   using ElemType = typename MatType::elem_type;
   ElemType lossSum = 0;
   if (!weighted)
   {
-    if (classWeights.n_elem != prediction.n_rows)
-      classWeights.ones(1, prediction.n_rows);
-    weighted = true;
+  if (classWeights.n_elem != prediction.n_rows)
+    classWeights.ones(1, prediction.n_rows);
+  weighted = true;
   }
   for (size_t i = 0; i < prediction.n_cols; ++i)
   {
-    Log::Assert(target(i) >= 0 && target(i) < prediction.n_rows,
-        "Target class out of range.");
+  Log::Assert(target(i) >= 0 && target(i) < prediction.n_rows,
+    "Target class out of range.");
 
-    lossSum -= prediction(target(i), i) * classWeights(target(i));
+  lossSum -= prediction(target(i), i) * classWeights(target(i));
   }
 
   if (reduction)
-    return lossSum;
+  return lossSum;
 
   return lossSum / target.n_elem;
 }
 
 template<typename MatType>
 void NegativeLogLikelihoodWType<MatType>::Backward(
-      const MatType& prediction,
-      const MatType& target,
-      MatType& loss)
+    const MatType& prediction,
+    const MatType& target,
+    MatType& loss)
 {
   loss = zeros<MatType>(prediction.n_rows, prediction.n_cols);
   for (size_t i = 0; i < prediction.n_cols; ++i)
   {
-    Log::Assert(target(i) >= 0 && target(i) < prediction.n_rows,
-        "Target class out of range.");
+  Log::Assert(target(i) >= 0 && target(i) < prediction.n_rows,
+    "Target class out of range.");
 
-    loss(target(i), i) = -1 * classWeights(target(i));
+  loss(target(i), i) = -1 * classWeights(target(i));
   }
 
   if (!reduction)
-    loss = loss / target.n_elem;
+  loss = loss / target.n_elem;
 }
 
 template<typename MatType>
 template<typename Archive>
 void NegativeLogLikelihoodWType<MatType>::serialize(
-    Archive& ar, const uint32_t /* version */)
+  Archive& ar, const uint32_t /* version */)
 {
   ar(CEREAL_NVP(reduction));
 }

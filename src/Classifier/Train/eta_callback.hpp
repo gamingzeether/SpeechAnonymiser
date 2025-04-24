@@ -40,16 +40,16 @@ class ProgressBarETA
    * @param ostream Ostream which receives output from this object.
    */
   ProgressBarETA(const size_t widthIn = 70,
-              std::ostream& output = arma::get_cout_stream()) :
-      width(100.0 / widthIn),
-      output(output),
-      objective(0),
-      epochs(0),
-      epochSize(0),
-      step(1),
-      steps(0),
-      newEpoch(false),
-      epoch(1)
+        std::ostream& output = arma::get_cout_stream()) :
+    width(100.0 / widthIn),
+    output(output),
+    objective(0),
+    epochs(0),
+    epochSize(0),
+    step(1),
+    steps(0),
+    newEpoch(false),
+    epoch(1)
 
   { /* Nothing to do here. */ }
 
@@ -62,39 +62,39 @@ class ProgressBarETA
    */
   template<typename OptimizerType, typename FunctionType, typename MatType>
   void BeginOptimization(OptimizerType& optimizer,
-                         FunctionType& function,
-                         MatType& /* coordinates */)
+             FunctionType& function,
+             MatType& /* coordinates */)
   {
-    static_assert(traits::HasBatchSizeSignature<
-      OptimizerType>::value,
-      "The OptimizerType does not have a correct definition of BatchSize(). "
-      "Please check that the OptimizerType fully satisfies the requirements "
-      "of the ProgressBar API; see the callbacks documentation for more "
-      "details.");
+  static_assert(traits::HasBatchSizeSignature<
+    OptimizerType>::value,
+    "The OptimizerType does not have a correct definition of BatchSize(). "
+    "Please check that the OptimizerType fully satisfies the requirements "
+    "of the ProgressBar API; see the callbacks documentation for more "
+    "details.");
 
-    static_assert(traits::HasMaxIterationsSignature<
-      OptimizerType>::value,
-      "The OptimizerType does not have a correct definition of MaxIterations()."
-      " Please check that the OptimizerType fully satisfies the requirements "
-      "of the ProgressBar API; see the callbacks documentation for more "
-      "details.");
+  static_assert(traits::HasMaxIterationsSignature<
+    OptimizerType>::value,
+    "The OptimizerType does not have a correct definition of MaxIterations()."
+    " Please check that the OptimizerType fully satisfies the requirements "
+    "of the ProgressBar API; see the callbacks documentation for more "
+    "details.");
 
-    static_assert(traits::HasNumFunctionsSignature<
-      FunctionType>::value,
-      "The OptimizerType does not have a correct definition of NumFunctions(). "
-      "Please check that the OptimizerType fully satisfies the requirements "
-      "of the ProgressBar API; see the callbacks documentation for more "
-      "details.");
+  static_assert(traits::HasNumFunctionsSignature<
+    FunctionType>::value,
+    "The OptimizerType does not have a correct definition of NumFunctions(). "
+    "Please check that the OptimizerType fully satisfies the requirements "
+    "of the ProgressBar API; see the callbacks documentation for more "
+    "details.");
 
-    epochSize = function.NumFunctions() / optimizer.BatchSize();
-    if (function.NumFunctions() % optimizer.BatchSize() > 0)
-      epochSize++;
+  epochSize = function.NumFunctions() / optimizer.BatchSize();
+  if (function.NumFunctions() % optimizer.BatchSize() > 0)
+    epochSize++;
 
-    epochs = optimizer.MaxIterations() / function.NumFunctions();
-    if (optimizer.MaxIterations() % function.NumFunctions() > 0)
-      epochs++;
+  epochs = optimizer.MaxIterations() / function.NumFunctions();
+  if (optimizer.MaxIterations() % function.NumFunctions() > 0)
+    epochs++;
 
-    stepTimer.tic();
+  stepTimer.tic();
   }
 
   /**
@@ -108,22 +108,22 @@ class ProgressBarETA
    */
   template<typename OptimizerType, typename FunctionType, typename MatType>
   bool BeginEpoch(OptimizerType& /* optimizer */,
-                  FunctionType& /* function */,
-                  const MatType& /* coordinates */,
-                  const size_t epochIn,
-                  const double /* objective */)
+          FunctionType& /* function */,
+          const MatType& /* coordinates */,
+          const size_t epochIn,
+          const double /* objective */)
   {
-    // Start the timer.
-    epochTimer.tic();
+  // Start the timer.
+  epochTimer.tic();
 
-    // Reset epoch parameter.
-    objective = 0;
-    step = 1;
+  // Reset epoch parameter.
+  objective = 0;
+  step = 1;
 
-    epoch = epochIn;
-    newEpoch = true;
+  epoch = epochIn;
+  newEpoch = true;
 
-    return false;
+  return false;
   }
 
   /**
@@ -136,75 +136,75 @@ class ProgressBarETA
    */
   template<typename OptimizerType, typename FunctionType, typename MatType>
   bool StepTaken(OptimizerType& /* optimizer */,
-                 FunctionType& /* function */,
-                 const MatType& /* coordinates */)
+         FunctionType& /* function */,
+         const MatType& /* coordinates */)
   {
-    if (newEpoch)
+  if (newEpoch)
+  {
+    output << "Epoch " << epoch;
+    if (epochs > 0)
     {
-      output << "Epoch " << epoch;
-      if (epochs > 0)
-      {
-        output << "/" << epochs;
-      }
-      output << '\n';
-      newEpoch = false;
+    output << "/" << epochs;
     }
+    output << '\n';
+    newEpoch = false;
+  }
 
-    const size_t progress = ((double) step / epochSize) * 100;
-    output << step++ << "/" << epochSize << " [";
-    for (size_t i = 0; i < 100; i += width)
+  const size_t progress = ((double) step / epochSize) * 100;
+  output << step++ << "/" << epochSize << " [";
+  for (size_t i = 0; i < 100; i += width)
+  {
+    if (i < progress)
     {
-      if (i < progress)
-      {
-        output << "=";
-      }
-      else if (i == progress)
-      {
-        output << ">";
-      }
-      else
-      {
-        output << ".";
-      }
+    output << "=";
     }
-
-    // To calculate the remaining time, multiply time taken by
-    // Number of remaining steps / steps taken
-    // Eg. | 20% |      80%      |
-    // 20% steps taken, 80% remaining;
-    // To get the time remaining: (time for the 20%) * (80% / 20%)
-    double secondsRemaining = epochTimer.toc() * ((double)(epochSize - step) / (step));
-    double minutesRemaining = secondsRemaining / 60.0;
-    double hoursRemaining = minutesRemaining / 60.0;
-    double daysRemaining = hoursRemaining / 24.0;
-    std::vector<std::tuple<double, std::string>> valueUnitVector = {
-        {daysRemaining, "d"},
-        {hoursRemaining, "h"},
-        {minutesRemaining, "m"},
-        {secondsRemaining, "s"}
-    };
-    std::string pairString;
-    for (std::tuple<double, std::string>& pair : valueUnitVector) {
-        double val = std::get<double>(pair);
-        if (val > 1) {
-            std::string& unit = std::get<std::string>(pair);
-            pairString = Util::format("%.2lf%s", val, unit.c_str());
-            break;
-        }
+    else if (i == progress)
+    {
+    output << ">";
     }
-    if (pairString.empty()) {
-        // Empty (seconds <= 1)?
-        // Default to print seconds
-        pairString = Util::format("%.2fs", secondsRemaining);
+    else
+    {
+    output << ".";
     }
+  }
 
-    output << "] " << progress << "% - ETA: " << pairString << " - loss: " <<
-        objective / (double) step <<  " \r";
-    output.flush();
+  // To calculate the remaining time, multiply time taken by
+  // Number of remaining steps / steps taken
+  // Eg. | 20% |    80%    |
+  // 20% steps taken, 80% remaining;
+  // To get the time remaining: (time for the 20%) * (80% / 20%)
+  double secondsRemaining = epochTimer.toc() * ((double)(epochSize - step) / (step));
+  double minutesRemaining = secondsRemaining / 60.0;
+  double hoursRemaining = minutesRemaining / 60.0;
+  double daysRemaining = hoursRemaining / 24.0;
+  std::vector<std::tuple<double, std::string>> valueUnitVector = {
+    {daysRemaining, "d"},
+    {hoursRemaining, "h"},
+    {minutesRemaining, "m"},
+    {secondsRemaining, "s"}
+  };
+  std::string pairString;
+  for (std::tuple<double, std::string>& pair : valueUnitVector) {
+    double val = std::get<double>(pair);
+    if (val > 1) {
+      std::string& unit = std::get<std::string>(pair);
+      pairString = Util::format("%.2lf%s", val, unit.c_str());
+      break;
+    }
+  }
+  if (pairString.empty()) {
+    // Empty (seconds <= 1)?
+    // Default to print seconds
+    pairString = Util::format("%.2fs", secondsRemaining);
+  }
 
-    stepTimer.tic();
+  output << "] " << progress << "% - ETA: " << pairString << " - loss: " <<
+    objective / (double) step <<  " \r";
+  output.flush();
 
-    return false;
+  stepTimer.tic();
+
+  return false;
   }
 
   /**
@@ -217,13 +217,13 @@ class ProgressBarETA
    */
   template<typename OptimizerType, typename FunctionType, typename MatType>
   bool Evaluate(OptimizerType& optimizer,
-                FunctionType& /* function */,
-                const MatType& /* coordinates */,
-                const double objectiveIn)
+        FunctionType& /* function */,
+        const MatType& /* coordinates */,
+        const double objectiveIn)
   {
-    objective += objectiveIn / optimizer.BatchSize();
-    steps++;
-    return false;
+  objective += objectiveIn / optimizer.BatchSize();
+  steps++;
+  return false;
   }
 
   /**
@@ -237,34 +237,34 @@ class ProgressBarETA
    */
   template<typename OptimizerType, typename FunctionType, typename MatType>
   bool EndEpoch(OptimizerType& /* optimizer */,
-                FunctionType& /* function */,
-                const MatType& /* coordinates */,
-                const size_t /* epoch */,
-                const double objective)
+        FunctionType& /* function */,
+        const MatType& /* coordinates */,
+        const size_t /* epoch */,
+        const double objective)
   {
-    const size_t progress = ((double) (step - 1) / epochSize) * 100;
-    output << step - 1 << "/" << epochSize << " [";
-    for (size_t i = 0; i < 100; i += width)
+  const size_t progress = ((double) (step - 1) / epochSize) * 100;
+  output << step - 1 << "/" << epochSize << " [";
+  for (size_t i = 0; i < 100; i += width)
+  {
+    if (i < progress)
     {
-      if (i < progress)
-      {
-        output << "=";
-      }
-      else if (i == progress)
-      {
-        output << ">";
-      }
-      else
-      {
-        output << ".";
-      }
+    output << "=";
     }
-    const double epochTimerElapsed = epochTimer.toc();
-    const size_t stepTime = epochTimerElapsed / (double) epochSize * 1000;
-    output << "] " << progress << "% - " << epochTimerElapsed
-        << "s/epoch; " << stepTime << "ms/step; loss: " << objective  <<  "\n";
-    output.flush();
-    return false;
+    else if (i == progress)
+    {
+    output << ">";
+    }
+    else
+    {
+    output << ".";
+    }
+  }
+  const double epochTimerElapsed = epochTimer.toc();
+  const size_t stepTime = epochTimerElapsed / (double) epochSize * 1000;
+  output << "] " << progress << "% - " << epochTimerElapsed
+    << "s/epoch; " << stepTime << "ms/step; loss: " << objective  <<  "\n";
+  output.flush();
+  return false;
   }
 
  private:

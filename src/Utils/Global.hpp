@@ -19,57 +19,57 @@
 
 class Global {
 public:
-	static bool initalized() { return init; };
+  static bool initalized() { return init; };
 
-	static Global& get() {
-		static Global instance = Global();
-		return instance;
-	};
+  static Global& get() {
+    static Global instance = Global();
+    return instance;
+  };
 
-	// Gets the phoneme set with specified id
-	const PhonemeSet& getPhonemeSet(size_t id);
+  // Gets the phoneme set with specified id
+  const PhonemeSet& getPhonemeSet(size_t id);
 
-	// Checks if classifier phoneme set is set
-	bool isClassifierSet();
-	// Sets the phoneme set used for classifier
-	void setClassifierPhonemeSet(const std::string& name, bool supress = false);
-	// Gets the phoneme set used for classifier
-	const PhonemeSet& getClassifierPhonemeSet();
-	// Gets the name of the phoneme set used for classifier
-	std::string getClassifierPhonemeSetName();
+  // Checks if classifier phoneme set is set
+  bool isClassifierSet();
+  // Sets the phoneme set used for classifier
+  void setClassifierPhonemeSet(const std::string& name, bool supress = false);
+  // Gets the phoneme set used for classifier
+  const PhonemeSet& getClassifierPhonemeSet();
+  // Gets the name of the phoneme set used for classifier
+  std::string getClassifierPhonemeSetName();
 
-	// Checks if speech engine phoneme set is set
-	bool isSpeechEngineSet();
-	// Sets the phoneme set used for classifier
-	void setSpeechEngineSet(const std::string& name);
-	// Gets the phoneme set used for speech engine
-	const PhonemeSet& getSpeechEnginePhonemeSet();
-	// Gets the name of the phoneme set used for speech engine
-	std::string getSpeechEnginePhonemeSetName();
+  // Checks if speech engine phoneme set is set
+  bool isSpeechEngineSet();
+  // Sets the phoneme set used for classifier
+  void setSpeechEngineSet(const std::string& name);
+  // Gets the phoneme set used for speech engine
+  const PhonemeSet& getSpeechEnginePhonemeSet();
+  // Gets the name of the phoneme set used for speech engine
+  std::string getSpeechEnginePhonemeSetName();
 
-	// Sets the phoneme set used for speech engine
-	void setSpeechEnginePhonemeSet(const std::string& name, bool supress = false);
+  // Sets the phoneme set used for speech engine
+  void setSpeechEnginePhonemeSet(const std::string& name, bool supress = false);
 
-	// Returns classifier silence phoneme id
-	size_t silencePhone();
-	// Global lock to prevent multiple fftw functions being executed at the same time eg. planning
-	std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
+  // Returns classifier silence phoneme id
+  size_t silencePhone();
+  // Global lock to prevent multiple fftw functions being executed at the same time eg. planning
+  std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
 
-	static void log(std::string message, int verbosity = 0, int color = Logger::Color::DEFAULT);
+  static void log(std::string message, int verbosity = 0, int color = Logger::Color::DEFAULT);
 
-	// Causes all logging to be logged as DBUG (doesn't show up in console but will in logs)
-	static void supressLog(bool supress);
+  // Causes all logging to be logged as DBUG (doesn't show up in console but will in logs)
+  static void supressLog(bool supress);
 private:
-	Global();
-	inline static bool init = false;
-	inline static bool supressLogging = false;
-	inline static std::ofstream logFile;
+  Global();
+  inline static bool init = false;
+  inline static bool supressLogging = false;
+  inline static std::ofstream logFile;
 
-	PhonemeCollection pc;
-	Logger logger;
-	std::mutex fftwMutex;
-	size_t silPhone;
+  PhonemeCollection pc;
+  Logger logger;
+  std::mutex fftwMutex;
+  size_t silPhone;
 
-	int classifierPhonemeSetId = -1;
-	int speechEnginePhonemeSetId = -1;
+  int classifierPhonemeSetId = -1;
+  int speechEnginePhonemeSetId = -1;
 };
