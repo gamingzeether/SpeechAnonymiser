@@ -5,7 +5,7 @@
 #include <string>
 
 #define NETWORK_TYPE mlpack::RNN<mlpack::NegativeLogLikelihoodWType<MAT_TYPE>, mlpack::RandomInitialization, MAT_TYPE>
-#define OPTIMIZER_TYPE ens::RMSProp
+#define OPTIMIZER_TYPE ens::Adam
 
 class ModelSerializer
 {

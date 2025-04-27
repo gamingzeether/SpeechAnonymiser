@@ -52,11 +52,11 @@ struct Phone {
 };
 
 struct Frame {
-  std::vector<float> real;
-  std::vector<float> avg; // Average of this frame and previous frames
-  std::vector<float> delta;
-  std::vector<float> accel;
-  float volume;
+  std::vector<ELEM_TYPE> real;
+  std::vector<ELEM_TYPE> avg; // Average of this frame and previous frames
+  std::vector<ELEM_TYPE> delta;
+  std::vector<ELEM_TYPE> accel;
+  ELEM_TYPE volume;
   size_t phone;
   bool invalid;
 
@@ -73,10 +73,10 @@ struct Frame {
   }
 
   Frame() {
-    real = std::vector<float>(FRAME_SIZE);
-    avg = std::vector<float>(FRAME_SIZE);
-    delta = std::vector<float>(FRAME_SIZE);
-    accel = std::vector<float>(FRAME_SIZE);
+    real = std::vector<ELEM_TYPE>(FRAME_SIZE);
+    avg = std::vector<ELEM_TYPE>(FRAME_SIZE);
+    delta = std::vector<ELEM_TYPE>(FRAME_SIZE);
+    accel = std::vector<ELEM_TYPE>(FRAME_SIZE);
     volume = 0;
     phone = 0;
     invalid = false;

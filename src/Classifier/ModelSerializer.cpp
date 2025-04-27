@@ -3,7 +3,9 @@
 #define MLPACK_ENABLE_ANN_SERIALIZATION 
 #include <filesystem>
 #include "../include_mlpack.hpp"
-CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
+#if (ELEM_TYPE != double)
+  CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
+#endif
 CEREAL_REGISTER_TYPE(mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>);
 CEREAL_REGISTER_TYPE(mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>);
 

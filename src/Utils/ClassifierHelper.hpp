@@ -29,23 +29,10 @@ public:
             for (size_t i = 0; i < FRAME_SIZE; i++) {
                 size_t x = f;
                 size_t y = i;
-                float r, g, b;
-                if (true) {
-                    r = readFrame.avg[i];
-                    g = readFrame.delta[i];
-                    b = readFrame.accel[i];
-                } else {
-                    float col = readFrame.avg[i];
-                    if (col > 0) {
-                        r = col * 2;
-                        g = col;
-                        b = 0;
-                    } else {
-                        r = 0;
-                        g = 0;
-                        b = -col;
-                    }
-                }
+                ELEM_TYPE r, g, b;
+                r = readFrame.avg[i];
+                g = readFrame.delta[i];
+                b = readFrame.accel[i];
                 colPtr[y * (width * channels) + x * channels + 0] = r;
                 colPtr[y * (width * channels) + x * channels + 1] = g;
                 colPtr[y * (width * channels) + x * channels + 2] = b;

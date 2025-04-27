@@ -40,7 +40,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     hp.l2() = 0.01;
     // Batch size must be 1 for ragged sequences
     hp.batchSize() = 1;
-    hp.stepSize() = 0.0001;
+    hp.stepSize() = 1e-7;
     hp.bpttSteps() = 40;
     model.setHyperparameters(hp);
 
@@ -188,10 +188,10 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 size_t PhonemeClassifier::classify(const CUBE_TYPE& data) {
     CUBE_TYPE results;
     model.network().PredictSingle(data, results);
-    float max = results(0);
+    ELEM_TYPE max = results(0);
     size_t maxIdx = 0;
     for (size_t i = 0; i < model.getOutputSize(); i++) {
-        float val = results(i);
+        ELEM_TYPE val = results(i);
         if (val > max) {
             max = val;
             maxIdx = i;

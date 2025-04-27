@@ -15,12 +15,13 @@
 
 #define STRINGIFY(v) QUOTE(v)
 
-#define CPU_CUBE_TYPE arma::fcube
-#define CPU_MAT_TYPE arma::fmat
+#define ELEM_TYPE double
+#define CPU_CUBE_TYPE arma::Cube<ELEM_TYPE>
+#define CPU_MAT_TYPE arma::Mat<ELEM_TYPE>
 
 #ifdef USE_GPU
-  #define GPU_CUBE_TYPE coot::fcube
-  #define GPU_MAT_TYPE coot::fmat
+  #define GPU_CUBE_TYPE coot::Cube<ELEM_TYPE>
+  #define GPU_MAT_TYPE coot::Mat<ELEM_TYPE>
 
   #define CUBE_TYPE GPU_CUBE_TYPE
   #define MAT_TYPE GPU_MAT_TYPE
