@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common_inc.hpp"
+#include "../common_inc.hpp"
 
 #include <fstream>
 #include <vector>
@@ -39,28 +39,11 @@ public:
     //std::string SEGMENT; // index 12
   };
 
-  const std::string get_column_name(const int index) { return columns[index]; };
-  const int get_column_count() { return column_count; };
-
-  std::string path() const { return filePath; };
-
-  // Drop line at index (messes up order)
-  void dropIdx(size_t index, bool decrement = true);
-
   static TSVLine convert(const CompactTSVLine& compact);
   static CompactTSVLine convert(const TSVLine& compact);
 
-  void shuffle();
-  void resetLine() { readLine = 0; };
-
-  void open(const std::string& filepath, bool readSentence = false, const std::string& filter = "");
-  CompactTSVLine* read_line();
-  CompactTSVLine* read_line(OUT size_t& index);
+  std::vector<TSVReader::CompactTSVLine> read(const std::string& path);
 private:
   std::ifstream reader;
   std::vector<std::string> columns;
-  int column_count;
-  std::vector<CompactTSVLine> lines;
-  size_t readLine = 0;
-  std::string filePath;
 };

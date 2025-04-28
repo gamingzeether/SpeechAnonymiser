@@ -242,7 +242,7 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
   }
   G_LG(Util::format("Accuracy: %d out of %d (%.2lf%%)", (int)correctCount, (int)testedExamples, ((double)correctCount / testedExamples) * 100), Logger::INFO);
   std::cout << "Confusion Matrix:\n";
-  std::cout << "  ";
+  std::cout << "    ";
   const PhonemeSet& ps = G_PS_C;
   for (size_t i = 0; i < outputSize; i++) {
     std::string phoneme = ps.xSampa(i);

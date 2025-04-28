@@ -30,7 +30,7 @@ void formantTrack() {
   const std::string dataPath = "/mnt/500GB/Data/cv-corpus-20.0-2024-12-06/en";
   Dataset ds = Dataset(16000, dataPath);
   ds.setSubtype(Dataset::TRAIN);
-  TSVReader::TSVLine tsv;
+  CVIterator::TSVLine tsv;
   std::vector<Phone> phones;
   const std::string filter = "b419faab633f2099c6405ff157b4d9fb5675219570f2683a4d08cbadeac4431e9d9b30dfa9b04f79aad9d8e3f75fda964809f3aa72ae9d0a4a025c59417f3dd1";
   for (size_t i = 0; i < phonemeCount; i++) {

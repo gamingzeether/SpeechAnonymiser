@@ -13,7 +13,7 @@
 #include <cargs.h>
 #include "Classifier/PhonemeClassifier.hpp"
 #include "Classifier/Train/Dataset.hpp"
-#include "Classifier/Train/TSVReader.hpp"
+#include "Classifier/Train/CVIterator.hpp"
 #include "Utils/ClassifierHelper.hpp"
 #include "Utils/Global.hpp"
 #include "Utils/TranslationMap.hpp"
@@ -605,9 +605,8 @@ int commandInteractive(const std::string& path) {
       size_t targetPhoneme = std::stoull(command);
       if (targetPhoneme < G_PS_C.size()) {
         std::string fileName;
-        clipAudio = ds._findAndLoad(path, targetPhoneme, outputDevice.samplerate, fileName, clipPhones);
+        clipAudio = ds.findAndLoad(path, targetPhoneme, outputDevice.samplerate, clipPhones);
         prefix = "clip";
-        std::printf("%s\n", fileName.c_str());
         for (int i = 0; i < clipPhones.size(); i++) {
           const Phone& p = clipPhones[i];
           std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS_C.xSampa(p.phonetic).c_str(), p.min, p.max);

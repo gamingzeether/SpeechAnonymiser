@@ -3,7 +3,7 @@
 #include "../common_inc.hpp"
 
 #include "PhonemeModel.hpp"
-#include "Train/TSVReader.hpp"
+#include "Train/CVIterator.hpp"
 #include "../Utils/Config.hpp"
 #include "../include_mlpack.hpp"
 #include "../define.hpp"

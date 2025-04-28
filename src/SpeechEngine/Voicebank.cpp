@@ -174,7 +174,7 @@ void Voicebank::unloadUnit(size_t index) {
 void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
   std::string filename = "";
 
-  float* resampledAudio = NULL;
+  float* resampledAudio = new float[1];
   size_t audioSamples;
   size_t allocatedLength = 0;
   for (size_t i = 0; i < lines.size(); i++) {

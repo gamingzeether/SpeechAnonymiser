@@ -10,11 +10,16 @@
 #include <dr_wav.h>
 #include <samplerate.h>
 
+void Clip::setClipPath(const std::string& path) {
+  clipPath = path;
+  loaded = false;
+}
+
 void Clip::load(int targetSampleRate) {
   size_t clipSamples, clipSampleRate;
   float* floatBuffer = NULL;
 
-  std::string clipFullPath = getFilePath();
+  std::string clipFullPath = clipPath;
   if (clipFullPath == "")
     return;
 
@@ -120,26 +125,6 @@ float* Clip::loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const std::str
   convertMono(floatBuffer, samples, channels);
   sampleRate = sr;
   return floatBuffer;
-}
-
-std::string Clip::getFilePath() {
-  std::string path;
-  switch (type) {
-  case COMMON_VOICE:
-    path = clipPath + tsvElements.PATH;
-    break;
-  case TIMIT:
-    path = clipPath;
-    break;
-  default:
-    throw("Invalid type");
-    break;
-  }
-  if (!std::filesystem::exists(path)) {
-    printf("%s does not exist\n", path.c_str());
-    return "";
-  }
-  return path;
 }
 
 void Clip::convertMono(float* buffer, OUT size_t& length, int channels) {

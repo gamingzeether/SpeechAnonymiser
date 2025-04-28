@@ -65,7 +65,7 @@ set(Headers
   "${PROJECT_SOURCE_DIR}/Classifier/Train/Dataset.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/DatasetTypes.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/TimitIterator.hpp"
-  "${PROJECT_SOURCE_DIR}/Classifier/Train/TSVReader.hpp"
+  "${PROJECT_SOURCE_DIR}/Classifier/Train/CVIterator.hpp"
 
   "${PROJECT_SOURCE_DIR}/Classifier/ModelSerializer.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/negative_log_likelihood_w.hpp"
@@ -90,6 +90,7 @@ set(Headers
   "${PROJECT_SOURCE_DIR}/Utils/ParallelWorker.hpp"
   "${PROJECT_SOURCE_DIR}/Utils/PhonemeSet.hpp"
   "${PROJECT_SOURCE_DIR}/Utils/TranslationMap.hpp"
+  "${PROJECT_SOURCE_DIR}/Utils/TSVReader.hpp"
   "${PROJECT_SOURCE_DIR}/Utils/Util.hpp"
 
   "${PROJECT_SOURCE_DIR}/common_inc.hpp"
@@ -104,7 +105,7 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Classifier/Train/Clip.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/Dataset.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/TimitIterator.cpp"
-  "${PROJECT_SOURCE_DIR}/Classifier/Train/TSVReader.cpp"
+  "${PROJECT_SOURCE_DIR}/Classifier/Train/CVIterator.cpp"
 
   "${PROJECT_SOURCE_DIR}/Classifier/ModelSerializer.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeClassifier.cpp"
@@ -124,6 +125,7 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Utils/PhonemeCollection.cpp"
   "${PROJECT_SOURCE_DIR}/Utils/PhonemeSet.cpp"
   "${PROJECT_SOURCE_DIR}/Utils/TranslationMap.cpp"
+  "${PROJECT_SOURCE_DIR}/Utils/TSVReader.cpp"
   "${PROJECT_SOURCE_DIR}/Utils/Util.cpp"
 
   "${PROJECT_SOURCE_DIR}/SpeechAnonymiser.cpp"
