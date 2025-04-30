@@ -103,11 +103,11 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
   validate.join();
 
   // Prepare data for training
-  arma::urowvec testLengths, trainLengths, validationLengths;
+  arma::urowvec testLengths, trainLengths, validateLengths;
   CPU_CUBE_TYPE testData, testLabel, trainData, trainLabel, validateData, validateLabel;
   test.get(testData, testLabel, testLengths);
   train.get(trainData, trainLabel, trainLengths);
-  validate.get(validateData, validateLabel, validationLengths);
+  validate.get(validateData, validateLabel, validateLengths);
   int epoch = 0;
 
   CONVERT(trainData);
@@ -117,29 +117,19 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
   model.optimizer().MaxIterations() = epochs * trainLabel.n_cols;
 
+  //AutoregressivePredictiveCoding apc;
+  //apc.train(trainData); 
+
   /* Dataset debugging code
   {
-    std::vector<std::string> imageNames;
-    CPU_MAT_TYPE images = trainData;
-    for (size_t i = 0; i < images.n_cols; i++) {
-      size_t phone = trainLabel[i];
-      std::string folder = Util::format("debug/data/%ld/", phone);
-      if (!std::filesystem::exists(folder))
-        std::filesystem::create_directories(folder);
-      imageNames.push_back(Util::format("%s/%ld.png", folder.c_str(), i));
-
-      auto col = images.col(i);
-      float min = col.min();
-      //float max = col.max();
-      //float range = max - min;
-      //col -= min;
-      //col *= 255.0f / range;
-    }
-    // The saved image is actually flipped both horizontally and vertically
-    data::ImageInfo imageInfo = data::ImageInfo(FFT_FRAMES, FRAME_SIZE, 3);
-    data::Save(imageNames, images, imageInfo);
+    auto& targetData = trainData.exampleData;
+    CPU_MAT_TYPE image = targetData.col_as_mat(0);
+    mlpack::data::ImageInfo imageInfo = mlpack::data::ImageInfo(FRAME_SIZE, image.n_cols, 3);
+    mlpack::data::Save("debug/data/col.png", image, imageInfo);
+    bool bp = true;
   }
-
+  //*/
+  /*
   {
     std::cout << trainData.max() << "\n";
     std::cout << trainData.min() << "\n";

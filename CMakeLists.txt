@@ -67,6 +67,7 @@ set(Headers
   "${PROJECT_SOURCE_DIR}/Classifier/Train/TimitIterator.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/CVIterator.hpp"
 
+  "${PROJECT_SOURCE_DIR}/Classifier/AutoregressivePredictiveCoding.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/ModelSerializer.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/negative_log_likelihood_w.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/negative_log_likelihood_w_impl.hpp"
@@ -107,6 +108,7 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Classifier/Train/TimitIterator.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/Train/CVIterator.cpp"
 
+  "${PROJECT_SOURCE_DIR}/Classifier/AutoregressivePredictiveCoding.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/ModelSerializer.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeClassifier.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeModel.cpp"

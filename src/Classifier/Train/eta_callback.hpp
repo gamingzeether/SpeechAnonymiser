@@ -151,7 +151,7 @@ class ProgressBarETA
   }
 
   const size_t progress = ((double) step / epochSize) * 100;
-  output << step++ << "/" << epochSize << " [";
+  output << step << "/" << epochSize << " [";
   for (size_t i = 0; i < 100; i += width)
   {
     if (i < progress)
@@ -203,6 +203,8 @@ class ProgressBarETA
   output.flush();
 
   stepTimer.tic();
+
+  step++;
 
   return false;
   }
