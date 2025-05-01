@@ -32,7 +32,6 @@ public:
   };
 
   // getInputSize and getSampleRate allow modifiying
-  int& getInputSize() { return inputSize; };
   int& getSampleRate() { return sampleRate; };
   int getOutputSize() const { return G_PS_C.size(); };
 
@@ -62,7 +61,7 @@ private:
   Config config;
   Hyperparameters hp;
 
-  int inputSize = FRAME_SIZE * FFT_FRAMES * 3;
+  int inputSize = CLASSIFIER_ROW_SIZE;
   int outputSize = 0;
   int sampleRate = 0;
 };

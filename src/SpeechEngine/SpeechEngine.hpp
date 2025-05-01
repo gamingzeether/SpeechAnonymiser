@@ -38,6 +38,7 @@ public:
   // Last step in setting up the speech engine
   // Configures and initalizes the engine for use
   virtual SpeechEngine& configure(std::string file) = 0;
+  virtual ~SpeechEngine() = default;
 protected:
   static float _random() {
     std::uniform_real_distribution<float> randomDist = std::uniform_real_distribution<float>(-1, 1);

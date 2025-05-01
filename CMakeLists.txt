@@ -75,6 +75,11 @@ set(Headers
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeModel.hpp"
   "${PROJECT_SOURCE_DIR}/Classifier/TrainingExec.hpp"
 
+  "${PROJECT_SOURCE_DIR}/Debugging/InteractiveDebugger.hpp"
+
+  "${PROJECT_SOURCE_DIR}/GUI/Visualizer.hpp"
+  "${PROJECT_SOURCE_DIR}/GUI/Spectrogram.hpp"
+
   "${PROJECT_SOURCE_DIR}/SpeechEngine/Animator.hpp"
   "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngine.hpp"
   "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineArticulator.hpp"
@@ -98,7 +103,6 @@ set(Headers
   "${PROJECT_SOURCE_DIR}/define.hpp"
   "${PROJECT_SOURCE_DIR}/include_mlpack.hpp"
   "${PROJECT_SOURCE_DIR}/structs.hpp"
-  "${PROJECT_SOURCE_DIR}/Visualizer.hpp"
 )
 source_group("Headers" FILES ${Headers})
 
@@ -112,6 +116,11 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Classifier/ModelSerializer.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeClassifier.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeModel.cpp"
+
+  "${PROJECT_SOURCE_DIR}/Debugging/InteractiveDebugger.cpp"
+
+  "${PROJECT_SOURCE_DIR}/GUI/Visualizer.cpp"
+  "${PROJECT_SOURCE_DIR}/GUI/Spectrogram.cpp"
 
   "${PROJECT_SOURCE_DIR}/SpeechEngine/Animator.cpp"
   "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineArticulator.cpp"
@@ -131,7 +140,6 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Utils/Util.cpp"
 
   "${PROJECT_SOURCE_DIR}/SpeechAnonymiser.cpp"
-  "${PROJECT_SOURCE_DIR}/Visualizer.cpp"
 )
 source_group("Sources" FILES ${Sources})
 

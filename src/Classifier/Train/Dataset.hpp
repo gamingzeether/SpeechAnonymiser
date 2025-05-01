@@ -25,10 +25,13 @@ public:
   bool done();
   void end();
   void preprocessDataset(const std::string& path, const std::string& workDir, const std::string& dictPath, const std::string& acousticPath, const std::string& outputDir, size_t batchSize);
-  std::vector<float> findAndLoad(const std::string& path, size_t target, int samplerate, std::vector<Phone>& phones);
+  Clip findAndLoad(size_t target, int samplerate, std::vector<Phone>& phones);
   void setSubtype(Subtype t);
   size_t getLoadedClips();
   static Type folderType(const std::string& path);
+  static void clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>& frames, ClassifierHelper& helper, const std::vector<Phone>& phones);
+  static void framesToCube(const ClassifierHelper& helper, const std::vector<Frame>& frames, CPU_CUBE_TYPE& data, CPU_CUBE_TYPE& labels, size_t col, size_t nFrames, OUT size_t& nSlices);
+  static void makeCubes(CPU_CUBE_TYPE& data, CPU_CUBE_TYPE& labels, size_t columns, size_t slices);
 
   Dataset() {
     sharedData.iterator = nullptr;
@@ -78,5 +81,4 @@ private:
   static bool clipTooLong(const std::vector<Phone>& phones);
   static bool keepLoading(DatasetWorker::DatasetData& data, bool endFlag);
   static bool frameHasNan(const Frame& frame);
-  static void clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>& frames, ClassifierHelper& helper, const std::vector<Phone>& phones);
 };

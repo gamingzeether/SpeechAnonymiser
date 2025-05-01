@@ -261,9 +261,9 @@ void PhonemeModel::setDefaultModel() {
   addConv(layers, 32, 3, 3, 1, 1);
   addConv(layers, 32, 3, 3, 1, 1);
   addConv(layers, 32, 3, 3, 1, 1);
+  addLinear(layers, 256);
+  addLinear(layers, 256);
   addLstm(layers, 256);
-  addLinear(layers, 128);
-  addLinear(layers, 128);
 }
 
 void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY) {

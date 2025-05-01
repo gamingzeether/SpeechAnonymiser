@@ -10,7 +10,7 @@
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
       "args": [
-        "-t",
+        "--interactive",
         "TIMIT"
       ],
       "stopAtEntry": false,
@@ -25,6 +25,10 @@
         {
           "name": "OMP_DYNAMIC",
           "value": "true"
+        },
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "abort_on_error=1"
         }
       ],
       "externalConsole": false,

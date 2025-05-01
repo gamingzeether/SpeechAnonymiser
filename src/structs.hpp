@@ -3,6 +3,7 @@
 #include "define.hpp"
 
 #include <algorithm>
+#include <mutex>
 #include <vector>
 #include <RtAudio.h>
 
@@ -85,4 +86,11 @@ struct Frame {
 
 struct SpeechFrame {
   size_t phoneme;
+};
+
+struct AudioContainer {
+  std::vector<float> audio;
+  size_t pointer;
+  bool pause = false;
+  std::mutex mtx;
 };

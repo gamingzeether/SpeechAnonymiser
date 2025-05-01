@@ -1,6 +1,7 @@
 ﻿#include "ClassifierHelper.hpp"
 
 #include <math.h>
+#include <mlpack/core.hpp>
 #include "Global.hpp"
 
 void ClassifierHelper::initalize(size_t sr) {
@@ -111,4 +112,28 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
     frame.delta[i] = frame.avg[i] - prevFrame.avg[i];
     frame.accel[i] = frame.delta[i] - prevFrame.delta[i];
   }
+}
+
+bool ClassifierHelper::writeInput(const std::vector<Frame>& frames, const size_t lastWritten, CPU_CUBE_TYPE& data, const size_t col, const size_t slice) const {
+  for (size_t f = 0; f < FFT_FRAMES; f++) {
+    const Frame& readFrame = frames[(frames.size() + lastWritten - f) % frames.size()];
+    if (readFrame.invalid)
+      return false;
+  }
+  const size_t width = FFT_FRAMES;
+  const size_t height = FRAME_SIZE;
+  const size_t channels = 3;
+  CPU_CUBE_TYPE tempCube;
+  size_t offset = slice * data.n_elem_slice + col * data.n_rows;
+  mlpack::MakeAlias(tempCube, data, 
+      FFT_FRAMES, FRAME_SIZE, 3, offset);
+  for (size_t r = 0; r < FFT_FRAMES; r++) {
+    const Frame& readFrame = frames[(frames.size() + lastWritten - r) % frames.size()];
+    for (size_t c = 0; c < FRAME_SIZE; c++) {
+      tempCube(r, c, 0) = readFrame.avg[c];
+      tempCube(r, c, 1) = readFrame.delta[c];
+      tempCube(r, c, 2) = readFrame.accel[c];
+    }
+  }
+  return true;
 }

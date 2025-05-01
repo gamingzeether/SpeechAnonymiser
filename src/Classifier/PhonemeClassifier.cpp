@@ -50,7 +50,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
     G_LG("Model not loaded, initalizing new model", Logger::WARN, Logger::YELLOW);
   }
 
-  G_LG(Util::format("Model initalized with %d input features and %d output features", model.getInputSize(), model.getOutputSize()), Logger::INFO);
+  G_LG(Util::format("Model initalized with %d input features and %d output features", CLASSIFIER_ROW_SIZE, model.getOutputSize()), Logger::INFO);
 
   ready = true;
   G_LG("Classifier ready", Logger::INFO, Logger::GREEN);
@@ -68,7 +68,7 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
     }
   }
   
-  int inputSize = model.getInputSize();
+  int inputSize = CLASSIFIER_ROW_SIZE;
   int outputSize = model.getOutputSize();
 
   const bool trainGeneral = true;
@@ -196,7 +196,7 @@ std::string PhonemeClassifier::getPhonemeString(const size_t& in) {
 };
 
 void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, const CPU_CUBE_TYPE& testLabel, const arma::urowvec& lengths) {
-  int inputSize = model.getInputSize();
+  int inputSize = CLASSIFIER_ROW_SIZE;
   int outputSize = model.getOutputSize();
 
   size_t correctCount = 0;
@@ -274,7 +274,7 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
 }
 
 void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations, int mr) {
-  int inputSize = model.getInputSize();
+  int inputSize = CLASSIFIER_ROW_SIZE;
   int outputSize = model.getOutputSize();
 
   // Get data
@@ -455,7 +455,7 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations, 
 }
 
 void PhonemeClassifier::evaluate(const std::string& path) {
-  int inputSize = model.getInputSize();
+  int inputSize = CLASSIFIER_ROW_SIZE;
   int outputSize = model.getOutputSize();
 
   Dataset test(16000, path);

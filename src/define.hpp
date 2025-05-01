@@ -35,3 +35,6 @@ typedef float OUTPUT_TYPE;
 #define ACTIVITY_WIDTH 5
 #define INFERENCE_FRAMES 2 // Classify once every x frames
 #define NUM_LOADER_THREADS 8 // Number of threads to use per dataset
+
+#define CLASSIFIER_ROW_SIZE (FFT_FRAMES * FRAME_SIZE * 3)
+#define CLASSIFIER_OUTPUT_SIZE G_PS_C.size()

@@ -245,35 +245,36 @@ void Dataset::preprocessDataset(const std::string& path, const std::string& work
   }
 }
 
-std::vector<float> Dataset::findAndLoad(const std::string& path, size_t target, int samplerate, std::vector<Phone>& phones) {
+Clip Dataset::findAndLoad(size_t target, int samplerate, std::vector<Phone>& phones) {
   Clip clip;
   clip.type = sharedData.type;
   clip.init(samplerate, CLIP_DURATION);
+  sharedData.iterator->shuffle();
   while (true) {
     // Load a clip
     int returnCode;
     if (!sharedData.iterator->good())
-      sharedData.iterator->shuffle();
+      G_LG(Util::format("Could not find match for phoneme %zd in dataset", target), Logger::DEAD);
     sharedData.iterator->nextClip(clip, phones);
-    if (phones.size() == 0 ||clipTooLong(phones))
+    if (phones.size() == 0 || clipTooLong(phones))
       continue;
     
     // Check if clip contains the desired phone
+    bool foundTgt = false;
     for (size_t i = 0; i < phones.size(); i++) {
       size_t phoneme = phones[i].phonetic;
       if (phoneme == target) {
+        foundTgt = true;
         break;
       }
     }
+    if (foundTgt)
+      break;
   }
 
-  // Load the clip and return the audio
+  // Load the clip's audio
   clip.load(samplerate);
-  std::vector<float> audio(clip.size);
-  for (size_t i = 0; i < clip.size; i++) {
-    audio[i] = clip.buffer[i];
-  }
-  return audio;
+  return clip;
 }
 
 bool Dataset::clipTooLong(const std::vector<Phone>& phones) {
@@ -354,15 +355,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
         if (writeCol >= data.exampleData.n_cols)
           writeCol = rand() % data.exampleData.n_cols;
         size_t nSlices = 0;
-        for (size_t i = FFT_FRAMES; i < nFrames; i++) {
-          Frame& frame = frames[i - CONTEXT_BACKWARD];
-
-          // Write data
-          helper.writeInput(frames, i, data.exampleData, writeCol, nSlices);
-          data.exampleLabel(0, writeCol, nSlices) = frame.phone;
-          
-          nSlices++;
-        }
+        framesToCube(helper, frames, data.exampleData, data.exampleLabel, writeCol, nFrames, nSlices);
         data.sequenceLengths(writeCol) = nSlices;
         data.totalClips++;
       }
@@ -375,6 +368,7 @@ void Dataset::DatasetWorker::work(SharedData* _d) {
 
 void Dataset::clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>& frames, ClassifierHelper& helper, const std::vector<Phone>& phones) {
   size_t fftStart = 0;
+  nFrames = 0;
   while (fftStart + FFT_REAL_SAMPLES < clip.size) {
     if (frames.size() <= nFrames) {
       frames.emplace_back();
@@ -404,4 +398,22 @@ void Dataset::clipToFrames(const Clip& clip, size_t& nFrames, std::vector<Frame>
     fftStart += FFT_FRAME_SPACING;
     nFrames++;
   }
+}
+
+void Dataset::framesToCube(const ClassifierHelper& helper, const std::vector<Frame>& frames, CPU_CUBE_TYPE& data, CPU_CUBE_TYPE& labels, size_t col, size_t nFrames, OUT size_t& nSlices) {
+  nSlices = 0;
+  for (size_t i = FFT_FRAMES; i < nFrames; i++) {
+    const Frame& frame = frames[i - CONTEXT_BACKWARD];
+
+    // Write data
+    helper.writeInput(frames, i, data, col, nSlices);
+    labels(0, col, nSlices) = frame.phone;
+    
+    nSlices++;
+  }
+}
+
+void Dataset::makeCubes(CPU_CUBE_TYPE& data, CPU_CUBE_TYPE& labels, size_t columns, size_t slices) {
+  data.zeros(CLASSIFIER_ROW_SIZE, columns, slices);
+  labels.zeros(CLASSIFIER_OUTPUT_SIZE, columns, slices);
 }

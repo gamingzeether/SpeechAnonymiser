@@ -126,7 +126,7 @@ Voicebank& Voicebank::open(const std::string& dir) {
           for (int i = DICT_WIDTH; i >= 0; i--) {
             // Could not match
             if (i == 0) {
-              std::printf("Could not find match: %s, %zd\n", aliasTmp.c_str(), pointer);
+              G_LG(Util::format("Could not find match: %s, %zd\n", aliasTmp.c_str(), pointer), Logger::WARN);
               pointer++;
               break;
             }
@@ -174,9 +174,8 @@ void Voicebank::unloadUnit(size_t index) {
 void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
   std::string filename = "";
 
-  float* resampledAudio = new float[1];
+  std::vector<float> resampledAudio;
   size_t audioSamples;
-  size_t allocatedLength = 0;
   for (size_t i = 0; i < lines.size(); i++) {
     const UTAULine& line = lines[i];
     std::printf("Loading line %zd\r", i);
@@ -191,17 +190,15 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
       float* audio;
       audio = drwav_open_file_and_read_pcm_frames_f32(filepath.c_str(), &chOut, &srOut, &samples, NULL);
       if (audio == NULL || chOut <= 0 || srOut <= 0) {
-        std::printf("Failed to read voicebank wav: %s\n", filepath.c_str());
+        G_LG(Util::format("Failed to read voicebank wav: %s\n", filepath.c_str()), Logger::ERRO);
         continue;
       }
 
       // Reallocate if too small
       double ratio = (double)samplerate / srOut;
-      long outSize = (long)(ratio * samples);
-      if (samples > allocatedLength) {
-        delete[] resampledAudio;
-        resampledAudio = new float[(size_t)outSize];
-        allocatedLength = outSize;
+      drwav_uint64 outSize = samples * ratio;
+      if (outSize > resampledAudio.size()) {
+        resampledAudio.resize(outSize);
       }
 
       // Single channel
@@ -221,7 +218,7 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
       // Copy audio to unit
       if (srOut == samplerate) {
         // 1 to 1 copy
-        memcpy(resampledAudio, audio, sizeof(float) * samples);
+        memcpy(resampledAudio.data(), audio, sizeof(float) * samples);
         audioSamples = samples;
       } else {
         // Resample to target samplerate
@@ -229,13 +226,13 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
         upsampleData.data_in = audio;
         upsampleData.input_frames = samples;
         upsampleData.src_ratio = ratio;
-        upsampleData.data_out = resampledAudio;
+        upsampleData.data_out = resampledAudio.data();
         upsampleData.output_frames = outSize;
         int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, chOut);
         audioSamples = outSize;
 
         if (error) {
-          std::cout << "Error while upsampling: " << src_strerror(error) << '\n';
+          G_LG(Util::format("Error while upsampling: %s", src_strerror(error)), Logger::ERRO);
         }
       }
       free(audio);
@@ -256,7 +253,9 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
     endSample = std::min(endSample, audioSamples);
     size_t segmentLength = endSample - startSample;
     u.audio = std::vector<float>(segmentLength);
-    memcpy(u.audio.data(), &resampledAudio[startSample], sizeof(float) * segmentLength);
+    for (size_t i = 0; i < segmentLength; i++) {
+      u.audio[i] = resampledAudio[i];
+    }
 
     // Copy info to unit
     u.alias = line.alias;
@@ -266,7 +265,6 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
 
     units.push_back(std::move(u));
   }
-  delete[] resampledAudio;
 }
 
 std::string Voicebank::bankName() {

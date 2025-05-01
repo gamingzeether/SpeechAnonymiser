@@ -23,7 +23,6 @@ public:
   void evaluate(const std::string& path);
   static double accuracy(NETWORK_TYPE& network, const CPU_CUBE_TYPE& data, const CPU_CUBE_TYPE& labels, const arma::urowvec& lengths);
 
-  inline size_t getInputSize() { return model.getInputSize(); };
   inline size_t getOutputSize() { return model.getOutputSize(); };
   inline size_t getSampleRate() { return model.getSampleRate(); };
 

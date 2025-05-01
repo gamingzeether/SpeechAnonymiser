@@ -24,10 +24,11 @@
 #include <rtaudio/RtAudio.h>
 #endif
 #ifdef GUI
-#include "Visualizer.hpp"
+#include "GUI/Visualizer.hpp"
+#include "Debugging/InteractiveDebugger.hpp"
 #endif
 
-#define ERROR_STUB(Requires, Method, ...) Method(__VA_ARGS__) { G_LG("Compiled without " STRINGIFY(Requires) " support", Logger::DEAD); }
+#define ERROR_STUB(Requires, Method, ...) Method(__VA_ARGS__) { G_LG(STRINGIFY(Method) " requires compiling with " STRINGIFY(Requires) " support", Logger::DEAD); }
 
 const bool outputPassthrough = false;
 
@@ -100,12 +101,6 @@ static struct cag_option options[] = {
    .access_name = "tune",
    .value_name = "[Dataset directory]",
    .description = "Tune training hyperparameters"}
-};
-
-struct AudioContainer {
-  std::vector<float> audio;
-  size_t pointer;
-  std::mutex mtx;
 };
 
 template <typename T>
@@ -208,13 +203,18 @@ int oneshotOutput(void* outputBuffer, void* /*inputBuffer*/, unsigned int nBuffe
   OUTPUT_TYPE* buffer = (OUTPUT_TYPE*)outputBuffer;
 
   AudioContainer& container = *(AudioContainer*)data;
-  std::unique_lock<std::mutex> lock(container.mtx);
-  size_t size = container.audio.size();
-  size_t& ptr = container.pointer;
-  for (size_t i = 0; i < nBufferFrames; i++) {
-    float data = (ptr < size) ? container.audio[ptr++] : 0;
-    for (size_t j = 0; j < 2; j++) {
-      *buffer++ = data;
+  std::unique_lock lock(container.mtx);
+  const size_t channels = 2;
+  if (container.pause) {
+    std::fill_n(buffer, nBufferFrames * channels, 0);
+  } else {
+    size_t size = container.audio.size();
+    size_t& ptr = container.pointer;
+    for (size_t i = 0; i < nBufferFrames; i++) {
+      float data = (ptr < size) ? container.audio[ptr++] : 0;
+      for (size_t j = 0; j < channels; j++) {
+        *buffer++ = data;
+      }
     }
   }
   return 0;
@@ -312,7 +312,8 @@ void startFFT(InputData& inputData) {
   }
   std::thread fft = std::thread([&app, &inputData, &activationThreshold] {
     // Setup classifier
-    CPU_CUBE_TYPE data(classifier.getInputSize(), 1, 1);
+    CPU_CUBE_TYPE data, labels;
+    Dataset::makeCubes(data, labels, 1, 1);
 
     // Wait for visualization to open
     while (!app.isOpen) {
@@ -356,9 +357,10 @@ void startFFT(InputData& inputData) {
       helper.processFrame(inputData.buffer[0], lastSampleStart, inputData.totalFrames, frames, currentFrame);
 
       // Write FFT output to visualizer
-      memcpy(app.fftData.frequencies[currentFrame], frame.avg.data(), sizeof(float) * FRAME_SIZE);
-      app.fftData.currentFrame = currentFrame;
-      app.updateWaterfall();
+      std::array<float, FRAME_SIZE> frameData;
+      for (size_t i = 0; i < FRAME_SIZE; i++)
+        frameData[i] = frame.avg[i];
+      app.updateWaterfall(frameData);
 
       // Check if volume is greater than the activation threshold
       bool activity = false;
@@ -408,6 +410,11 @@ void startFFT(InputData& inputData) {
 
   app.run();
   fft.join();
+}
+
+void startDebugger(size_t sampleRate, std::string dataPath, AudioContainer& ac) {
+  InteractiveDebugger debugger(sampleRate, dataPath, ac);
+  debugger.run();
 }
 #else
 ERROR_STUB(GUI, void startFFT, InputData& inputData)
@@ -527,6 +534,7 @@ int commandInteractive(const std::string& path) {
     G_LG("Failed to get audio output", Logger::DEAD);
   
   // Open audio streams
+  outputDevice.samplerate = 16000;
   if (outputDevice.audio.openStream(&outputDevice.streamParameters, NULL, OUTPUT_FORMAT,
     outputDevice.samplerate, &outputDevice.bufferFrames, &oneshotOutput, (void*)&ac, &outputDevice.flags)) {
     G_LG(outputDevice.audio.getErrorText(), Logger::ERRO);
@@ -540,84 +548,8 @@ int commandInteractive(const std::string& path) {
     return -1;
   }
 
-  auto tmp = SpeechEngineConcatenator();
-  tmp.setSampleRate(outputDevice.samplerate)
-    .setChannels(1)
-    .setVolume(0.1)
-    .configure("AERIS CV-VC ENG Kire 2.0/");
-  speechEngine = std::unique_ptr<SpeechEngine>(&tmp);
-
-  Dataset ds = Dataset(outputDevice.samplerate, path);
-  ds.setSubtype(Subtype::TEST);
-
-  std::string command;
-  std::string prefix = "~";
-  std::vector<float> clipAudio;
-  std::vector<Phone> clipPhones;
-  while (true) {
-    std::printf("%s: ", prefix.c_str());
-    std::getline(std::cin, command);
-    if (command == "voicebank" && prefix == "~") {
-      prefix = "voicebank";
-    } else if (command == "dataset" && prefix == "~") {
-      prefix = "dataset";
-    } else if (command == "phones" && prefix == "~") {
-      for (int i = 0; i < G_PS_C.size(); i++) {
-        std::string xs = G_PS_C.xSampa(i);
-        std::printf("%2d : %s\n", i, xs.c_str());
-      }
-    } else if (command == "exit") {
-      if (prefix == "clip") {
-        prefix = "dataset";
-      } else {
-        prefix = "~";
-      }
-    } else if (command != "" && prefix == "clip") {
-      int index = std::stoi(command);
-      if (0 <= index && index < clipPhones.size()) {
-        const Phone& p = clipPhones[index];
-        int buffer = 0.2 * sampleRate;
-        int start = std::max(0, (int)p.minIdx - buffer);
-        int end = std::min((int)(clipAudio.size() - 1), (int)p.maxIdx + buffer);
-        int len = end - start;
-        std::vector<float> aud = std::vector<float>(len);
-        for (int i = 0; i < len; i++) {
-          float volume = (i + 4000 < len) ? 1 : (len - i) / 4000.0f;
-          aud[i] = clipAudio[start + i] * volume;
-        }
-        std::unique_lock<std::mutex> lock(ac.mtx);
-        ac.audio = std::move(aud);
-        ac.pointer = 0;
-      } else if (index == -1) {
-        std::unique_lock<std::mutex> lock(ac.mtx);
-        ac.audio = clipAudio;
-        ac.pointer = 0;
-      }
-    } else if (command != "" && prefix == "voicebank") {
-      std::unique_lock<std::mutex> lock(ac.mtx);
-      SpeechFrame sf;
-      sf.phoneme = std::stoi(command);
-      speechEngine->pushFrame(sf);
-      ac.audio.resize(outputDevice.samplerate / 2);
-      speechEngine->writeBuffer(ac.audio.data(), outputDevice.samplerate / 2);
-      ac.pointer = 0;
-    } else if (command != "" && prefix == "dataset") {
-      size_t targetPhoneme = std::stoull(command);
-      if (targetPhoneme < G_PS_C.size()) {
-        std::string fileName;
-        clipAudio = ds.findAndLoad(path, targetPhoneme, outputDevice.samplerate, clipPhones);
-        prefix = "clip";
-        for (int i = 0; i < clipPhones.size(); i++) {
-          const Phone& p = clipPhones[i];
-          std::printf("%2d  %s: %.2f, %.2f\n", i, G_PS_C.xSampa(p.phonetic).c_str(), p.min, p.max);
-        }
-      } else {
-        std::printf("Out of range\n");
-      }
-    } else {
-      std::printf("Invalid command\n");
-    }
-  }
+  startDebugger(outputDevice.samplerate, path, ac);
+  
   return 0;
 }
 

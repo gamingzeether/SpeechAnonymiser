@@ -10,6 +10,8 @@
 #include <dr_wav.h>
 #include <samplerate.h>
 
+#include "../../Utils/Global.hpp"
+
 void Clip::setClipPath(const std::string& path) {
   clipPath = path;
   loaded = false;
@@ -32,7 +34,7 @@ void Clip::load(int targetSampleRate) {
     break;
   }
   if (floatBuffer == NULL) {
-    printf("Failed to open file: %s\n", clipFullPath.c_str());
+    G_LG(Util::format("Failed to open file: %s\n", clipFullPath.c_str(), Logger::ERRO));
     return;
   }
 
@@ -62,7 +64,7 @@ void Clip::load(int targetSampleRate) {
     upsampleData.output_frames = outSize;
     int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, 1);
     if (error) {
-      std::cout << "Error while resampling: " << src_strerror(error) << '\n';
+     G_LG(Util::format("Error while resampling: %s", src_strerror(error)), Logger::ERRO);
     }
     sampleRate = targetSampleRate;
     size = outSize;
@@ -93,11 +95,11 @@ float* Clip::loadMP3(OUT size_t& samples, OUT size_t& sampleRate, const std::str
   float* floatBuffer = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &cfg, &scount, NULL);
 
   if (cfg.channels <= 0) {
-    printf("%s has invalid channel count (%d)\n", path.c_str(), cfg.channels);
+    G_LG(Util::format("%s has invalid channel count (%d)\n", path.c_str(), cfg.channels), Logger::ERRO);
     return NULL;
   }
   if (cfg.sampleRate <= 0) {
-    printf("%s has invalid sample rate (%d)\n", path.c_str(), cfg.sampleRate);
+    G_LG(Util::format("%s has invalid sample rate (%d)\n", path.c_str(), cfg.sampleRate), Logger::ERRO);
     return NULL;
   }
 
@@ -113,11 +115,11 @@ float* Clip::loadWAV(OUT size_t& samples, OUT size_t& sampleRate, const std::str
   float* floatBuffer = drwav_open_file_and_read_pcm_frames_f32(path.c_str(), &channels, &sr, &clipSamples, NULL);
 
   if (channels <= 0) {
-    printf("%s has invalid channel count (%d)\n", path.c_str(), channels);
+    G_LG(Util::format("%s has invalid channel count (%d)\n", path.c_str(), channels), Logger::ERRO);
     return NULL;
   }
   if (sr <= 0) {
-    printf("%s has invalid sample rate (%d)\n", path.c_str(), sr);
+    G_LG(Util::format("%s has invalid sample rate (%d)\n", path.c_str(), sr), Logger::ERRO);
     return NULL;
   }
 
