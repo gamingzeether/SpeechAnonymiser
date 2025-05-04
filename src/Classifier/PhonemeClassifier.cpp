@@ -119,36 +119,13 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
 
   //AutoregressivePredictiveCoding apc;
   //apc.train(trainData); 
-
-  /* Dataset debugging code
-  {
-    auto& targetData = trainData.exampleData;
-    CPU_MAT_TYPE image = targetData.col_as_mat(0);
-    mlpack::data::ImageInfo imageInfo = mlpack::data::ImageInfo(FRAME_SIZE, image.n_cols, 3);
-    mlpack::data::Save("debug/data/col.png", image, imageInfo);
-    bool bp = true;
-  }
-  //*/
-  /*
-  {
-    std::cout << trainData.max() << "\n";
-    std::cout << trainData.min() << "\n";
-    std::string str;
-    std::getline(std::cin, str);
-    for (size_t i = 0; i < trainData.n_cols; i++) {
-      std::cout << trainData.col(i) << "\n";
-      std::cout << trainLabel.col(i) << "\n";
-      std::getline(std::cin, str);
-    }
-  }
-  */
   
   // Set class weights
   model.outputLayer().ClassWeights() = weighClasses(trainLabel, trainLengths);
 
   // Start training model
-  int numPoints = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
-  G_LG(Util::format("Total number of training points: %d", numPoints), Logger::INFO);
+  int numSlices = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
+  G_LG(Util::format("Total number of time slices: %d", numSlices), Logger::INFO);
   G_LG("Starting training", Logger::INFO);
   model.network().Train(
     CNAME(trainData),
