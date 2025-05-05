@@ -40,8 +40,8 @@ void PhonemeClassifier::initalize(const size_t& sr) {
   hp.l2() = 0.01;
   // Batch size must be 1 for ragged sequences
   hp.batchSize() = 1;
-  hp.stepSize() = 1e-7;
-  hp.bpttSteps() = 40;
+  hp.stepSize() = 1e-5;
+  hp.bpttSteps() = 50;
   model.setHyperparameters(hp);
 
   model.getSampleRate() = sampleRate;

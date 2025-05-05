@@ -100,7 +100,7 @@ void ClassifierHelper::processFrame(const float* audio, const size_t& start, con
   }
   fftwf_execute(dctPlan);
   for (size_t i = 0; i < FRAME_SIZE; i++) {
-    frame.real[i] = std::tanh(dctOut[i] / 50.0); // Clamp dct between -1 and 1
+    frame.real[i] = dctOut[i];
     //frame.real[i] = melFrequencies[i];
   }
 
@@ -123,10 +123,13 @@ bool ClassifierHelper::writeInput(const std::vector<Frame>& frames, const size_t
   const size_t width = FFT_FRAMES;
   const size_t height = FRAME_SIZE;
   const size_t channels = 3;
+  // Get data at slice and col
+  CPU_MAT_TYPE tempMat;
+  mlpack::MakeAlias(tempMat, data.slice(slice), data.n_rows, 1, col * data.n_rows);
+  // Reformat row into cube
   CPU_CUBE_TYPE tempCube;
-  size_t offset = slice * data.n_elem_slice + col * data.n_rows;
-  mlpack::MakeAlias(tempCube, data, 
-      FFT_FRAMES, FRAME_SIZE, 3, offset);
+  mlpack::MakeAlias(tempCube, tempMat, FFT_FRAMES, FRAME_SIZE, 3);
+  // Write data
   for (size_t r = 0; r < FFT_FRAMES; r++) {
     const Frame& readFrame = frames[(frames.size() + lastWritten - r) % frames.size()];
     for (size_t c = 0; c < FRAME_SIZE; c++) {

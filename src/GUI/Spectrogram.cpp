@@ -22,6 +22,8 @@ Spectrogram::Spectrogram(QWidget* qtWindow, size_t width) : nFrames(width) {
 
 void Spectrogram::pushFrame(std::array<float, FRAME_SIZE> frame) {
   auto lock = std::unique_lock<std::mutex>(waterfallMutex);
+  for (float& f : frame)
+    f = std::tanh(f / 50.0);
   waterfallBuffer.push_back(std::move(frame));
 }
 
