@@ -26,16 +26,15 @@ void Util::removeTrailingSlash(std::string& path) {
     path.pop_back();
 }
 
-bool Util::leftPad(std::string& message, int width, const char padChar) {
-  int nPad = width - message.size();
-  bool isShorter = nPad > 0;
-  if (isShorter) {
+std::string Util::leftPad(std::string message, int width, const char padChar) {
+  if (width > message.size()) {
+    size_t nPad = width - message.size();
     std::string padding = "";
     for (size_t i = 0; i < nPad; i++)
       padding += padChar;
     message = padding + message;
   }
-  return isShorter;
+  return message;
 }
 
 std::vector<std::string> Util::split(const std::string& input, const char delimiter) {

@@ -55,6 +55,27 @@ private:
   void addLinear(JSONHelper::JSONObj& layers, int neurons);
   void addLstm(JSONHelper::JSONObj& layers, int neurons);
   std::string getTempPath();
+  void printInfo();
+  void printLayer(mlpack::Layer<MAT_TYPE>* layer);
+
+  template <typename LayerType>
+  bool _printLayer(LayerType* layer, const std::string typeName) {
+    if (layer == nullptr)
+      return false;
+    std::string line;
+    // Layer type
+    line = Util::leftPad(typeName, 20);
+    // Input dimensions
+    line += Util::leftPad(Util::vecToString(layer->InputDimensions()), 20);
+    // Output dimensions
+    line += Util::leftPad(Util::vecToString(layer->OutputDimensions()), 20);
+    // Parameters
+    size_t nParams = layer->WeightSize();
+    line += Util::leftPad(std::to_string(nParams), 20);
+  
+    G_LG(line, Logger::INFO);
+    return true;
+  };
 
   NETWORK_TYPE net;
   OPTIMIZER_TYPE optim;

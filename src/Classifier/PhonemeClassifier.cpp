@@ -213,14 +213,12 @@ void PhonemeClassifier::printConfusionMatrix(const CPU_CUBE_TYPE& testData, cons
   const PhonemeSet& ps = G_PS_C;
   for (size_t i = 0; i < outputSize; i++) {
     std::string phoneme = ps.xSampa(i);
-    Util::leftPad(phoneme, 3);
-    std::cout << phoneme << " ";
+    std::cout << Util::leftPad(phoneme, 3) << " ";
   }
   std::cout << std::endl;
   for (size_t label = 0; label < outputSize; label++) {
     std::string phoneme = ps.xSampa(label);
-    Util::leftPad(phoneme, 3);
-    std::cout << phoneme << " ";
+    std::cout << Util::leftPad(phoneme, 3) << " ";
     size_t total = totalPhonemes[label];
     for (size_t prediction = 0; prediction < outputSize; prediction++) {
       std::string format;

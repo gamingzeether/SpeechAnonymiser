@@ -17,8 +17,8 @@ public:
   static size_t customHasher(const std::wstring& str);
   // Removes a trailing slash from a path
   static void removeTrailingSlash(std::string& path);
-  // Returns true if changed (padding was added)
-  static bool leftPad(std::string& message, int width, const char padChar = ' ');
+  // Pads the left side of a string
+  static std::string leftPad(std::string message, int width, const char padChar = ' ');
   // Split a string into parts seperated by delimiter (delimiter is removed)
   static std::vector<std::string> split(const std::string& input, const char delimiter);
   // Strips padding from the left side of the string
@@ -38,6 +38,9 @@ public:
   // Checks if a is close to b
   template <typename Type>
   static bool fcmp(Type a, Type b, Type eps);
+  // Converts a vector into a string
+  template <typename VecType>
+  static std::string vecToString(const std::vector<VecType>& vec);
 private:
   inline static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> cvt;
 };

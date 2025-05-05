@@ -11,16 +11,24 @@
 
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
-#define CONVT _VC, _FC, _VC, MAT_TYPE
 
-#define LINEARNB(neurons) net.Add<mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
-#define LINEAR(neurons) net.Add<mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>>(neurons, mlpack::L2Regularizer(hp.l2()))
-#define LSTM(neurons) net.Add<mlpack::LSTMType<MAT_TYPE>>(neurons)
-#define CONVOLUTION(maps, width, height, strideX, strideY) net.Add<mlpack::ConvolutionType<CONVT>>(maps, width, height, strideX, strideY);
-#define POOLING(width, height, strideX, strideY) net.Add<mlpack::MaxPoolingType<MAT_TYPE>>(width, height, strideX, strideY);
-#define TANH_ACTIVATION net.Add<mlpack::TanHType<MAT_TYPE>>()
-#define RELU_ACTIVATION net.Add<mlpack::LeakyReLUType<MAT_TYPE>>()
-#define DROPOUT net.Add<mlpack::DropoutType<MAT_TYPE>>(hp.dropout())
+#define LINEARNB        mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>
+#define LINEAR          mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>
+#define LSTM            mlpack::LSTMType<MAT_TYPE>
+#define CONVOLUTION     mlpack::ConvolutionType<_VC, _FC, _VC, MAT_TYPE>
+#define POOLING         mlpack::MaxPoolingType<MAT_TYPE>
+#define TANH_ACTIVATION mlpack::TanHType<MAT_TYPE>
+#define RELU_ACTIVATION mlpack::LeakyReLUType<MAT_TYPE>
+#define DROPOUT         mlpack::DropoutType<MAT_TYPE>
+
+#define ADD_LINEARNB(neurons)                                   net.Add<LINEARNB>(neurons, mlpack::L2Regularizer(hp.l2()))
+#define ADD_LINEAR(neurons)                                     net.Add<LINEAR>(neurons, mlpack::L2Regularizer(hp.l2()))
+#define ADD_LSTM(neurons)                                       net.Add<LSTM>(neurons)
+#define ADD_CONVOLUTION(maps, width, height, strideX, strideY)  net.Add<CONVOLUTION>(maps, width, height, strideX, strideY);
+#define ADD_POOLING(width, height, strideX, strideY)            net.Add<POOLING>(width, height, strideX, strideY);
+#define ADD_TANH_ACTIVATION                                     net.Add<TANH_ACTIVATION>()
+#define ADD_RELU_ACTIVATION                                     net.Add<RELU_ACTIVATION>()
+#define ADD_DROPOUT                                             net.Add<DROPOUT>(hp.dropout())
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
   this->hp = hp;
@@ -28,9 +36,6 @@ void PhonemeModel::setHyperparameters(Hyperparameters hp) {
 
 void PhonemeModel::initModel() {
   net = NETWORK_TYPE();
-  
-  int x = FFT_FRAMES, y = FRAME_SIZE, z = 3;
-  G_LG(Util::format("Input dimensions: \t%d\t%d\t%d\t(%d features)", x, y, z, x * y * z), Logger::INFO);
 
   // Default architecture defined in PhonemeModel::setDefaultModel()
   JSONHelper::JSONObj layers = config.object()["layers"];
@@ -40,7 +45,7 @@ void PhonemeModel::initModel() {
     JSONHelper::JSONObj layer = layers[i];
 
     // Add dropout before a layer
-    DROPOUT;
+    ADD_DROPOUT;
 
     // Add the layer
     std::string type = layer["type"].get_string();
@@ -51,46 +56,31 @@ void PhonemeModel::initModel() {
       int strideX = layer["stride_x"].get_int();
       int strideY = layer["stride_y"].get_int();
 
-      CONVOLUTION(maps, width, height, strideX, strideY);
-
-      x = (x - width) / strideX + 1;
-      y = (y - height) / strideY + 1;
-      z = maps;
+      ADD_CONVOLUTION(maps, width, height, strideX, strideY);
     } else if (type == "pool2d") {
       int width = layer["width"].get_int();
       int height = layer["height"].get_int();
       int strideX = layer["stride_x"].get_int();
       int strideY = layer["stride_y"].get_int();
 
-      POOLING(width, height, strideX, strideY);
-      
-      x = (x - width) / strideX + 1;
-      y = (y - height) / strideY + 1;
-      z = z;
+      ADD_POOLING(width, height, strideX, strideY);
     } else if (type == "linear") {
       int neurons = layer["neurons"].get_int();
 
-      LINEAR(neurons);
-      x = neurons;
-      y = 1;
-      z = 1;
+      ADD_LINEAR(neurons);
     } else if (type == "lstm") {
       int neurons = layer["neurons"].get_int();
 
-      LSTM(neurons);
-      x = neurons;
-      y = 1;
-      z = 1;
+      ADD_LSTM(neurons);
     }
-    G_LG(Util::format("Layer %d output dimensions: \t%d\t%d\t%d\t(%d features)", i, x, y, z, x * y * z), Logger::INFO);
 
     // Add activation function
-    RELU_ACTIVATION;
+    ADD_RELU_ACTIVATION;
   }
 
   // Add final output layers
-  DROPOUT;
-  LINEAR(outputSize);
+  ADD_DROPOUT;
+  ADD_LINEAR(outputSize);
   net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
 }
 
@@ -221,6 +211,8 @@ bool PhonemeModel::load() {
   net.MemoryInit();
   initOptimizer();
 
+  printInfo();
+
   return loaded;
 }
 
@@ -311,3 +303,36 @@ std::string PhonemeModel::getTempPath() {
     std::filesystem::create_directories(tempPath);
   return tempPath;
 }
+
+void PhonemeModel::printInfo() {
+  NETWORK_TYPE copy = net;
+  // Forward pass to initalize network
+  CUBE_TYPE in(inputSize, 1, 1);
+  CUBE_TYPE out;
+  copy.Predict(in, out);
+  // Header
+  {
+    std::string line = "";
+    line += Util::leftPad("Layer Type", 20);
+    line += Util::leftPad("Input Dimensions", 20);
+    line += Util::leftPad("Output Dimensions", 20);
+    line += Util::leftPad("Parameters", 20);
+    G_LG(line, Logger::INFO);
+  }
+  for (auto layer : copy.Network()) {
+    printLayer(layer);
+  }
+}
+
+#define TRY(Type) if (_printLayer(dynamic_cast<Type*>(layer), #Type)) return;
+void PhonemeModel::printLayer(mlpack::Layer<MAT_TYPE>* layer) {
+  TRY(LINEARNB       );
+  TRY(LINEAR         );
+  TRY(LSTM           );
+  TRY(CONVOLUTION    );
+  TRY(POOLING        );
+  TRY(TANH_ACTIVATION);
+  TRY(RELU_ACTIVATION);
+  TRY(DROPOUT        );
+}
+#undef TRY
