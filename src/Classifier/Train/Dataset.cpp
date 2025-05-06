@@ -33,9 +33,8 @@ void Dataset::start(size_t inputSize, size_t outputSize, size_t ex, size_t batch
   size_t nSlices = (audioSamples) / FFT_FRAME_SPACING;
   sharedData.nSlices = nSlices;
   sharedData.sequenceLengths.zeros(ex);
-  sharedData.exampleData = CPU_CUBE_TYPE(inputSize, ex, nSlices);
-  sharedData.exampleLabel = CPU_CUBE_TYPE(1, ex, nSlices);
-  sharedData.exampleLabel.fill(0);
+  sharedData.exampleData.zeros(inputSize, ex, nSlices);
+  sharedData.exampleLabel.zeros(1, ex, nSlices);
   sharedData.targetClips = ex;
   sharedData.totalClips = 0;
   sharedData.testedClips = 0;

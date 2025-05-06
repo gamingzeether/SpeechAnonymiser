@@ -10,7 +10,7 @@
 
 #ifdef USE_GPU
 #define CNAME(mat) gpu##mat
-#define CONVERT(mat) MAT_TYPE CNAME(mat) = coot::conv_to<MAT_TYPE>::from(mat)
+#define CONVERT(mat) CUBE_TYPE CNAME(mat) = coot::conv_to<CUBE_TYPE>::from(mat)
 #else
 #define CNAME(mat) mat
 #define CONVERT(mat) ;
@@ -40,7 +40,7 @@ void PhonemeClassifier::initalize(const size_t& sr) {
   hp.l2() = 0.01;
   // Batch size must be 1 for ragged sequences
   hp.batchSize() = 1;
-  hp.stepSize() = 1e-5;
+  hp.stepSize() = 1e-3;
   hp.bpttSteps() = 50;
   model.setHyperparameters(hp);
 

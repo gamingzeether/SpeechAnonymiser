@@ -4,9 +4,11 @@ vcpkg_from_sourceforge(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO coot
     FILENAME "bandicoot-${VERSION}.tar.xz"
-    SHA512 4c6b8a47a854f21050b2ba7630d00f6318733498369b54e9eb8b49533714d78b0cab19e70b9cfa8e7f806949a6fedffc8d6c4227cff6c9fd27e615f053223cb7
+    SHA512 098960e9d9763e7b7da3619a6aeee4737a03d76676d39b52d9c024cc796c37ecfef880c56fa32428bef923239f46102a10d3302bffa66b438b6d7c2371760f95
     PATCHES
         pkgconfig.patch
+        cmake-config.patch
+        dependencies.patch
 )
 
 set(REQUIRES_PRIVATE "")
@@ -20,6 +22,7 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     DISABLE_PARALLEL_CONFIGURE
     OPTIONS
+        -DALLOW_FLEXIBLAS_LINUX=OFF
         -DFIND_CUDA=false
         -DDEFAULT_BACKEND=CL_BACKEND
         "-DREQUIRES_PRIVATE=${REQUIRES_PRIVATE}"

@@ -2,44 +2,41 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 5b27e3c..78d3952 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -260,7 +260,6 @@ message(STATUS "*** Looking for external libraries")
+@@ -168,9 +168,8 @@ message(STATUS "*** Looking for external libraries")
  ## Find LAPACK and BLAS libraries, or their optimised versions
  ##
  
 -set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake_aux/Modules/")
+ set(COOT_HAS_BLAS false)
+ set(COOT_HAS_LAPACK false)
  
  if(APPLE)
    message(STATUS "Detected macOS")
-@@ -331,11 +330,16 @@ else()
+@@ -255,10 +254,15 @@ else()
      set(FlexiBLAS_FOUND false)
    endif()
-   
+
 +  if(0)
-   include(ARMA_FindMKL)
-   include(ARMA_FindOpenBLAS)
-   include(ARMA_FindATLAS)     # TODO: remove support for ATLAS in next major version
-   include(ARMA_FindBLAS)
-   include(ARMA_FindLAPACK)
+   include(COOT_FindMKL)
+   include(COOT_FindOpenBLAS)
+   include(COOT_FindBLAS)
+   include(COOT_FindLAPACK)
 +  else()
 +    find_package(BLAS REQUIRED)
 +    find_package(LAPACK REQUIRED)
 +  endif()
-   
+
    message(STATUS "FlexiBLAS_FOUND = ${FlexiBLAS_FOUND}" )
    message(STATUS "      MKL_FOUND = ${MKL_FOUND}"       )
-@@ -449,7 +453,6 @@ else()
- endif()
- 
- 
--include(ARMA_FindARPACK)
- message(STATUS "ARPACK_FOUND = ${ARPACK_FOUND}")
- 
- if(ARPACK_FOUND)
-@@ -457,7 +460,6 @@ if(ARPACK_FOUND)
-   set(ARMA_LIBS ${ARMA_LIBS} ${ARPACK_LIBRARY})
- endif()
- 
--include(ARMA_FindSuperLU5)
- message(STATUS "SuperLU_FOUND = ${SuperLU_FOUND}")
- 
- if(SuperLU_FOUND)
+@@ -379,7 +383,8 @@ set(COOT_LIBS ${COOT_LIBS} ${OpenCL_LIBRARIES})
+     set(COOT_INCLUDE_DIRS ${COOT_INCLUDE_DIRS} ${OpenCL_INCLUDE_DIRS})
+
+     # Now try to find clBLAS.
+-    include(COOT_FindCLBLAS)
++    find_package(clBLAS REQUIRED)
++    set(CLBLAS_FOUND "YES")
+     if(CLBLAS_FOUND)
+       set(COOT_LIBS ${COOT_LIBS} ${CLBLAS_LIBRARIES})
+       set(COOT_INCLUDE_DIRS ${COOT_INCLUDE_DIRS} ${CLBLAS_INCLUDE_DIRS})
+
+

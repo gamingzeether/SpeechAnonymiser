@@ -22,7 +22,7 @@ public:
 private:
   InteractiveDebugger();
   void initWindow();
-  void loadCubeSpectrogram(const CUBE_TYPE& data, size_t col);
+  void loadCubeSpectrogram(const CPU_CUBE_TYPE& data, size_t col);
   void hidePhoneMarkers(size_t start = 0);
   void placePhoneMarkers(const CPU_CUBE_TYPE& labels, size_t col);
   void findAndLoadClip();

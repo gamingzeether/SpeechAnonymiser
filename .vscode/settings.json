@@ -3,8 +3,9 @@
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
   "cmake.configureSettings": {
-    "OMP": "ON"//,
-    //"ASAN": "ON"
+    "OMP": "ON",
+    "ASAN": "OFF",
+    "GPU": "OFF"
   },
   "files.associations": {
     "cctype": "cpp",
@@ -100,6 +101,7 @@
     "qpainter": "cpp",
     "qlabel": "cpp",
     "span_ext": "cpp",
-    "qtoolbutton": "cpp"
+    "qtoolbutton": "cpp",
+    "bandicoot": "cpp"
   }
 }

@@ -7,7 +7,7 @@
 #include <QPushButton>
 #include <QTimer>
 
-#include <mlpack/core.hpp>
+#include "../include_mlpack.hpp"
 
 #include "../SpeechEngine/SpeechEngineConcatenator.hpp"
 #include "../Utils/Global.hpp"
@@ -111,7 +111,7 @@ void InteractiveDebugger::initWindow() {
   });
 }
 
-void InteractiveDebugger::loadCubeSpectrogram(const CUBE_TYPE& data, size_t col) {
+void InteractiveDebugger::loadCubeSpectrogram(const CPU_CUBE_TYPE& data, size_t col) {
   spectrogram->clearSpectrogram();
   std::array<float, FRAME_SIZE> frame;
   for (size_t s = 0; s < data.n_slices; s++) {

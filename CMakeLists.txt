@@ -32,6 +32,10 @@ endif()
 if (GPU)
   list(APPEND VCPKG_MANIFEST_FEATURES "gpu")
   add_definitions(-DUSE_GPU -DGPU=${GPU})
+  if (OMP)
+    message(STATUS "Bandicoot does not compile with omp enabled; disabling omp")
+    set(OMP OFF)
+  endif()
 endif()
 
 ################################################################################
