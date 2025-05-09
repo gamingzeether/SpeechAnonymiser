@@ -20,6 +20,7 @@
 #define TANH_ACTIVATION mlpack::TanHType<MAT_TYPE>
 #define RELU_ACTIVATION mlpack::LeakyReLUType<MAT_TYPE>
 #define DROPOUT         mlpack::DropoutType<MAT_TYPE>
+#define LOG_SOFTMAX     mlpack::LogSoftMaxType<MAT_TYPE>
 
 #define ADD_LINEARNB(neurons)                                   net.Add<LINEARNB>(neurons, mlpack::L2Regularizer(hp.l2()))
 #define ADD_LINEAR(neurons)                                     net.Add<LINEAR>(neurons, mlpack::L2Regularizer(hp.l2()))
@@ -29,6 +30,7 @@
 #define ADD_TANH_ACTIVATION                                     net.Add<TANH_ACTIVATION>()
 #define ADD_RELU_ACTIVATION                                     net.Add<RELU_ACTIVATION>()
 #define ADD_DROPOUT                                             net.Add<DROPOUT>(hp.dropout())
+#define ADD_LOG_SOFTMAX                                         net.Add<LOG_SOFTMAX>()
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
   this->hp = hp;
@@ -81,7 +83,7 @@ void PhonemeModel::initModel() {
   // Add final output layers
   ADD_DROPOUT;
   ADD_LINEAR(outputSize);
-  net.Add<mlpack::LogSoftMaxType<MAT_TYPE>>();
+  ADD_LOG_SOFTMAX;
 }
 
 void PhonemeModel::initOptimizer() {
@@ -334,5 +336,6 @@ void PhonemeModel::printLayer(mlpack::Layer<MAT_TYPE>* layer) {
   TRY(TANH_ACTIVATION);
   TRY(RELU_ACTIVATION);
   TRY(DROPOUT        );
+  TRY(LOG_SOFTMAX    );
 }
 #undef TRY
