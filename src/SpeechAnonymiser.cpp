@@ -28,7 +28,14 @@
 #include "Debugging/InteractiveDebugger.hpp"
 #endif
 
-#define ERROR_STUB(Requires, Method, ...) Method(__VA_ARGS__) { G_LG(STRINGIFY(Method) " requires compiling with " STRINGIFY(Requires) " support", Logger::DEAD); }
+#define RETURN_void return
+#define RETURN_int return 0
+#define RETURN_bool return false
+#define RETURN_TYPE(Type) RETURN_##Type
+#define ERROR_STUB(Requires, RetType, Method) RetType Method(...) { \
+  G_LG("Function " STRINGIFY(Method) " requires compiling with " STRINGIFY(Requires) " support", Logger::DEAD); \
+  RETURN_TYPE(RetType); \
+}
 
 const bool outputPassthrough = false;
 
@@ -276,15 +283,11 @@ bool selectAudioDevice(const bool input, OUT AudioDevice& audioDev) {
   return true;
 }
 #else
-ERROR_STUB(audio, int processInput, void* /*outputBuffer*/, void* inputBuffer, unsigned int nBufferFrames,
-  double /*streamTime*/, RtAudioStreamStatus /*status*/, void* data)
-ERROR_STUB(audio, int processOutput, void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames,
-  double /*streamTime*/, RtAudioStreamStatus status, void* data)
-ERROR_STUB(audio, int oneshotOutput, void* outputBuffer, void* /*inputBuffer*/, unsigned int nBufferFrames,
-  double /*streamTime*/, RtAudioStreamStatus status, void* data)
-ERROR_STUB(audio, void cleanupRtAudio, RtAudio audio)
-ERROR_STUB(audio, void selectAudioDevice, bool input)
-ERROR_STUB(audio, void startFFT, InputData& inputData)
+ERROR_STUB(audio, int, processInput)
+ERROR_STUB(audio, int, processOutput)
+ERROR_STUB(audio, int, oneshotOutput)
+ERROR_STUB(audio, void, cleanupRtAudio)
+ERROR_STUB(audio, bool, selectAudioDevice)
 #endif
 
 #ifdef GUI
@@ -417,7 +420,8 @@ void startDebugger(size_t sampleRate, std::string dataPath, AudioContainer& ac) 
   debugger.run();
 }
 #else
-ERROR_STUB(GUI, void startFFT, InputData& inputData)
+ERROR_STUB(gui, void, startFFT)
+ERROR_STUB(gui, void, startDebugger)
 #endif
 
 int commandHelp() {

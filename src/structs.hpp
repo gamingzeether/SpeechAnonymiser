@@ -5,7 +5,10 @@
 #include <algorithm>
 #include <mutex>
 #include <vector>
-#include <RtAudio.h>
+
+#include "RtAudioWrapper.h"
+
+#include "Utils/Global.hpp"
 
 struct AudioDevice {
   RtAudio audio;
@@ -93,4 +96,9 @@ struct AudioContainer {
   size_t pointer;
   bool pause = false;
   std::mutex mtx;
+
+  AudioContainer() {}
+  AudioContainer(const AudioContainer& other) {
+    throw;
+  }
 };

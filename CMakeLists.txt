@@ -121,17 +121,6 @@ set(Sources
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeClassifier.cpp"
   "${PROJECT_SOURCE_DIR}/Classifier/PhonemeModel.cpp"
 
-  "${PROJECT_SOURCE_DIR}/Debugging/InteractiveDebugger.cpp"
-
-  "${PROJECT_SOURCE_DIR}/GUI/Visualizer.cpp"
-  "${PROJECT_SOURCE_DIR}/GUI/Spectrogram.cpp"
-
-  "${PROJECT_SOURCE_DIR}/SpeechEngine/Animator.cpp"
-  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineArticulator.cpp"
-  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineConcatenator.cpp"
-  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineFormant.cpp"
-  "${PROJECT_SOURCE_DIR}/SpeechEngine/Voicebank.cpp"
-
   "${PROJECT_SOURCE_DIR}/Utils/ClassifierHelper.cpp"
   "${PROJECT_SOURCE_DIR}/Utils/Config.cpp"
   "${PROJECT_SOURCE_DIR}/Utils/Global.cpp"
@@ -145,6 +134,26 @@ set(Sources
 
   "${PROJECT_SOURCE_DIR}/SpeechAnonymiser.cpp"
 )
+
+if (AUDIO)
+set(Sources ${Sources}
+  "${PROJECT_SOURCE_DIR}/SpeechEngine/Animator.cpp"
+  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineArticulator.cpp"
+  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineConcatenator.cpp"
+  "${PROJECT_SOURCE_DIR}/SpeechEngine/SpeechEngineFormant.cpp"
+  "${PROJECT_SOURCE_DIR}/SpeechEngine/Voicebank.cpp"
+)
+endif()
+
+if (GUI)
+set(Sources ${Sources}
+  "${PROJECT_SOURCE_DIR}/Debugging/InteractiveDebugger.cpp"
+
+  "${PROJECT_SOURCE_DIR}/GUI/Visualizer.cpp"
+  "${PROJECT_SOURCE_DIR}/GUI/Spectrogram.cpp"
+)
+endif()
+
 source_group("Sources" FILES ${Sources})
 
 set(ALL_FILES

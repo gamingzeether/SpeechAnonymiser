@@ -3,9 +3,13 @@
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
   "cmake.configureSettings": {
-    "OMP": "ON",
-    "ASAN": "OFF",
-    "GPU": "OFF"
+    "ASAN":  "OFF",
+    "OMP":   "OFF",
+    "AUDIO": "ON",
+    "MKL":   "OFF",
+    "LTO":   "ON",
+    "GUI":   "ON",
+    "GPU":   "OFF"
   },
   "files.associations": {
     "cctype": "cpp",
