@@ -50,10 +50,7 @@ private:
   void logZipError(zip_t* archive);
   void logZipError(zip_error_t* error);
   void setDefaultModel();
-  void addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY);
-  void addPooling(JSONHelper::JSONObj& layers, int width, int height, int strideX, int strideY);
-  void addLinear(JSONHelper::JSONObj& layers, int neurons);
-  void addLstm(JSONHelper::JSONObj& layers, int neurons);
+  void addFromJson(const JSONHelper::JSONObj& layer);
   std::string getTempPath();
   void printInfo();
   void printLayer(mlpack::Layer<MAT_TYPE>* layer);

@@ -3,11 +3,9 @@
 #define MLPACK_ENABLE_ANN_SERIALIZATION 
 #include <filesystem>
 #include "../include_mlpack.hpp"
-#if (ELEM_TYPE != double)
+#if (ELEM_TYPE != double && !USE_GPU)
   CEREAL_REGISTER_MLPACK_LAYERS(MAT_TYPE);
 #endif
-CEREAL_REGISTER_TYPE(mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>);
-CEREAL_REGISTER_TYPE(mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>);
 
 void ModelSerializer::saveNetwork(const std::string& filename, const void* network) {
   const NETWORK_TYPE& netRef = *(NETWORK_TYPE*)network;

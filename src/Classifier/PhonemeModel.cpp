@@ -12,25 +12,18 @@
 #define _VC mlpack::NaiveConvolution<mlpack::ValidConvolution>
 #define _FC mlpack::NaiveConvolution<mlpack::FullConvolution>
 
-#define LINEARNB        mlpack::LinearNoBiasType<MAT_TYPE, mlpack::L2Regularizer>
-#define LINEAR          mlpack::LinearType<MAT_TYPE, mlpack::L2Regularizer>
+// Define Layer types
+#define DROPOUT         mlpack::DropoutType<MAT_TYPE>
+
+#define TANH_ACTIVATION mlpack::TanHType<MAT_TYPE>
+#define RELU_ACTIVATION mlpack::LeakyReLUType<MAT_TYPE>
+#define LOG_SOFTMAX     mlpack::LogSoftMaxType<MAT_TYPE>
+
+#define LINEAR          mlpack::LinearType<MAT_TYPE>
+#define LINEARNB        mlpack::LinearNoBiasType<MAT_TYPE>
 #define LSTM            mlpack::LSTMType<MAT_TYPE>
 #define CONVOLUTION     mlpack::ConvolutionType<_VC, _FC, _VC, MAT_TYPE>
 #define POOLING         mlpack::MaxPoolingType<MAT_TYPE>
-#define TANH_ACTIVATION mlpack::TanHType<MAT_TYPE>
-#define RELU_ACTIVATION mlpack::LeakyReLUType<MAT_TYPE>
-#define DROPOUT         mlpack::DropoutType<MAT_TYPE>
-#define LOG_SOFTMAX     mlpack::LogSoftMaxType<MAT_TYPE>
-
-#define ADD_LINEARNB(neurons)                                   net.Add<LINEARNB>(neurons, mlpack::L2Regularizer(hp.l2()))
-#define ADD_LINEAR(neurons)                                     net.Add<LINEAR>(neurons, mlpack::L2Regularizer(hp.l2()))
-#define ADD_LSTM(neurons)                                       net.Add<LSTM>(neurons)
-#define ADD_CONVOLUTION(maps, width, height, strideX, strideY)  net.Add<CONVOLUTION>(maps, width, height, strideX, strideY);
-#define ADD_POOLING(width, height, strideX, strideY)            net.Add<POOLING>(width, height, strideX, strideY);
-#define ADD_TANH_ACTIVATION                                     net.Add<TANH_ACTIVATION>()
-#define ADD_RELU_ACTIVATION                                     net.Add<RELU_ACTIVATION>()
-#define ADD_DROPOUT                                             net.Add<DROPOUT>(hp.dropout())
-#define ADD_LOG_SOFTMAX                                         net.Add<LOG_SOFTMAX>()
 
 void PhonemeModel::setHyperparameters(Hyperparameters hp) {
   this->hp = hp;
@@ -42,48 +35,8 @@ void PhonemeModel::initModel() {
   // Default architecture defined in PhonemeModel::setDefaultModel()
   JSONHelper::JSONObj layers = config.object()["layers"];
   size_t numLayers = layers.get_array_size();
-  for (size_t i = 0; i < numLayers; i++) {
-
-    JSONHelper::JSONObj layer = layers[i];
-
-    // Add dropout before a layer
-    ADD_DROPOUT;
-
-    // Add the layer
-    std::string type = layer["type"].get_string();
-    if (type == "conv2d") {
-      int maps = layer["maps"].get_int();
-      int width = layer["width"].get_int();
-      int height = layer["height"].get_int();
-      int strideX = layer["stride_x"].get_int();
-      int strideY = layer["stride_y"].get_int();
-
-      ADD_CONVOLUTION(maps, width, height, strideX, strideY);
-    } else if (type == "pool2d") {
-      int width = layer["width"].get_int();
-      int height = layer["height"].get_int();
-      int strideX = layer["stride_x"].get_int();
-      int strideY = layer["stride_y"].get_int();
-
-      ADD_POOLING(width, height, strideX, strideY);
-    } else if (type == "linear") {
-      int neurons = layer["neurons"].get_int();
-
-      ADD_LINEAR(neurons);
-    } else if (type == "lstm") {
-      int neurons = layer["neurons"].get_int();
-
-      ADD_LSTM(neurons);
-    }
-
-    // Add activation function
-    ADD_RELU_ACTIVATION;
-  }
-
-  // Add final output layers
-  ADD_DROPOUT;
-  ADD_LINEAR(outputSize);
-  ADD_LOG_SOFTMAX;
+  for (size_t i = 0; i < numLayers; i++)
+    addFromJson(layers[i]);
 }
 
 void PhonemeModel::initOptimizer() {
@@ -167,18 +120,17 @@ bool PhonemeModel::load() {
   config = Config(tempPath + CONFIG_FILE, 0);
   bool configLoaded = config.loadDefault(DEFAULT_CONFIG_FILE);
   auto& defObj = config.defaultObject();
-  bool configMatches = defObj["input_features"].get_int() == inputSize &&
-    // If phoneme set isn't set (inference?) or it is same as the one in the config
-    // then proceed with the config
-    (!hasPhonemeSet || defObj["phoneme_set"].get_string() == psName) &&
-    defObj["sample_rate"].get_int() == sampleRate;
-  if (configLoaded && configMatches) {
+  bool resetConfig = defObj["input_features"].get_int() != inputSize ||
+      (hasPhonemeSet && defObj["phoneme_set"].get_string() != psName) ||
+      defObj["sample_rate"].get_int() != sampleRate;
+  if (configLoaded && !resetConfig) {
     G_LG(Util::format("Using classifier config from file '%s'", DEFAULT_CONFIG_FILE), Logger::INFO);
   } else {
-    G_LG(Util::format("Generating new classifier config '%s'", DEFAULT_CONFIG_FILE), Logger::INFO);
+    G_LG(Util::format("Generating new classifier config '%s'", DEFAULT_CONFIG_FILE), Logger::WARN);
     config.setDefault("input_features", inputSize)
-      .setDefault("phoneme_set", psName)
-      .setDefault("sample_rate", sampleRate);
+        .setDefault("phoneme_set", psName)
+        .setDefault("sample_rate", sampleRate);
+    outputSize = G_PS_C.size();
     setDefaultModel();
     config.saveDefault(DEFAULT_CONFIG_FILE);
   }
@@ -242,6 +194,20 @@ void PhonemeModel::logZipError(zip_error_t* error) {
   zip_error_fini(error);
 }
 
+// Utility macros
+#define _ADD_LAYER_PARAMS_0()
+#define _ADD_LAYER_PARAMS_1(Name, Val     ) layer[ QUOTE(Name) ] = Val;
+#define _ADD_LAYER_PARAMS_2(Name, Val, ...) layer[ QUOTE(Name) ] = Val; _ADD_LAYER_PARAMS_1(__VA_ARGS__)
+#define _ADD_LAYER_PARAMS_3(Name, Val, ...) layer[ QUOTE(Name) ] = Val; _ADD_LAYER_PARAMS_2(__VA_ARGS__)
+#define _ADD_LAYER_PARAMS_4(Name, Val, ...) layer[ QUOTE(Name) ] = Val; _ADD_LAYER_PARAMS_3(__VA_ARGS__)
+#define _ADD_LAYER_PARAMS_5(Name, Val, ...) layer[ QUOTE(Name) ] = Val; _ADD_LAYER_PARAMS_4(__VA_ARGS__)
+#define ADD_LAYER(Type, NArgs, ...) \
+{ \
+  JSONHelper::JSONObj layer = layers.append(); \
+  layer["type"] = std::string(STRINGIFY(Type)); \
+  _ADD_LAYER_PARAMS_##NArgs(__VA_ARGS__); \
+}
+
 void PhonemeModel::setDefaultModel() {
   JSONHelper::JSONObj configRoot = config.defaultObject().getRoot();
   JSONHelper::JSONObj layers;
@@ -252,47 +218,95 @@ void PhonemeModel::setDefaultModel() {
     layers = configRoot.add_arr("layers");
   }
   
-  addConv(layers, 32, 3, 3, 1, 1);
-  addConv(layers, 32, 3, 3, 1, 1);
-  addConv(layers, 32, 3, 3, 1, 1);
-  addLinear(layers, 256);
-  addLinear(layers, 256);
-  addLstm(layers, 256);
+  // Convolutional block
+  for (size_t i = 0; i < 3; i++) {
+    ADD_LAYER(dropout, 1,
+        ratio, 0.1);
+    ADD_LAYER(conv2d, 5,
+        maps, 16,
+        height, 2,
+        width, 2,
+        stride_x, 2,
+        stride_y, 2);
+    ADD_LAYER(tanh, 0);
+  }
+
+  // Dense layers
+  for (size_t i = 0; i < 5; i++) {
+    ADD_LAYER(dropout, 1,
+        ratio, 0.1);
+    ADD_LAYER(linear, 1,
+        out_size, 256);
+    ADD_LAYER(relu, 0);
+  }
+
+  // LSTM
+  ADD_LAYER(dropout, 1,
+      ratio, 0.1);
+  ADD_LAYER(lstm, 1,
+      out_size, 256);
+  ADD_LAYER(relu, 0);
+
+  // More dense layers
+  for (size_t i = 0; i < 2; i++) {
+    ADD_LAYER(dropout, 1,
+        ratio, 0.1);
+    ADD_LAYER(linear, 1,
+        out_size, 256);
+    ADD_LAYER(relu, 0);
+  }
+
+  // Output layer
+  ADD_LAYER(dropout, 1,
+      ratio, 0.1);
+  ADD_LAYER(linear, 1,
+      out_size, outputSize);
+  ADD_LAYER(log_softmax, 0);
 }
+#undef _ADD_LAYER_PARAMS_1
+#undef _ADD_LAYER_PARAMS_2
+#undef _ADD_LAYER_PARAMS_3
+#undef _ADD_LAYER_PARAMS_4
+#undef ADD_LAYER
 
-void PhonemeModel::addConv(JSONHelper::JSONObj& layers, int maps, int width, int height, int strideX, int strideY) {
-  JSONHelper::JSONObj layer = layers.append();
-  layer["type"] = std::string("conv2d");
-
-  layer["maps"] = maps;
-  layer["width"] = width;
-  layer["height"] = height;
-  layer["stride_x"] = strideX;
-  layer["stride_y"] = strideY;
-}
-
-void addPooling(JSONHelper::JSONObj& layers, int width, int height, int strideX, int strideY) {
-  JSONHelper::JSONObj layer = layers.append();
-  layer["type"] = std::string("pool2d");
-
-  layer["width"] = width;
-  layer["height"] = height;
-  layer["stride_x"] = strideX;
-  layer["stride_y"] = strideY;
-}
-
-void PhonemeModel::addLinear(JSONHelper::JSONObj& layers, int neurons) {
-  JSONHelper::JSONObj layer = layers.append();
-  layer["type"] = std::string("linear");
-
-  layer["neurons"] = neurons;
-}
-
-void PhonemeModel::addLstm(JSONHelper::JSONObj& layers, int neurons) {
-  JSONHelper::JSONObj layer = layers.append();
-  layer["type"] = std::string("lstm");
-
-  layer["neurons"] = neurons;
+void PhonemeModel::addFromJson(const JSONHelper::JSONObj& layer) {
+  // Add the layer
+  std::string type = layer["type"].get_string();
+  // ========================== Dropout ==========================
+  if (type == "dropout") {
+    double ratio = layer["ratio"].get_real();
+    net.Add<DROPOUT>(ratio);
+  // ==================== Activation Functions ====================
+  } else if (type == "tanh") {
+    net.Add<TANH_ACTIVATION>();
+  } else if (type == "relu") {
+    net.Add<RELU_ACTIVATION>();
+  } else if (type == "log_softmax") {
+    net.Add<LOG_SOFTMAX>();
+  // ====================== Connected layers ======================
+  } else if (type == "linear") {
+    int outSize = layer["out_size"].get_int();
+    net.Add<LINEAR>(outSize);
+  } else if (type == "linear_nb") {
+    int outSize = layer["out_size"].get_int();
+    net.Add<LINEARNB>(outSize);
+  } else if (type == "lstm") {
+    int outSize = layer["out_size"].get_int();
+    net.Add<LSTM>(outSize);
+  } else if (type == "conv2d") {
+    int maps = layer["maps"].get_int();
+    int width = layer["width"].get_int();
+    int height = layer["height"].get_int();
+    int strideX = layer["stride_x"].get_int();
+    int strideY = layer["stride_y"].get_int();
+    net.Add<CONVOLUTION>(maps, width, height, strideX, strideY);
+  } else if (type == "pool2d") {
+    int width = layer["width"].get_int();
+    int height = layer["height"].get_int();
+    int strideX = layer["stride_x"].get_int();
+    int strideY = layer["stride_y"].get_int();
+    net.Add<POOLING>(width, height, strideX, strideY);
+  }
 }
 
 std::string PhonemeModel::getTempPath() {
@@ -326,16 +340,16 @@ void PhonemeModel::printInfo() {
   }
 }
 
-#define TRY(Type) if (_printLayer(dynamic_cast<Type*>(layer), #Type)) return;
+#define _TRY(Type) if (_printLayer(dynamic_cast<Type*>(layer), #Type)) return;
 void PhonemeModel::printLayer(mlpack::Layer<MAT_TYPE>* layer) {
-  TRY(LINEARNB       );
-  TRY(LINEAR         );
-  TRY(LSTM           );
-  TRY(CONVOLUTION    );
-  TRY(POOLING        );
-  TRY(TANH_ACTIVATION);
-  TRY(RELU_ACTIVATION);
-  TRY(DROPOUT        );
-  TRY(LOG_SOFTMAX    );
+  _TRY(DROPOUT        );
+  _TRY(TANH_ACTIVATION);
+  _TRY(RELU_ACTIVATION);
+  _TRY(LOG_SOFTMAX    );
+  _TRY(LINEAR         );
+  _TRY(LINEARNB       );
+  _TRY(LSTM           );
+  _TRY(CONVOLUTION    );
+  _TRY(POOLING        );
 }
-#undef TRY
+#undef _TRY
