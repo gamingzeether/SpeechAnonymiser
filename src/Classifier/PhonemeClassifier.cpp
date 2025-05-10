@@ -21,6 +21,7 @@
 #include "TrainingExec.hpp"
 #include "Train/Dataset.hpp"
 #include "Train/eta_callback.hpp"
+#include "Train/LossLogger.hpp"
 #include "../Utils/ClassifierHelper.hpp"
 #include "../Utils/Global.hpp"
 #include "../Utils/Util.hpp"
@@ -127,14 +128,16 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
   int numSlices = std::accumulate(trainLengths.begin(), trainLengths.end(), 0);
   G_LG(Util::format("Total number of time slices: %d", numSlices), Logger::INFO);
   G_LG("Starting training", Logger::INFO);
+  double lastEpochLoss = 9e99;
   model.network().Train(
     CNAME(trainData),
     CNAME(trainLabel),
     trainLengths,
     model.optimizer(),
     ens::ProgressBarETA(50),
-    TrainingExecType<MAT_TYPE>(
-      [&](size_t epoch) {
+    LossLogger(STRINGIFY(LOG_DIR) "last_training_loss.csv"),
+    TrainingExec(
+      [&](size_t epoch, double loss) {
         //G_LG(Util::format("Finished epoch %ld with learning rate %lf", epoch, model.optimizer().StepSize()), Logger::DBUG);
         model.network().SetNetworkMode(false);
         // Compare training and test accuracy to check for overfitting
@@ -142,6 +145,16 @@ void PhonemeClassifier::train(const std::string& path, const size_t& examples, c
           printConfusionMatrix(trainData, trainLabel, trainLengths);
           printConfusionMatrix(testData, testLabel, testLengths);
         }
+
+        // Halve step size if loss does not improve
+        if (loss > lastEpochLoss)
+          model.optimizer().StepSize() /= 2;
+        lastEpochLoss = loss;
+        G_LG(Util::format("Epoch %zd ended with loss %lf", epoch, loss), Logger::DBUG);
+
+        // Update best loss
+        if (loss < bestLoss)
+          bestLoss = loss;
 
         model.save(epoch);
         model.network().SetNetworkMode(true);
@@ -381,8 +394,8 @@ void PhonemeClassifier::tuneHyperparam(const std::string& path, int iterations, 
           CNAME(trainLabel),
           trainLengths,
           mdl.optimizer(),
-          TrainingExecType<MAT_TYPE>(
-            [&](size_t epoch) {
+          TrainingExec(
+            [&](size_t epoch, double /* loss */) {
               mdl.network().SetNetworkMode(false);
               double acc = accuracy(mdl.network(), CNAME(validData), CNAME(validLabel), validLengths);
               mdl.network().SetNetworkMode(true);
