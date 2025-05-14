@@ -27,6 +27,7 @@ private:
   void placePhoneMarkers(const CPU_CUBE_TYPE& labels, size_t col);
   void findAndLoadClip();
   void playSpeech(size_t phoneme);
+  void playSpeechSequence();
   void addSpeechEngine();
 
   QWidget* qtWindow;
@@ -40,6 +41,7 @@ private:
   QSlider* clipSlider;
 
   size_t selectedPhoneme = 0;
+  size_t selectedPhonemeSpeech = 0;
 
   bool sliderSelected = false;
   std::vector<QLabel*> clipPhoneMarkers;

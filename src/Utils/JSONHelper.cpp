@@ -82,7 +82,10 @@ void JSONHelper::close() {
 }
 
 void JSONHelper::save() {
-  yyjson_mut_write_file(path.c_str(), doc, YYJSON_WRITE_PRETTY_TWO_SPACES, NULL, NULL);
+  yyjson_write_err err;
+  bool success = yyjson_mut_write_file(path.c_str(), doc, YYJSON_WRITE_PRETTY_TWO_SPACES, NULL, &err);
+  if (!success)
+    G_LG(Util::format("Error saving JSON (code %u): %s", err.code, err.msg), Logger::ERRO);
 }
 
 JSONHelper::JSONObj JSONHelper::operator[](const char* key) {

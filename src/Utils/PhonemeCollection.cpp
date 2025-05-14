@@ -8,7 +8,7 @@ int PhonemeCollection::getId(const std::string& name) {
   for (const PhonemeSet ps : phonemeSets)
     if (ps.name == name)
       return ps.id;
-  G_LG(Util::format("Phoneme set with name '%s' does not exist", name.c_str()), Logger::DBUG);
+  G_LG(Util::format("Phoneme set with name '%s' does not exist", name.c_str()), Logger::WARN);
   return -1;
 }
 

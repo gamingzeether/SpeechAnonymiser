@@ -11,6 +11,7 @@
 #define G_PS_C Global::get().getClassifierPhonemeSet()
 #define G_PS_S Global::get().getSpeechEnginePhonemeSet()
 #define G_P_SIL Global::get().silencePhone()
+#define G_P_SIL_S Global::get().silencePhoneSpeech()
 
 #define PHONEME_SET_IPA 0
 #define PHONEME_SET_ARPA 1
@@ -41,17 +42,16 @@ public:
   // Checks if speech engine phoneme set is set
   bool isSpeechEngineSet();
   // Sets the phoneme set used for classifier
-  void setSpeechEngineSet(const std::string& name);
+  void setSpeechEnginePhonemeSet(const std::string& name, bool supress = false);
   // Gets the phoneme set used for speech engine
   const PhonemeSet& getSpeechEnginePhonemeSet();
   // Gets the name of the phoneme set used for speech engine
   std::string getSpeechEnginePhonemeSetName();
 
-  // Sets the phoneme set used for speech engine
-  void setSpeechEnginePhonemeSet(const std::string& name, bool supress = false);
-
   // Returns classifier silence phoneme id
   size_t silencePhone();
+  // Returns speech engine silence phoneme id
+  size_t silencePhoneSpeech();
   // Global lock to prevent multiple fftw functions being executed at the same time eg. planning
   std::unique_lock<std::mutex> fftwLock() { return std::unique_lock<std::mutex>(fftwMutex); };
 
@@ -69,6 +69,7 @@ private:
   Logger logger;
   std::mutex fftwMutex;
   size_t silPhone;
+  size_t silPhoneSpeech;
 
   int classifierPhonemeSetId = -1;
   int speechEnginePhonemeSetId = -1;

@@ -33,14 +33,14 @@ Voicebank& Voicebank::open(const std::string& dir) {
   if (!loadCache()) {
     // Open and read oto.ini into lines
     if (!std::filesystem::is_directory(directory)) {
-      throw("directory %s does not exist\n", directory.c_str());
+      G_LG(Util::format("directory %s does not exist", directory.c_str()), Logger::DEAD);
     }
     std::ifstream iniReader;
     // Look for oto.ini
     {
       auto iterator = std::filesystem::directory_iterator(directory);
       std::string otoPath;
-      bool match = false;
+      // Case insensitive search for oto.ini
       for (const auto& entry : iterator) {
         std::string name = entry.path().filename().string();
         if (name.length() != std::string("oto.ini").length()) {
@@ -48,18 +48,13 @@ Voicebank& Voicebank::open(const std::string& dir) {
         }
         for (int i = 0; i < name.length(); i++) {
           if (std::tolower(name[i]) != "oto.ini"[i]) {
-            match = false;
             break;
           }
-          match = true;
-        }
-        if (match) {
           iniReader = std::ifstream(entry.path());
-          break;
         }
       }
-      if (!match) {
-        throw("Could not find oto.ini in %s\n", directory.c_str());
+      if (!iniReader.is_open()) {
+        G_LG(Util::format("Could not find oto.ini in %s", directory.c_str()), Logger::DEAD);
       }
     }
     // Parse lines
@@ -85,6 +80,10 @@ Voicebank& Voicebank::open(const std::string& dir) {
 
     loadUnits(lines);
 
+    if (!std::filesystem::exists(cacheDirectory + "/data")) {
+      std::filesystem::create_directories(cacheDirectory + "/data");
+    }
+
     // Initalize aliases mapping
     if (std::filesystem::exists(cacheDirectory + "/aliases.json")) {
       std::filesystem::remove(cacheDirectory + "/aliases.json");
@@ -93,27 +92,24 @@ Voicebank& Voicebank::open(const std::string& dir) {
       // If the alias follows a specific format, translate it using a dictionary
       // Maps a sequence of characters to a phoneme used by ClassifierHelper
       std::map<std::string, std::string> charMapping;
-      if (std::filesystem::exists("configs/alias_dictionary.json")) {
-        Config dictionaryConfig = Config("configs/alias_dictionary.json", 0);
-        dictionaryConfig.load();
-
-        JSONHelper::JSONObj dictionary = dictionaryConfig.object()["dictionary"];
+      JSONHelper dictionaryConfig;
+      if (dictionaryConfig.open("configs/alias_dictionary.json", 0)) {
+        JSONHelper::JSONObj dictionary = dictionaryConfig["dictionary"];
         size_t dictSize = dictionary.get_array_size();
-        const PhonemeSet& ps = G_PS_S;
         for (size_t i = 0; i < dictSize; i++) {
           JSONHelper::JSONObj dictItem = dictionary[i];
           std::string phoneme = dictItem["phoneme"].get_string();
-          // Check to see if it is a valid phoneme
-          size_t pidx = ps.xSampaExists(phoneme);
           charMapping[dictItem["sequence"].get_string()] = phoneme;
         }
 
         dictionaryConfig.close();
+      } else {
+        G_LG("Could not open alias dictionary", Logger::ERRO);
       }
       // Initalize alias file
-      Config aliasConfig = Config(cacheDirectory + "/aliases.json", CACHE_VERSION);
-      aliasConfig.load(); // This will initalize a new file
-      JSONHelper::JSONObj root = aliasConfig.object().getRoot();
+      JSONHelper aliasConfig;
+      aliasConfig.open(cacheDirectory + "/aliases.json", CACHE_VERSION);
+      JSONHelper::JSONObj root = aliasConfig.getRoot();
       JSONHelper::JSONObj arr = root.add_arr("aliases");
       // Write entries
       for (const UTAULine& line : lines) {
@@ -149,6 +145,13 @@ Voicebank& Voicebank::open(const std::string& dir) {
   }
 
   loadAliases();
+  
+  // Initalize unitsIndex
+  unitsIndex.resize(G_PS_S.size());
+  for (Unit& u : units) {
+    u.features = aliasMapping[u.alias];
+    unitsIndex[u.features.to].push_back(u.index);
+  }
 
   return *this;
 }
@@ -159,8 +162,46 @@ Voicebank& Voicebank::setShort(const std::string& name) {
 }
 
 const Voicebank::Unit& Voicebank::selectUnit(const DesiredFeatures& features) {
-  assert(features.to < units.size());
-  return units[features.to];
+  assert(features.to < unitsIndex.size());
+
+  const auto& canidates = unitsIndex[features.to];
+  if (canidates.size() == 0)
+    G_LG(Util::format("No units with end %s", G_PS_S.xSampa(features.to).c_str()), Logger::WARN);
+
+  size_t startPhoneme = (features.prev) ?
+      features.prev->features.to :
+      G_PS_S.xSampaIndex(".");
+
+  int bestUnitCost = 9999;
+  size_t unitIndex = -1;
+  for (size_t i = 0; i < canidates.size(); i++) {
+    size_t canidateIndex = canidates[i];
+    int cost = unitCost(features, canidateIndex);
+    if (cost < bestUnitCost) {
+      bestUnitCost = cost;
+      unitIndex = canidateIndex;
+    }
+  }
+
+  return units[unitIndex];
+}
+
+int Voicebank::unitCost(const DesiredFeatures& features, size_t index) {
+  const int WRONG_START_COST = 5;
+  const int WRONG_END_COST = 10;
+  const int PER_GLIDE_COST = 1;
+
+  const Unit& indexUnit = units[index];
+  size_t requestStartPhoneme = (features.prev) ? features.prev->features.to : G_P_SIL_S;
+
+  int totalCost = 0;
+  // Start phoneme mismatch cost
+  totalCost += (indexUnit.features.from != requestStartPhoneme) ? WRONG_START_COST : 0;
+  // End phoneme mismatch cost
+  totalCost += (indexUnit.features.to != features.to) ? WRONG_END_COST : 0;
+  // Glide phonemes cost
+  totalCost += indexUnit.features.glide.size() * PER_GLIDE_COST;
+  return totalCost;
 }
 
 void Voicebank::loadUnit(size_t index) {
@@ -180,8 +221,8 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
     const UTAULine& line = lines[i];
     std::printf("Loading line %zd\r", i);
 
-    // Load new wav
     if (line.file != filename) {
+      // Done using previous audio file, load new one
       filename = line.file;
       std::string filepath = directory + filename;
 
@@ -228,7 +269,7 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
         upsampleData.src_ratio = ratio;
         upsampleData.data_out = resampledAudio.data();
         upsampleData.output_frames = outSize;
-        int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, chOut);
+        int error = src_simple(&upsampleData, SRC_SINC_BEST_QUALITY, 1);
         audioSamples = outSize;
 
         if (error) {
@@ -248,13 +289,18 @@ void Voicebank::loadUnits(const std::vector<UTAULine>& lines) {
     if (line.cutoff >= 0) {
       continue;
     }
+    // Offset = left blank in milliseconds since start of file
+    // Cutoff = right blank in milliseconds from end of file
+    // If cutoff is negative, it is negative time from left blank
     size_t startSample = ((line.offset) / 1000) * samplerate;
-    size_t endSample = ((line.offset - line.cutoff) / 1000) * samplerate;
+    size_t endSample = (line.cutoff > 0) ?
+        audioSamples - (line.cutoff / 1000) * samplerate :
+        ((line.offset - line.cutoff) / 1000) * samplerate;
     endSample = std::min(endSample, audioSamples);
     size_t segmentLength = endSample - startSample;
     u.audio = std::vector<float>(segmentLength);
     for (size_t i = 0; i < segmentLength; i++) {
-      u.audio[i] = resampledAudio[i];
+      u.audio[i] = resampledAudio[startSample + i];
     }
 
     // Copy info to unit
@@ -285,10 +331,6 @@ bool Voicebank::isCached() {
 }
 
 void Voicebank::saveCache() {
-  if (!std::filesystem::exists(cacheDirectory + "/data")) {
-    std::filesystem::create_directories(cacheDirectory + "/data");
-  }
-
   JSONHelper::JSONObj jsonUnits = config.object().getRoot().add_arr("units");
   for (Unit& unit : units) {
     unit.save(samplerate, cacheDirectory);
@@ -323,9 +365,9 @@ bool Voicebank::loadCache() {
     u.consonant = jsonUnit["consonant"].get_int();
     u.preutterance = jsonUnit["preutterance"].get_int();
     u.overlap = jsonUnit["overlap"].get_int();
-  }
 
-  loadAliases();
+    u.alias = jsonUnit["alias"].get_string();
+  }
 
   return true;
 }
@@ -372,7 +414,19 @@ void Voicebank::Unit::unload() {
   loaded = false;
 }
 
+//#define GEN_PS
 void Voicebank::loadAliases() {
+#ifdef GEN_PS
+  JSONHelper newPhonemeSet;
+  std::string psFile = "phoneme-set-" + shortName + ".json";
+  if (std::filesystem::exists(psFile))
+    std::filesystem::remove(psFile);
+  newPhonemeSet.open(psFile);
+  newPhonemeSet["name"] = shortName;
+  JSONHelper::JSONObj mappings = newPhonemeSet.getRoot().add_arr("mappings");
+  std::vector<std::string> addedPhones;
+#endif
+
   Config aliasConfig = Config(cacheDirectory + "/aliases.json", CACHE_VERSION);
   aliasConfig.load();
   JSONHelper::JSONObj root = aliasConfig.object().getRoot();
@@ -394,7 +448,20 @@ void Voicebank::loadAliases() {
       } else {
         aliasFeatures.glide.push_back(phonemeId);
       }
+
+#ifdef GEN_PS
+      if (!Util::contains(addedPhones, xsampa)) {
+        JSONHelper::JSONObj map = mappings.append();
+        map["token"] = xsampa;
+        map["x_sampa"]["symbol"] = xsampa;
+        addedPhones.push_back(xsampa);
+      }
+#endif
     }
     aliasMapping[aliasJson["name"].get_string()] = std::move(aliasFeatures);
   }
+
+#ifdef GEN_PS
+  newPhonemeSet.save();
+#endif
 }

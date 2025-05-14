@@ -89,6 +89,7 @@ struct Frame {
 
 struct SpeechFrame {
   size_t phoneme;
+  double pitch = 1;
 };
 
 struct AudioContainer {
@@ -98,6 +99,7 @@ struct AudioContainer {
   std::mutex mtx;
 
   AudioContainer() {}
+  // Dummy constructor that allows compiling one of the error stubs
   AudioContainer(const AudioContainer& other) {
     throw;
   }

@@ -11,6 +11,7 @@
 
 #include "../SpeechEngine/SpeechEngineConcatenator.hpp"
 #include "../Utils/Global.hpp"
+#include "../Utils/TranslationMap.hpp"
 
 #define CLIP_LENGTH 8
 #define N_SLICES (CLIP_LENGTH * (sampleRate / FFT_FRAME_SPACING))
@@ -54,13 +55,38 @@ void InteractiveDebugger::initWindow() {
     findAndLoadClip();
   });
 
+  // Add speech phoneme selection dropdown
+  QComboBox* phonemeDropdownSpeech = new QComboBox(qtWindow);
+  for (size_t i = 0; i < G_PS_S.size(); i++) {
+    phonemeDropdownSpeech->addItem(G_PS_S.xSampa(i).c_str());
+  }
+  phonemeDropdownSpeech->move(200, 10);
+  phonemeDropdownSpeech->show();
+  QObject::connect(phonemeDropdownSpeech, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, [&](int index){
+    if (index < 0)
+      return;
+    
+    selectedPhonemeSpeech = index;
+  });
+
   // Add speech engine say button
   QPushButton* speechSay = new QPushButton(qtWindow);
   speechSay->setText("Say");
-  speechSay->move(250, 10);
+  speechSay->move(300, 10);
   speechSay->show();
   QObject::connect(speechSay, &QPushButton::clicked, this, [&]{
-    playSpeech(selectedPhoneme);
+    playSpeech(selectedPhonemeSpeech);
+    spectrogram->clearSpectrogram();
+    hidePhoneMarkers();
+  });
+
+  // Add speech engine sing button
+  QPushButton* speechSing = new QPushButton(qtWindow);
+  speechSing->setText("Sing");
+  speechSing->move(400, 10);
+  speechSing->show();
+  QObject::connect(speechSing, &QPushButton::clicked, this, [&]{
+    playSpeechSequence();
     spectrogram->clearSpectrogram();
     hidePhoneMarkers();
   });
@@ -85,8 +111,8 @@ void InteractiveDebugger::initWindow() {
   });
   QObject::connect(clipSlider, &QSlider::sliderReleased, this, [&]() {
     double time = (double)clipSlider->value() / 1000;
-    size_t position = std::min(currentClip.size, (size_t)(time * sampleRate));
     std::unique_lock lock(audioContainer->mtx);
+    size_t position = std::min(audioContainer->audio.size(), (size_t)(time * sampleRate));
     audioContainer->pointer = position;
     sliderSelected = false;
   });
@@ -200,10 +226,92 @@ void InteractiveDebugger::playSpeech(size_t phoneme) {
   std::unique_lock<std::mutex> lock(audioContainer->mtx);
   SpeechFrame sf;
   sf.phoneme = phoneme;
+  // Write 0.8 seconds of audio from speech engine
   speechEngine->pushFrame(sf);
-  // Write a second of audio from speech engine
   audioContainer->audio.resize(sampleRate);
-  speechEngine->writeBuffer(audioContainer->audio.data(), sampleRate);
+  speechEngine->writeBuffer(audioContainer->audio.data(), sampleRate * 0.8);
+  // Write remaining 0.2 seconds of the end of the phoneme
+  sf.phoneme = G_P_SIL_S;
+  speechEngine->pushFrame(sf);
+  speechEngine->writeBuffer(audioContainer->audio.data(), sampleRate * 0.2);
+
+  audioContainer->pointer = 0;
+}
+
+void InteractiveDebugger::playSpeechSequence() {
+  std::unique_lock<std::mutex> lock(audioContainer->mtx);
+  SpeechFrame sf;
+  // Allocate a minute of audio from speech engine
+  audioContainer->audio.resize(sampleRate * 60);
+  // Define sequence of phonemes to play
+  std::vector<std::tuple<
+      std::string /* Phoneme */,
+      double /* Length (ms) */,
+      double /* Pitch */ >> sequence = {
+    //{"dey" , 0.600, 24},
+    //{"ziy" , 0.600, 21},
+    //{"dey" , 0.600, 17},
+    //{"ziy" , 0.600, 12},
+    //{"gih" , 0.200, 14},
+    //{"vmiy", 0.200, 16},
+    //{"yurr", 0.200, 17},
+    //{"ah"  , 0.400, 14},
+    //{"nsrr", 0.200, 17},
+    //{"duw" , 1.200, 12}
+    {"d", 0.05, 24},
+    {"e", 0.15, 24},
+    {"i", 0.40, 24},
+    {"z", 0.20, 21},
+    {"i", 0.40, 21},
+
+    {"d", 0.05, 24},
+    {"e", 0.15, 24},
+    {"i", 0.40, 24},
+    {"z", 0.20, 21},
+    {"i", 0.40, 21},
+
+    {"g", 0.05, 21},
+    {"i", 0.15, 21},
+    {"v", 0.05, 16},
+
+    {"m", 0.05, 16},
+    {"i", 0.10, 21},
+
+    {"y", 0.05, 17},
+    {"u", 0.05, 17},
+    {"r", 0.10, 17},
+
+    {"a", 0.40, 14},
+    {"n", 0.10, 17},
+    {"s", 0.05, 17},
+    {"r", 0.05, 17},
+
+    {"d", 0.10, 12},
+    {"o", 1.10, 12},
+    {".", 0.10, 20}
+  };
+  double time = 0;
+  const double dt = 0.01; // Duration of one frame
+  auto audioPtr = audioContainer->audio.data();
+  size_t stepSamples = sampleRate * dt;
+
+  for (std::tuple<std::string, double, double>& i : sequence) {
+    std::string& phoneme = std::get<0>(i);
+    double l = std::get<1>(i);
+    double p = std::get<2>(i);
+    double startT = time;
+    
+    // Translate current phoneme into speech signal
+    size_t phoneId = G_PS_S.fromString(phoneme);
+    while (time < startT + l) {
+      sf.phoneme = phoneId;
+      sf.pitch = p / 20;
+      speechEngine->pushFrame(sf);
+      speechEngine->writeBuffer(audioPtr, stepSamples);
+      audioPtr += stepSamples;
+      time += dt;
+    }
+  }
   audioContainer->pointer = 0;
 }
 

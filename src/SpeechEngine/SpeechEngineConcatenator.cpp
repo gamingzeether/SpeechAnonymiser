@@ -3,6 +3,7 @@
 #include "../Utils/Global.hpp"
 
 SpeechEngineConcatenator& SpeechEngineConcatenator::configure(std::string file) {
+  Global::get().setSpeechEnginePhonemeSet("ConcatSE", true);
   std::vector<std::string> subdirs = { "B3_Soft/", "B4_Power/", "D#4_Natural/", "G3_Soft/", "G4_Natural/" };
   for (std::string& subdir : subdirs) {
     Voicebank vb;
@@ -20,15 +21,13 @@ void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
   Voicebank::DesiredFeatures desiredFeatures;
   if (activeUnits.size() > 0) {
     const ActiveUnit& lastUnit = activeUnits.back();
-    desiredFeatures.from = lastUnit.unit;
-    return;
+    desiredFeatures.prev = lastUnit.unit;
   } else {
-    desiredFeatures.from = NULL;
+    desiredFeatures.prev = NULL;
   }
   
-  if (!desiredFeatures.from || desiredFeatures.from->features.to == frame.phoneme) {
+  if (desiredFeatures.prev != NULL && desiredFeatures.prev->features.to == frame.phoneme)
     return;
-  }
 
   desiredFeatures.to = frame.phoneme;
   Voicebank& vb = voicebanks[2];
@@ -38,32 +37,48 @@ void SpeechEngineConcatenator::pushFrame(const SpeechFrame& frame) {
 }
 
 void SpeechEngineConcatenator::writeBuffer(OUTPUT_TYPE* outputBuffer, unsigned int nFrames) {
-  for (int i = 0; i < nFrames * channels; i++) {
-    outputBuffer[i] = 0;
-  }
   std::unique_lock<std::mutex> lock(stateMutex);
-  for (ActiveUnit& aunit : activeUnits) {
-    const Voicebank::Unit& unit = *aunit.unit;
-    size_t unitSize = unit.audio.size();
-    unsigned int samples = std::min(nFrames, (unsigned int)(unitSize - aunit.pointer));
-    OUTPUT_TYPE* outputTmp = outputBuffer;
-    for (int i = 0; i < samples; i++) {
-      float data = unit.audio[aunit.pointer + i] * volume;
-      for (int j = 0; j < channels; j++) {
-        *(outputTmp++) += data;
+  while (nFrames > 0 && activeUnits.size() > 0) {
+    ActiveUnit& au = activeUnits[0];
+    
+    OUTPUT_TYPE val = au.unit->audio[au.pointer++];
+    if (activeUnits.size() == 1) {
+      // Continiously loop section
+      const size_t loopFadeSamples = 32;
+      int sinceLoopTail = au.pointer - (au.unit->audio.size() - loopFadeSamples);
+      if (sinceLoopTail > 0) {
+        if (au.unit->features.to == G_P_SIL_S) {
+          // Don't loop if its just silence
+          activeUnits.erase(activeUnits.begin());
+        } else {
+          // Crossfade into next loop
+          double lerpFactor = (double)(sinceLoopTail) / loopFadeSamples;
+          size_t newLoopPos = au.unit->consonant + sinceLoopTail;
+          val = Util::lerp(val, au.unit->audio[newLoopPos], lerpFactor);
+          if (sinceLoopTail == loopFadeSamples) {
+            // Reset pointer
+            au.pointer = newLoopPos;
+          }
+        }
+      }
+    } else {
+      // Transition to next unit
+      ActiveUnit& nau = activeUnits[1];
+      // Start crossfading
+      double lerpFactor = (double)(nau.pointer) / nau.unit->overlap;
+      val = Util::lerp(val, nau.unit->audio[nau.pointer++], lerpFactor);
+      if (nau.pointer >= nau.unit->overlap || au.pointer >= au.unit->audio.size()) {
+        // Pop the used unit
+        activeUnits.erase(activeUnits.begin());
       }
     }
-    aunit.pointer += samples;
+    assert(abs(val) < 1);
+    std::fill_n(outputBuffer, channels, val);
+    outputBuffer += channels;
+    nFrames--;
   }
-  if (activeUnits.size() > 0) {
-    ActiveUnit& front = activeUnits.front();
-    if (front.pointer >= front.unit->audio.size()) {
-      for (int i = 1; i < activeUnits.size(); i++) {
-        activeUnits[i - 1] = std::move(activeUnits[i]);
-      }
-      activeUnits.pop_back();
-    }
-  }
+  // Fill the remaining buffer with zeros
+  std::fill_n(outputBuffer, nFrames * channels, 0);
 }
 
 void SpeechEngineConcatenator::_init() {
@@ -73,7 +88,7 @@ void SpeechEngineConcatenator::_init() {
 void SpeechEngineConcatenator::playUnit(const Voicebank::Unit& unit) {
   std::unique_lock<std::mutex> lock(stateMutex);
 
-  activeUnits.push_back(ActiveUnit());
+  activeUnits.emplace_back();
   ActiveUnit& aunit = activeUnits.back();
   aunit.unit = &unit;
   aunit.pointer = 0;

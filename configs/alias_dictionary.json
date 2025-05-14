@@ -7,11 +7,11 @@
     },
     {
       "sequence": "a",
-      "phoneme": "A"
+      "phoneme": "a"
     },
     {
       "sequence": "e",
-      "phoneme": "E"
+      "phoneme": "e"
     },
     {
       "sequence": "i",
@@ -19,11 +19,11 @@
     },
     {
       "sequence": "o",
-      "phoneme": "O"
+      "phoneme": "o"
     },
     {
       "sequence": "u",
-      "phoneme": "U"
+      "phoneme": "u"
     },
     {
       "sequence": "E",
@@ -31,7 +31,7 @@
     },
     {
       "sequence": "9",
-      "phoneme": "E"
+      "phoneme": "9"
     },
     {
       "sequence": "3",
@@ -55,7 +55,7 @@
     },
     {
       "sequence": "8",
-      "phoneme": "U"
+      "phoneme": "8"
     },
     {
       "sequence": "Q",
@@ -67,23 +67,23 @@
     },
     {
       "sequence": "x",
-      "phoneme": "h\\"
+      "phoneme": "x"
     },
     {
       "sequence": "0",
-      "phoneme": "T"
+      "phoneme": "0"
     },
     {
       "sequence": "1",
-      "phoneme": "}"
+      "phoneme": "1"
     },
     {
       "sequence": "ng",
-      "phoneme": "n"
+      "phoneme": "ng"
     },
     {
       "sequence": "&",
-      "phoneme": "A"
+      "phoneme": "&"
     },
     {
       "sequence": "ll",
@@ -147,7 +147,7 @@
     },
     {
       "sequence": "ch",
-      "phoneme": "tS"
+      "phoneme": "C"
     },
     {
       "sequence": "dh",
@@ -183,7 +183,7 @@
     },
     {
       "sequence": "r",
-      "phoneme": "4"
+      "phoneme": "r"
     },
     {
       "sequence": "w",
@@ -191,7 +191,7 @@
     },
     {
       "sequence": "y",
-      "phoneme": "i"
+      "phoneme": "y"
     },
     {
       "sequence": "dd",
@@ -203,7 +203,7 @@
     },
     {
       "sequence": "2",
-      "phoneme": "E"
+      "phoneme": "2"
     },
     {
       "sequence": "*",

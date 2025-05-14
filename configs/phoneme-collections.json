@@ -16,6 +16,10 @@
     {
       "name": "TimitClassifier",
       "path": "configs/phoneme-set-TIMITClassifier.json"
+    },
+    {
+      "name": "ConcatSE",
+      "path": "configs/phoneme-set-ConcatSE.json"
     }
   ]
 }

@@ -29,6 +29,9 @@ public:
   static T firstNotOf(const std::vector<T>& vector, const T& excluded);
   // Checks if a contains b
   static bool contains(const std::string& a, const std::string& b);
+  // Checks if a contains b
+  template <typename T>
+  static bool contains(const std::vector<T>& a, const T& b);
   // Formats a string similar to c++20's std::format
   template <typename... Args>
   static std::string format(const std::string& format, Args ... args);

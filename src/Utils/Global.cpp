@@ -54,6 +54,11 @@ void Global::setSpeechEnginePhonemeSet(const std::string& name, bool supress) {
     }
   }
   speechEnginePhonemeSetId = pc.getId(name);
+
+  silPhoneSpeech = getPhonemeSet(PHONEME_SET_ARPA).fromString("h#");
+  // Translate to classifier id
+  TranslationMap tm(getPhonemeSet(PHONEME_SET_ARPA), getPhonemeSet(speechEnginePhonemeSetId));
+  silPhoneSpeech = tm.translate(silPhoneSpeech);
 }
 
 const PhonemeSet& Global::getSpeechEnginePhonemeSet() {
@@ -71,6 +76,13 @@ size_t Global::silencePhone() {
     G_LG("Cannot get silence phoneme; classifier has not been set yet", Logger::DEAD);
   }
   return silPhone;
+}
+
+size_t Global::silencePhoneSpeech() {
+  if (speechEnginePhonemeSetId < 0) {
+    G_LG("Cannot get silence phoneme; speech engine has not been set yet", Logger::DEAD);
+  }
+  return silPhoneSpeech;
 }
 
 Global::Global() {
@@ -110,7 +122,7 @@ void Global::log(std::string message, int verbosity, int color) {
     logFile << logMessage << std::endl;
   }
   if (origVerbosity == Logger::DEAD) {
-    throw(message);
+    throw std::runtime_error(message);
   };
 }
 

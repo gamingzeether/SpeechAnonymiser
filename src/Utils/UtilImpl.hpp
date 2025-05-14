@@ -11,6 +11,15 @@ T Util::firstNotOf(const std::vector<T>& vector, const T& excluded) {
   return excluded;
 }
 
+template <typename T>
+bool Util::contains(const std::vector<T>& a, const T& b) {
+  for (const T& i : a) {
+    if (i == b)
+      return true;
+  }
+  return false;
+}
+
 template <typename... Args>
 std::string Util::format(const std::string& format, Args ... args) {
   int strSize = snprintf(NULL, 0, format.c_str(), args...) + 1;
