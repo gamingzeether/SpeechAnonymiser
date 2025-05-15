@@ -2,6 +2,10 @@
 
 #include "common_inc.hpp"
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
+
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -614,10 +618,24 @@ void setClassifierSet(const std::string& datasetPath) {
   }
 }
 
+std::filesystem::path getExecutableDirectory() {
+  std::filesystem::path exePath;
+#ifdef WIN32
+  // Note: untested
+  LPSTR buffer[MAX_PATH];
+  GetModuleFileNameA(NULL, buffer, MAX_PATH);
+  exePath = std::filesystem::path(buffer);
+#else
+  exePath = std::filesystem::canonical("/proc/self/exe");
+#endif
+  return exePath.parent_path();
+}
+
 int main(int argc, char* argv[]) {
   // Can't print to cout if I don't write something to it here???
   std::cout << "\r";
 
+  // Reconstruct the launch args
   std::string launchString = "";
   for (int i = 0; i < argc; i++) {
     if (i > 0) {
@@ -625,6 +643,11 @@ int main(int argc, char* argv[]) {
     }
     launchString += argv[i];
   }
+
+  // Change working directory
+  std::filesystem::path exePath = getExecutableDirectory();
+  std::filesystem::current_path(exePath);
+  
   G_LG(Util::format("Launch args: %s", launchString.c_str()), Logger::INFO);
   G_LG(Util::format("Working directory: %s", std::filesystem::current_path().c_str()), Logger::INFO);
 

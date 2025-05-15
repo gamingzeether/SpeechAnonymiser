@@ -1,115 +1,89 @@
-# Speech Anonymiser
+# Introduction
 
-This project is intended to modify parts of spoken language to make it harder to identify the person behind it. Every person has their own speaking quirks that make them identifiable through their voice. The easiest feature to recognize is probably the way their voice sounds which is why people wanting to hide their identities may use a voice changer. The voice isn't the only feature that can help to give away their identity. Things like accents, commonly used phrases or words, how words are stressed, pacing, and loudness are unique to each person but aren't usually changed by a voice changer. 
+This project is intended to achieve a middle ground between DSP based and STT-TTS based voice changers
 
-Voice changer systems that use a STT and TTS solve many of the issues above but have their own downsides. 
-- Latency: The STT has to finish transcribing the text before the TTS can start speaking. Many solutions to STT wait for the utterance to be completed before they can start transcribing. When trying to keep other people updated in an environment where things are always changing, such as in an FPS game, this latency may be unacceptable.
-- Accuracy: Depending on factors like accents and words that aren't in the dictionary, the STT may not accurately transcribe the word. 
-    - ex: "Haruka" -> "How to car"
-- Losing too many features: Although features like pitch, tempo, and stresses may help make someone's speech identifiable, they also play an important role in conveying meaning and emotion. 
-- Computing resources: Many commerical speech recognition systems use massive neural networks to transcribe audio which can use a lot of computational resources.
-    - Doing it on another device may add additional latency and costs. 
+DSP based systems are the types of voice changers that most people would think of. They use digital signal processing techniques to apply filters to speech, distorting the voice and making it harder to recognize. Although these kinds of systems can operate on low power devices and change the way a voice sounds, they don't hide other recognizable aspects of a speaker such as an accent.
 
-This project aims to provide as much anonymity as STT-TTS voice changers while having fewer downsides.
-- Latency: By windowing the speech into frames and identifying the phoneme in each frame, transcription can be done as the frames arrive.
-- Accuracy: By using phonemes instead of whole words, the system does not depend on a dictionary. As a side effect, accents have less of an effect on transcription accuracy.
-- Losing too many features: Removing features is mostly done through modifying the transcribed phonemes rather than losing them through the STT-TTS process. This approach allows for more control over what is changed.
-- Computing resources: Because it transcribes frames to phonemes instead of the whole utterance to words, the model for transcription can be much smaller.
+STT-TTS systems use speech to text then pass the output to a text to speech synthesizer. This method removes a lot more recognizable features but brings with it some downsides.
+1. The STT has to finish transcribing the text before the TTS can start speaking. Many STT solutions also have to wait for the speaker to stop before they can start transcribing. When trying to keep other people updated in an environment where things are always changing, such as in an FPS game, this latency may be unacceptable.
+1. STT may struggle to accurately transcribe something if it is spoken with an accent or if a word isn't in its vocabulary.
+1. Someone might want to preserve some speech information but there is no way to retrieve them from STT.
+1. Depending on the quality desired, the TTS and STT especially can be very computationally expensive.
 
-Also see: 
-- [Speaker de-identification using diphone recognition and speech synthesis](https://lmi.fe.uni-lj.si/wp-content/uploads/2023/05/Speakerde-identificationusingdiphonerecognitionandspeechsynthesis.pdf)
-  - Proposes DROPSY, a similar method that uses diphone recognition and focuses on hiding the voice
-- [speaker-anonymization](https://github.com/digitalphonetics/speaker-anonymization)
+This project aims to achieve a middle ground by using an architecture similar to STT-TTS but with more specialized STT (referred to as the classifier) and TTS (referred to as the speech engine) components. By recognizing features within a small time window (frame) instead of the whole utterance, transcription can happen with less latency and computational power. Since there isn't an existing solution that can do this, this classifier is a custom solution and can be tailored to the specific needs of this project. This includes extracting extra features we may want to pass to the speech engine like pitch and stress. Additionally, as a byproduct of working with frames, there is no vocabulary that the classifier or speech engine is constrained to and can theoretically work for any language without any additional configuration.
 
-# Process
+## Releases
 
-1. Convert speech to frames
-1. Identify phoneme in each frame
-1. Additional processing on phonemes
-    - ex: changing spacing between phonemes, changing from one accent to another, replacing words with synonyms, transcribing for subtitles
-1. Phonemes to speech with a speech synthesiser
+https://github.com/gamingzeether/SpeechAnonymiser/releases
 
-# Features
+## Process overview
 
-- [x] Speech to phoneme
+1. Convert speech to frames.
+1. Identify features in each frame.
+1. Additional processing on features.
+    - ex: changing timing, changing from one accent to another, replacing words with synonyms, transcribing for subtitles.
+1. Features to speech with a speech synthesiser.
+
+## Features
+
+- [ ] Speech to phoneme
 - [x] <img src="https://media1.tenor.com/m/-QWKmyICTLcAAAAd/cuh-guh.gif" height="100">
 - [ ] Accent replacement
 - [ ] Adjustable tempo
 - [ ] Change word stress
-- [ ] Phoneme to speech
+- [x] Phoneme to speech
 
-# Usage
+## Usage
 
-Run the executable
-### Flags
-- `-t` or `--train` Start in training mode
-- `-p` or `--preprocess` Process dataset before training
-- `-h` or `--help` Shows help
+To use, simply run the executable from a command line. `[Path to exectuable]`
 
-No flags will start the program in the default mode
+Environment variables can be used to pass extra information about the system.
+- `OMP_NUM_THREADS=n`: Tell omp to use n threads.
+- `OMP_DYNAMIC=true`: Tell omp to adjust the number of threads automatically.
+- `NONINTERACTIVE=true`: Skip prompts and use the default
 
-# Releases
+The behavior of the program can be changed by appending arguments after the exectuable. Use `-h` or `--help` to display more information.
 
-https://github.com/gamingzeether/SpeechAnonymiser/releases
+## Building
 
-
-# Dependencies
+### Dependencies
 - A compiler that supports c++ 17
 - CMake >= 3.16.0
 - vcpkg
 
 Libraries that this project uses directly are installed by vcpkg but those dependencies may require other libraries that aren't installed by vcpkg.
-The below commands *should* install all of the required libraries.
-### Debian/Ubuntu
-```
-sudo apt-get install -y \
-    gcc \
-    g++ \
-    gfortran
-    ffmpeg \
-    cmake \
-    git \
-    curl \
-    zip \
-    unzip \
-    tar \
-    build-essential \
-    pkg-config
-    gfortran \
-    libxinerama-dev \
-    libxcursor-dev \
-    xorg-dev \
-    libglu1-mesa-dev
-```
+Check the error logs of vcpkg if it doesn't configure.
 
-For more information, check out [the Dockerfile](docker/Dockerfile)
+After installing the dependencies, run
 
-### Windows
-Shouldn't need any additional libraries but I haven't tested this
-
-# Building
-Run
 ```
 git clone https://github.com/gamingzeether/SpeechAnonymiser
 cd SpeechAnonymiser
-mkdir out
-cmake -B out -DCMAKE_BUILD_TYPE=Release {OPTIONS}
-cmake --build out
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release {OPTIONS}
+cmake --build .
 ```
 `{OPTIONS}` can be replaced with flags to change functionality
 - `-DASAN={ON/OFF}` Compile with Address Sanitizer. (Default OFF)
 - `-DOMP={ON/OFF}` Compile with OpenMP. (No effect on MSVC) (Default OFF)
-- `-DAUDIO={ON/OFF}` Compile with audio in/output. (Default ON)
+- `-DAUDIO={ON/OFF}` Compile with support for audio in/output devices. (Default ON)
 - `-DMKL={ON/OFF}` Compile with Intel MKL. (Currently does nothing) (Default OFF)
 - `-DLTO={ON/OFF}` Compile with link time optimization. Increases compile time. (Default ON)
+- `-DGUI={ON/OFF}` Compile with support for GUIs. (Default ON)
+- `-DGPU={ON/OFF}` Run the classifier on GPU. Currently not implemented in mlpack. (Default OFF)
 
-# Preparing datasets
+## Training
 
-If using Common Voice: (Note: some clips are too noisy and the aligner provides bad alignments)
+Train with `[Path to executable] -t [path to dataset]`
+
+### Preparing datasets
+
+#### Common Voice
+(Note: some clips are too noisy and the aligner provides bad or even counterproductive alignments)
 1. Download Mozilla Common Voice dataset
 1. Install Montreal Forced Aligner
 1. Extract dataset
-1. Preprocess with `-p [path to dataset] -w [work directory] -d [MFA dictionary path] -a [MFA acoustic model path] -o [transcript output]`
+1. Preprocess with `[Path to executable] -p [path to dataset] -w [work directory] -d [MFA dictionary path] -a [MFA acoustic model path] -o [transcript output]`
 1. Move the transcipt folder to same folder as clips ex:
     - [Dataset]
         - clips
@@ -117,19 +91,18 @@ If using Common Voice: (Note: some clips are too noisy and the aligner provides 
         - train.tsv
         - ...
 
-If using TIMIT:
+#### TIMIT:
 1. Convert WAV files from NIST to RIFF
     - Rename new files to *\_.wav ex: SA1.WAV -> SA1\_.wav
+    - Note the case and underscore
     - I used `find . -name '*.WAV' | parallel -P20 sox {} '{.}_.wav'`
 
-# Training
+### Docker
 
-1. Train with `-t [path to dataset]`
+To simplify preparing datasets and training, there is the option to use the docker container. It greatly simplifies the data processing and training steps. Check out the [readme](docker/README.md) for instructions on how to use it.
 
-# Docker
+## More
 
-To simplify preparing datasets and training, there is the option to use docker. It contains scripts that processes unlabeled recordings into a usable dataset. It can also be used to train the phoneme classifier. Check out the [readme](docker/README.md) for instructions on how to use it.
-
-# Want to contribute? / Have questions? / Something doesn't work?
-
-Make an issue or pull request
+Here are some similar projects that I found while working on this: 
+- [Speaker de-identification using diphone recognition and speech synthesis](https://lmi.fe.uni-lj.si/wp-content/uploads/2023/05/Speakerde-identificationusingdiphonerecognitionandspeechsynthesis.pdf)
+- [speaker-anonymization](https://github.com/digitalphonetics/speaker-anonymization)

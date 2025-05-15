@@ -11,6 +11,7 @@
     "GUI":   "ON",
     "GPU":   "OFF"
   },
+  "cmake.buildDirectory" : "${workspaceFolder}/build/",
   "files.associations": {
     "cctype": "cpp",
     "clocale": "cpp",

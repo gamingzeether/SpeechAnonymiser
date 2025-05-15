@@ -41,10 +41,10 @@ endif()
 ################################################################################
 # Set up project
 ################################################################################
-set(OUTPUT_DIRECTORY "${CMAKE_BUILD_TYPE}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+#set(OUTPUT_DIRECTORY "${CMAKE_BUILD_TYPE}")
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
 
 set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
@@ -238,7 +238,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -funsafe-math-optimizations
     -fno-trapping-math
   >
-  -std=c++2a
+  -std=c++17
   -march=native
   ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT}
   ${DEFAULT_CXX_EXCEPTION_HANDLING}
@@ -259,7 +259,7 @@ if (LTO AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
 endif()
 
 ################################################################################
-# Copt files
+# Copy files
 ################################################################################
 add_custom_command(
   TARGET ${PROJECT_NAME} POST_BUILD
