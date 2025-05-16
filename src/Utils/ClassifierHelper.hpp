@@ -5,8 +5,8 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <armadillo>
 #include <fftw3.h>
+#include "../include_la.hpp"
 #include "../structs.hpp"
 
 class ClassifierHelper {

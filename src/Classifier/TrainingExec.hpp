@@ -3,7 +3,7 @@
 #include "../common_inc.hpp"
 
 #include <functional>
-#include <armadillo>
+#include "../include_la.hpp"
 
 // Class for custom mlpack training callbacks
 template<typename MatType = MAT_TYPE>

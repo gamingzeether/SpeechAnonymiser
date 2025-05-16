@@ -5,7 +5,6 @@
 #define ARMA_DONT_PRINT_FAST_MATH_WARNING
 
 #include <thread>
-#include <armadillo>
 #include <filesystem>
 #include "Clip.hpp"
 #include "DatasetTypes.hpp"
@@ -14,6 +13,7 @@
 #include "../../Utils/ClassifierHelper.hpp"
 #include "../../Utils/Global.hpp"
 #include "../../Utils/ParallelWorker.hpp"
+#include "../../include_la.hpp"
 #include "../../structs.hpp"
 
 class Dataset {

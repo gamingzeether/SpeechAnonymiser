@@ -3,7 +3,7 @@
 #include "../../common_inc.hpp"
 
 #include <fstream>
-#include <armadillo>
+#include "../../include_la.hpp"
 
 template<typename MatType = MAT_TYPE>
 class LossLogger {

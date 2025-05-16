@@ -2,13 +2,13 @@
 
 #include "../common_inc.hpp"
 
-#include <armadillo>
 #include <QObject>
 #include <QSlider>
 
 #include "../Classifier/Train/Dataset.hpp"
 #include "../SpeechEngine/SpeechEngine.hpp"
 #include "../GUI/Spectrogram.hpp"
+#include "../include_la.hpp"
 
 class InteractiveDebugger : public QObject {
 public:
