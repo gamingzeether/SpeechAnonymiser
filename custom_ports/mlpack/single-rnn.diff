@@ -2,12 +2,12 @@ diff --git a/src/mlpack/methods/ann/rnn.hpp b/src/mlpack/methods/ann/rnn.hpp
 index ee97d6f..b91950a 100644
 --- a/src/mlpack/methods/ann/rnn.hpp
 +++ b/src/mlpack/methods/ann/rnn.hpp
-@@ -258,6 +258,11 @@ class RNN
-                arma::Cube<typename MatType::elem_type>& results,
+@@ -260,6 +260,11 @@ class RNN
+                CubeType& results,
                 const arma::urowvec& sequenceLengths);
  
-+  void PredictSingle(const arma::Cube<typename MatType::elem_type>& predictors,
-+               arma::Cube<typename MatType::elem_type>& results);
++  void PredictSingle(const CubeType& predictors,
++                     CubeType& results);
 +
 +  void MemoryInit() { ResetMemoryState(0, 1); };
 +
@@ -18,7 +18,7 @@ diff --git a/src/mlpack/methods/ann/rnn_impl.hpp b/src/mlpack/methods/ann/rnn_im
 index 6ebb32f..afe0f33 100644
 --- a/src/mlpack/methods/ann/rnn_impl.hpp
 +++ b/src/mlpack/methods/ann/rnn_impl.hpp
-@@ -348,6 +348,48 @@ void RNN<
+@@ -348,6 +348,47 @@ void RNN<
    }
  }
  
@@ -31,9 +31,8 @@ index 6ebb32f..afe0f33 100644
 +    OutputLayerType,
 +    InitializationRuleType,
 +    MatType
-+>::PredictSingle(
-+    const arma::Cube<typename MatType::elem_type>& predictors,
-+    arma::Cube<typename MatType::elem_type>& results)
++>::PredictSingle(const CubeType& predictors,
++                 CubeType& results)
 +{
 +  // Ensure that the network is configured correctly.
 +  network.CheckNetwork("RNN::Predict()", predictors.n_rows, true, false);
